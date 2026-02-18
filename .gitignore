@@ -1,0 +1,19 @@
+# Node
+node_modules/
+
+# Tailwind generated output (can be rebuilt)
+src/output.css
+
+# Zone.Identifier files (Windows metadata)
+*:Zone.Identifier
+
+# Environment files
+.env
+.env.*
+
+# Docker volumes
+db_data/
+
+# OS
+.DS_Store
+Thumbs.db
