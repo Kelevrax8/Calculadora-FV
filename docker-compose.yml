@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   web:
     build: .
@@ -7,13 +5,12 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./src:/var/www/html
+      - ./:/var/www/html
     depends_on:
       - db
-      - node
 
   db:
-    image: mysql:latest
+    image: mysql:8
     container_name: mysql_db
     restart: always
     environment:
@@ -40,11 +37,11 @@ services:
 
   node:
     image: node:20
-    container_name: node
     working_dir: /var/www/html
     volumes:
-      - ./src:/var/www/html
-    command: npx tailwindcss -i ./src/input.css -o ./src/output.css --watch
+      - ./:/var/www/html
+    tty: true
 
 volumes:
   db_data:
+
