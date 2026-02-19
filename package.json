@@ -7,8 +7,9 @@
     "postcss": "^8.4.26",
     "tailwindcss": "^4.2.0"
   },
-  "scripts": {
-    "build": "tailwindcss -i ./src/input.css -o ./src/output.css",
-    "watch": "tailwindcss -i ./src/input.css -o ./src/output.css --watch"
-  }
+"scripts": {
+  "build": "tailwindcss -i ./src/input.css -o ./src/output.css",
+  "watch": "tailwindcss -i ./src/input.css -o ./src/output.css --watch"
+}
+
 }

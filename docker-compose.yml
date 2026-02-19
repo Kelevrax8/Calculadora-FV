@@ -40,6 +40,7 @@ services:
     working_dir: /var/www/html
     volumes:
       - ./:/var/www/html
+    command: sh -c "npm install && npm run watch"
     tty: true
 
 volumes:

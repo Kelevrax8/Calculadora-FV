@@ -7,7 +7,7 @@
     <title>Calculadora FV</title>
 </head>
 <body>
-    <p class="text-3xl font-bold underline text-center text-Ipteblue2">
+    <p class="text-3xl font-bold underline text-center text-Ipteblue">
         aaaa
     </p>
 </body>
