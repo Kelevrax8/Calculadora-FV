@@ -23,7 +23,7 @@
 
       <!-- Left: Logo + app name -->
       <div class="flex items-center gap-4">
-        <a href="/" class="flex items-center">
+        <a href="../pages/dashboard.php" class="flex items-center">
           <img
             src="/Images/Logo-IPTE.png"
             alt="IPTE"
