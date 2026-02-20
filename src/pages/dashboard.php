@@ -77,7 +77,7 @@ include '../components/header-dashboard.php';
               </h2>
               <p class="text-sm text-gray-400 mt-1 leading-relaxed">
                 Gestión de equipo para sistemas fotovoltaicos. Administra paneles,
-                inversores, baterías y demás componentes del catálogo.
+                inversores y demás componentes del catálogo.
               </p>
             </div>
 
