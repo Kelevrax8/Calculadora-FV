@@ -31,7 +31,7 @@ include 'components/header.php';
           rendimiento de los sistemas solares.
         </p>
         <a
-          href="/pages/calculadora.php"
+          href="/pages/dashboard.php"
           class="inline-flex items-center rounded-md bg-Ipteblue2 px-6 py-3 text-sm font-semibold text-white hover:bg-white hover:text-Ipteblue transition-colors duration-200"
         >
           Iniciar sesión
