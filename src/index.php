@@ -19,7 +19,7 @@ include 'components/header.php';
     <!-- Content -->
     <div class="relative z-10 max-w-7xl mx-auto px-8 sm:px-12 lg:px-20 py-24">
       <div class="max-w-xl">
-        <span class="inline-block text-Ipteblue2 text-sm font-semibold tracking-widest uppercase mb-4">
+        <span class="inline-block text-white text-sm font-semibold tracking-widest uppercase mb-4">
           Soluciones Tecnológicas
         </span>
         <h1 class="text-4xl sm:text-5xl font-bold text-white leading-tight mb-6">
