@@ -312,7 +312,7 @@ include '../components/header-dashboard.php';
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!--  MODAL                                                                 -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+  <div id="modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
 
       <!-- Header -->
@@ -395,7 +395,7 @@ include '../components/header-dashboard.php';
               <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_voc"
                 oninput="validateNegative(this, 'warn-tcv')"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
-              <p id="warn-tcv" class="hidden mt-1 text-xs text-red-500 flex items-center gap-1">
+              <p id="warn-tcv" class="hidden mt-1 text-xs text-red-500 items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                 El valor debe ser negativo (ej. -0.2800)
               </p>
@@ -405,7 +405,7 @@ include '../components/header-dashboard.php';
               <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_pmax"
                 oninput="validateNegative(this, 'warn-tcp')"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
-              <p id="warn-tcp" class="hidden mt-1 text-xs text-red-500 flex items-center gap-1">
+              <p id="warn-tcp" class="hidden mt-1 text-xs text-red-500 items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                 El valor debe ser negativo (ej. -0.3500)
               </p>
@@ -491,7 +491,7 @@ include '../components/header-dashboard.php';
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!--  TOAST CONTAINER                                                        -->
   <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 items-end pointer-events-none"></div>
+  <div id="toast-container" class="fixed bottom-6 right-6 z-100 flex flex-col gap-2 items-end pointer-events-none"></div>
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!--  JAVASCRIPT                                                             -->
@@ -663,6 +663,7 @@ include '../components/header-dashboard.php';
       }
 
       document.getElementById('modal').classList.remove('hidden');
+      document.getElementById('modal').classList.add('flex');
     }
 
     async function populateManufacturers(selectId, selectedId = null) {
@@ -675,6 +676,7 @@ include '../components/header-dashboard.php';
 
     function closeModal() {
       document.getElementById('modal').classList.add('hidden');
+      document.getElementById('modal').classList.remove('flex');
       currentTab = null;
     }
 
@@ -791,9 +793,11 @@ include '../components/header-dashboard.php';
         input.classList.add('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
         input.classList.remove('border-gray-200', 'focus:ring-Ipteblue2');
         warn.classList.remove('hidden');
+        warn.classList.add('flex');
       } else {
         input.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
         input.classList.add('border-gray-200', 'focus:ring-Ipteblue2');
+        warn.classList.remove('flex');
         warn.classList.add('hidden');
       }
     }

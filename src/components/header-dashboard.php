@@ -6,14 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= htmlspecialchars($pageTitle ?? 'Dashboard - IPTE') ?></title>
 
-  <!-- Tailwind CSS 4.x (browser build) -->
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <style type="text/tailwindcss">
-    @theme {
-      --color-Ipteblue: #171933;
-      --color-Ipteblue2: #0665F7;
-    }
-  </style>
+  <!-- Tailwind CSS 4.x (CLI build) -->
+  <link rel="stylesheet" href="/output.css">
 </head>
 <body class="h-full flex flex-col overflow-hidden bg-gray-100">
 
