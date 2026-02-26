@@ -1,9 +1,15 @@
-CREATE DATABASE IF NOT EXISTS pv_calculator;
-USE pv_calculator;
+-- ============================================
+-- PV CALCULATOR DATABASE SCHEMA
+-- Clean Production Version
+-- MySQL 8.4+
+-- ============================================
 
--- ================================
+CREATE DATABASE IF NOT EXISTS app_db;
+USE app_db;
+
+-- ============================================
 -- 1️⃣ MANUFACTURERS
--- ================================
+-- ============================================
 
 CREATE TABLE manufacturers (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -12,9 +18,9 @@ CREATE TABLE manufacturers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- ================================
+-- ============================================
 -- 2️⃣ PV MODULES
--- ================================
+-- ============================================
 
 CREATE TABLE pv_modules (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -22,15 +28,18 @@ CREATE TABLE pv_modules (
     model VARCHAR(150) NOT NULL,
     technology ENUM('Monocrystalline','Polycrystalline','Thin Film','Other') NOT NULL,
 
+    -- Electrical STC Values
     pmax_stc DECIMAL(6,2) NOT NULL,
     voc_stc DECIMAL(6,2) NOT NULL,
     isc_stc DECIMAL(6,2) NOT NULL,
     vmpp_stc DECIMAL(6,2) NOT NULL,
     imp_stc DECIMAL(6,2) NOT NULL,
 
+    -- Temperature Coefficients
     temp_coeff_voc DECIMAL(6,4) NOT NULL,
     temp_coeff_pmax DECIMAL(6,4) NOT NULL,
 
+    -- Physical Dimensions (meters)
     length_m DECIMAL(4,2) NOT NULL,
     width_m DECIMAL(4,2) NOT NULL,
 
@@ -44,20 +53,29 @@ CREATE TABLE pv_modules (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- ================================
+-- ============================================
 -- 3️⃣ INVERTERS
--- ================================
+-- ============================================
 
 CREATE TABLE inverters (
     id INT AUTO_INCREMENT PRIMARY KEY,
     manufacturer_id INT NOT NULL,
     model VARCHAR(150) NOT NULL,
 
+    -- DC INPUT SIDE
     pmax_dc_input DECIMAL(8,2) NOT NULL,
     max_dc_voltage DECIMAL(6,2) NOT NULL,
-    max_input_current DECIMAL(6,2) NOT NULL,
+    mppt_voltage_min DECIMAL(6,2) NOT NULL,
+    mppt_voltage_max DECIMAL(6,2) NOT NULL,
+    startup_voltage DECIMAL(6,2) NOT NULL,
+    max_input_current_per_mppt DECIMAL(6,2) NOT NULL,
     max_short_circuit_current DECIMAL(6,2) NOT NULL,
+
+    -- AC OUTPUT SIDE
     nominal_ac_power DECIMAL(8,2) NOT NULL,
+    ac_voltage_nominal DECIMAL(6,2) NOT NULL,
+    phase_type ENUM('Single Phase','Split Phase','Three Phase') NOT NULL,
+    efficiency_weighted DECIMAL(5,2) NOT NULL,
 
     mppt_count INT NOT NULL,
 
@@ -71,12 +89,13 @@ CREATE TABLE inverters (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- ================================
+-- ============================================
 -- 4️⃣ CLIMATOLOGY LOCATIONS
--- ================================
+-- ============================================
 
 CREATE TABLE climatology_locations (
     id INT AUTO_INCREMENT PRIMARY KEY,
+
     latitude DECIMAL(5,2) NOT NULL,
     longitude DECIMAL(5,2) NOT NULL,
 
@@ -86,13 +105,13 @@ CREATE TABLE climatology_locations (
     data_source VARCHAR(50) DEFAULT 'NASA POWER',
     last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE (latitude, longitude)
+    CONSTRAINT unique_coordinates UNIQUE (latitude, longitude)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- ================================
--- 5️⃣ CLIMATOLOGY MONTHLY
--- ================================
+-- ============================================
+-- 5️⃣ CLIMATOLOGY MONTHLY DATA
+-- ============================================
 
 CREATE TABLE climatology_monthly (
     id INT AUTO_INCREMENT PRIMARY KEY,
