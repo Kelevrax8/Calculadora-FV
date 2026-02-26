@@ -14,7 +14,7 @@ include 'components/header.php';
     ></div>
 
     <!-- Gradient overlay: dark on the left, transparent on the right -->
-    <div class="absolute inset-0 bg-gradient-to-r from-Ipteblue/90 via-Ipteblue/60 to-transparent"></div>
+    <div class="absolute inset-0 bg-linear-to-r from-Ipteblue/90 via-Ipteblue/60 to-transparent"></div>
 
     <!-- Content -->
     <div class="relative z-10 max-w-7xl mx-auto px-8 sm:px-12 lg:px-20 py-24">

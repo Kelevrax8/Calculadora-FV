@@ -326,9 +326,6 @@ include '../components/header-dashboard.php';
       <!-- Body (scrollable) -->
       <div class="overflow-y-auto px-6 py-5 flex-1">
 
-        <!-- Error banner -->
-        <div id="modal-error" class="hidden mb-4 bg-red-50 text-red-700 text-sm px-4 py-2 rounded-lg border border-red-200"></div>
-
         <!-- FORM: Manufacturadores -->
         <form id="form-manufacturadores" class="entity-form hidden space-y-4" onsubmit="return false">
           <input type="hidden" id="man-id">
@@ -394,14 +391,24 @@ include '../components/header-dashboard.php';
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">β Voc (%/°C) <span class="font-normal text-gray-400">(debe ser negativo)</span></label>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">β Voc (%/°C)</label>
               <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_voc"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
+                oninput="validateNegative(this, 'warn-tcv')"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
+              <p id="warn-tcv" class="hidden mt-1 text-xs text-red-500 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                El valor debe ser negativo (ej. -0.2800)
+              </p>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">β Pmax (%/°C) <span class="font-normal text-gray-400">(debe ser negativo)</span></label>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">β Pmax (%/°C)</label>
               <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_pmax"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
+                oninput="validateNegative(this, 'warn-tcp')"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
+              <p id="warn-tcp" class="hidden mt-1 text-xs text-red-500 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                El valor debe ser negativo (ej. -0.3500)
+              </p>
             </div>
             <div>
               <label class="block text-xs font-semibold text-gray-500 mb-1">Largo (m)</label>
@@ -480,6 +487,11 @@ include '../components/header-dashboard.php';
       </div>
     </div>
   </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  TOAST CONTAINER                                                        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 items-end pointer-events-none"></div>
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!--  JAVASCRIPT                                                             -->
@@ -615,9 +627,7 @@ include '../components/header-dashboard.php';
       document.getElementById('modal-title').textContent = row ? 'Editar registro' : 'Nuevo registro';
       document.querySelectorAll('.entity-form').forEach(f => f.classList.add('hidden'));
       document.getElementById('form-' + tab).classList.remove('hidden');
-      document.getElementById('modal-error').classList.add('hidden');
-
-      // Populate manufacturer selects if needed
+      resetNegativeWarnings();
       if (tab === 'modulos' || tab === 'inversores') {
         await populateManufacturers(tab === 'modulos' ? 'mod-manufacturer' : 'inv-manufacturer', row?.manufacturer_id);
       }
@@ -669,7 +679,6 @@ include '../components/header-dashboard.php';
     }
 
     async function saveEntity() {
-      document.getElementById('modal-error').classList.add('hidden');
       const tab = currentTab;
       let payload = {};
 
@@ -677,21 +686,7 @@ include '../components/header-dashboard.php';
         payload = { id: document.getElementById('man-id').value, name: document.getElementById('man-name').value };
       }
       if (tab === 'modulos') {
-        const tcv  = parseFloat(document.getElementById('mod-temp_coeff_voc').value);
-        const tcp  = parseFloat(document.getElementById('mod-temp_coeff_pmax').value);
-        if (isNaN(tcv) || tcv >= 0) {
-          const err = document.getElementById('modal-error');
-          err.textContent = 'El coeficiente de temperatura de Voc (β Voc) debe ser un valor negativo.';
-          err.classList.remove('hidden');
-          return;
-        }
-        if (isNaN(tcp) || tcp >= 0) {
-          const err = document.getElementById('modal-error');
-          err.textContent = 'El coeficiente de temperatura de Pmax (β Pmax) debe ser un valor negativo.';
-          err.classList.remove('hidden');
-          return;
-        }
-        payload = {
+          payload = {
           id: document.getElementById('mod-id').value,
           manufacturer_id: document.getElementById('mod-manufacturer').value,
           model:            document.getElementById('mod-model').value,
@@ -729,13 +724,13 @@ include '../components/header-dashboard.php';
       });
       const json = await res.json();
       if (json.error) {
-        const err = document.getElementById('modal-error');
-        err.textContent = json.error;
-        err.classList.remove('hidden');
+        showToast(json.error, 'error');
         return;
       }
+      const isEdit = !!payload.id;
       closeModal();
       loadTable(tab, state[tab].page);
+      showToast(isEdit ? 'Registro actualizado correctamente.' : 'Registro creado correctamente.');
     }
 
     // ── Delete ────────────────────────────────────────────────────────────
@@ -748,9 +743,69 @@ include '../components/header-dashboard.php';
         body: JSON.stringify({ id }),
       });
       const json = await res.json();
-      if (json.error) { alert('Error: ' + json.error); return; }
+      if (json.error) { showToast('Error: ' + json.error, 'error'); return; }
       const newPage = state[tab].page;
       loadTable(tab, newPage);
+      showToast('Registro eliminado correctamente.', 'info');
+    }
+
+    // ── Toast notifications ─────────────────────────────────────────────
+    function showToast(message, type = 'success') {
+      const colours = {
+        success: 'bg-green-600',
+        error:   'bg-red-600',
+        info:    'bg-Ipteblue2',
+      };
+      const icons = {
+        success: `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`,
+        error:   `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
+        info:    `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01"/></svg>`,
+      };
+
+      const toast = document.createElement('div');
+      toast.className = [
+        'pointer-events-auto flex items-center gap-2.5 text-white text-sm font-medium',
+        'px-4 py-2.5 rounded-xl shadow-lg',
+        'translate-x-0 opacity-100 transition-all duration-300',
+        colours[type] ?? colours.info,
+      ].join(' ');
+      toast.innerHTML = (icons[type] ?? '') + `<span>${esc(message)}</span>`;
+
+      const container = document.getElementById('toast-container');
+      container.appendChild(toast);
+
+      // Fade out then remove
+      setTimeout(() => {
+        toast.style.opacity    = '0';
+        toast.style.transform  = 'translateX(1rem)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // ── Negative coefficient real-time validation ──────────────────────
+    function validateNegative(input, warningId) {
+      const val  = parseFloat(input.value);
+      const warn = document.getElementById(warningId);
+      const invalid = input.value !== '' && !isNaN(val) && val >= 0;
+      if (invalid) {
+        input.classList.add('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
+        input.classList.remove('border-gray-200', 'focus:ring-Ipteblue2');
+        warn.classList.remove('hidden');
+      } else {
+        input.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
+        input.classList.add('border-gray-200', 'focus:ring-Ipteblue2');
+        warn.classList.add('hidden');
+      }
+    }
+
+    function resetNegativeWarnings() {
+      ['mod-temp_coeff_voc', 'mod-temp_coeff_pmax'].forEach((id, i) => {
+        const input = document.getElementById(id);
+        const warn  = document.getElementById(['warn-tcv', 'warn-tcp'][i]);
+        input.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
+        input.classList.add('border-gray-200', 'focus:ring-Ipteblue2');
+        warn.classList.add('hidden');
+      });
     }
 
     // ── XSS-safe string helper ────────────────────────────────────────────
