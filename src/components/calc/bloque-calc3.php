@@ -150,7 +150,7 @@
        class="hidden text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 border border-red-200"></p>
 
     <div id="inverters-grid"
-         class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+         class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
       <!-- cards injected by JS -->
     </div>
 

@@ -108,7 +108,7 @@
                 <span class="text-gray-400 font-normal">(kWh/m²/día)</span>
               </label>
               <!-- Mode toggle: only visible after NASA data loads -->
-              <div id="hsp-mode-toggle" class="hidden flex items-center rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
+              <div id="hsp-mode-toggle" class="flex items-center rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
                 <button type="button" data-mode="min"
                   class="hsp-mode-btn px-2.5 py-1 bg-Ipteblue text-white transition-colors">
                   Peor mes

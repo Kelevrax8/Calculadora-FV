@@ -61,7 +61,7 @@
     <p id="modules-error" class="hidden text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 border border-red-200"></p>
 
     <!-- Card grid -->
-    <div id="modules-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+    <div id="modules-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
       <!-- cards injected by JS -->
     </div>
 
