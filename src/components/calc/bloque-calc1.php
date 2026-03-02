@@ -120,10 +120,10 @@
               </div>
             </div>
             <input type="number" id="hsp" name="hsp_kwh_m2_dia"
-              min="0" step="0.01" placeholder="Ej. 5.50"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2
-                     text-sm text-gray-800 placeholder-gray-400
-                     focus:outline-none focus:ring-2 focus:ring-Ipteblue/40"/>
+              min="0" step="0.01" placeholder="Selecciona una ubicación y consulta la NASA" readonly
+              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
+                     text-sm text-gray-700 placeholder-gray-400
+                     focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
             <p id="hsp-mode-hint" class="hidden mt-1 text-xs text-gray-400"></p>
           </div>
 
@@ -134,20 +134,20 @@
                 T. Mínima <span class="text-gray-400 font-normal">(°C)</span>
               </label>
               <input type="number" id="tmin" name="tmin_ambiente"
-                step="0.1" placeholder="Ej. 5.0"
-                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2
-                       text-sm text-gray-800 placeholder-gray-400
-                       focus:outline-none focus:ring-2 focus:ring-Ipteblue/40"/>
+                step="0.1" placeholder="—" readonly
+                class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
+                       text-sm text-gray-700 placeholder-gray-400
+                       focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1" for="tmax">
                 T. Máxima <span class="text-gray-400 font-normal">(°C)</span>
               </label>
               <input type="number" id="tmax" name="tmax_ambiente"
-                step="0.1" placeholder="Ej. 38.0"
-                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2
-                       text-sm text-gray-800 placeholder-gray-400
-                       focus:outline-none focus:ring-2 focus:ring-Ipteblue/40"/>
+                step="0.1" placeholder="—" readonly
+                class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
+                       text-sm text-gray-700 placeholder-gray-400
+                       focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
             </div>
           </div>
         </div>
