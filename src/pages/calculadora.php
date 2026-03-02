@@ -34,6 +34,33 @@ $extraScripts = <<<'HTML'
 <script src="/lib/leaflet.js"></script>
 <script>
 // ============================================================
+//  NAVIGATION – History API (browser back/forward support)
+// ============================================================
+(function () {
+  // Set initial history entry so the first back press stays on this page
+  history.replaceState({ step: 1 }, '', '#paso-1');
+
+  window.showStep = function (step) {
+    const blocks = [
+      document.getElementById('bloque-1'),
+      document.getElementById('bloque-2'),
+      document.getElementById('bloque-3'),
+    ];
+    blocks.forEach((b, i) => b.classList.toggle('hidden', i + 1 !== step));
+    const target = blocks[step - 1];
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (step === 2 && typeof window.loadPVModules === 'function') window.loadPVModules();
+    if (step === 3 && typeof window.loadInverters  === 'function') window.loadInverters();
+  };
+
+  window.addEventListener('popstate', function (e) {
+    const step = (e.state && e.state.step) ? e.state.step : 1;
+    window.showStep(step);
+  });
+})();
+</script>
+<script>
+// ============================================================
 //  BLOQUE 1 – Map, NASA POWER fetch, HSP mode toggle
 // ============================================================
 // NOTE: only one copy of this block should exist in the file
@@ -191,21 +218,14 @@ $extraScripts = <<<'HTML'
 
     nasaError.classList.add('hidden');
 
-    const b1 = document.getElementById('bloque-1');
-    const b2 = document.getElementById('bloque-2');
-
-    b1.classList.add('hidden');
-    b2.classList.remove('hidden');
-    b2.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    if (typeof window.loadPVModules === 'function') window.loadPVModules();
+    history.pushState({ step: 2 }, '', '#paso-2');
+    window.showStep(2);
   });
 
   // ── Back to Block 1 ──────────────────────────────────────
   document.getElementById('btn-bloque2-volver').addEventListener('click', function () {
-    document.getElementById('bloque-2').classList.add('hidden');
-    const b1 = document.getElementById('bloque-1');
-    b1.classList.remove('hidden');
-    b1.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    history.pushState({ step: 1 }, '', '#paso-1');
+    window.showStep(1);
   });
 
 })();
@@ -453,12 +473,8 @@ $extraScripts = <<<'HTML'
   // ── Continue to Block 3 ───────────────────────────────────
   contBtn.addEventListener('click', function () {
     if (!selectedModule) return;
-    const b2 = document.getElementById('bloque-2');
-    const b3 = document.getElementById('bloque-3');
-    b2.classList.add('hidden');
-    b3.classList.remove('hidden');
-    b3.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    if (typeof window.loadInverters === 'function') window.loadInverters();
+    history.pushState({ step: 3 }, '', '#paso-3');
+    window.showStep(3);
   });
 
 })();
@@ -510,7 +526,7 @@ $extraScripts = <<<'HTML'
       allInverters = data;
       loaded = true;
 
-      // Default: all modules in one string (Np = 1), user reduces if needed
+      // Start with all modules in one string; refreshStringUI() will clamp
       currentNs = N_total;
 
       buildInvFilters();
@@ -528,24 +544,120 @@ $extraScripts = <<<'HTML'
 
   // ── String configurator ────────────────────────────────────
   function refreshStringUI() {
+    // 1. Compute Ns range bounds (inverter-aware when one is selected)
+    let Ns_min, Ns_max, Ns_min_reason, Ns_max_reason;
+    if (selectedInverter) {
+      const inv       = selectedInverter;
+      const Ns_by_vdc  = Math.floor(inv.max_dc_voltage   / Voc_cold_per);   // safety ceiling
+      const Ns_by_mppt = Math.floor(inv.mppt_voltage_max / Vmpp_cold_per);  // MPPT window ceiling
+      const Ns_max_raw = Math.min(Ns_by_vdc, Ns_by_mppt);
+      Ns_max        = Math.min(N_total, Ns_max_raw);
+      Ns_max_reason = (Ns_by_mppt <= Ns_by_vdc) ? 'ventana MPPT' : 'Vdc máx';
+      Ns_min        = Math.max(1, Math.ceil(inv.startup_voltage / Vmpp_hot_per));
+      Ns_min_reason = 'arranque';
+    } else {
+      // No inverter selected: use the most permissive global bound so the user can browse freely
+      const global_vdc_max = Math.max(...allInverters.map(i => i.max_dc_voltage));
+      Ns_max        = Math.min(N_total, Math.floor(global_vdc_max / Voc_cold_per));
+      Ns_max_reason = 'Vdc máx global';
+      Ns_min        = 1;
+      Ns_min_reason = '';
+    }
+
+    // 2. Clamp currentNs to valid range before computing anything
+    currentNs = Math.max(Ns_min, Math.min(currentNs, Ns_max));
+
+    // 3. Derived electrical values
     const Np        = Math.ceil(N_total / currentNs);
     const Voc_cold  = currentNs * Voc_cold_per;
     const Vmpp_hot  = currentNs * Vmpp_hot_per;
     const Vmpp_cold = currentNs * Vmpp_cold_per;
 
-    document.getElementById('ns-value').textContent    = currentNs;
-    document.getElementById('np-value').textContent    = Np;
+    // 3b. Remainder string detection
+    const n_rem      = N_total % currentNs;
+    const n_full_str = Math.floor(N_total / currentNs);
+    const remEl      = document.getElementById('str-remainder-warning');
+    if (n_rem > 0) {
+      const rem_Voc_cold  = n_rem * Voc_cold_per;
+      const rem_Vmpp_hot  = n_rem * Vmpp_hot_per;
+      const rem_Vmpp_cold = n_rem * Vmpp_cold_per;
+      document.getElementById('str-rem-breakdown').textContent =
+        n_full_str + ' string' + (n_full_str > 1 ? 's' : '') + ' × ' + currentNs +
+        ' mód  +  1 string × ' + n_rem + ' mód (string corto)';
+      document.getElementById('str-rem-voc-cold').textContent  = rem_Voc_cold.toFixed(1)  + ' V';
+      document.getElementById('str-rem-vmpp-hot').textContent  = rem_Vmpp_hot.toFixed(1)  + ' V';
+      document.getElementById('str-rem-vmpp-cold').textContent = rem_Vmpp_cold.toFixed(1) + ' V';
+
+      // Find divisors of N_total within the valid Ns stepper range
+      const usefulDivisors = [];
+      for (let d = Math.max(2, Ns_min); d <= Math.min(N_total - 1, Ns_max); d++) {
+        if (N_total % d === 0) usefulDivisors.push(d);
+      }
+      const adviceEl  = document.getElementById('str-rem-advice');
+      const mpptNote  = document.getElementById('str-rem-mppt-note');
+      if (selectedInverter) {
+        const rem_vmpp_hot_ok = (n_rem * Vmpp_hot_per) >= selectedInverter.mppt_voltage_min;
+        if (!rem_vmpp_hot_ok) {
+          mpptNote.textContent = '⚠ El string corto (' + n_rem + ' mód) tiene Vmpp calor = '
+            + (n_rem * Vmpp_hot_per).toFixed(1) + ' V, por debajo del mínimo MPPT del inversor seleccionado ('
+            + selectedInverter.mppt_voltage_min + ' V). Ese canal no podrá rastrear.';
+          mpptNote.className = 'mt-2 font-semibold text-red-700';
+        } else {
+          mpptNote.textContent = '✓ El string corto (' + n_rem + ' mód) Vmpp calor = '
+            + (n_rem * Vmpp_hot_per).toFixed(1) + ' V — dentro del rango MPPT del inversor seleccionado.';
+          mpptNote.className = 'mt-2 font-semibold text-green-700';
+        }
+        mpptNote.classList.remove('hidden');
+      } else {
+        mpptNote.classList.add('hidden');
+      }
+      if (usefulDivisors.length === 0) {
+        adviceEl.innerHTML =
+          '<strong>' + N_total + '</strong> módulos no tiene divisores exactos en el rango '
+          + 'de Ns disponible (' + Ns_min + '–' + Ns_max + '). No es posible configurar '
+          + 'strings uniformes con este total. Considera volver al <strong>Paso 2</strong> '
+          + 'y ajustar el consumo o el módulo seleccionado.';
+      } else {
+        adviceEl.innerHTML =
+          'Para strings uniformes, ajusta Ns a: '
+          + usefulDivisors.map(d =>
+              '<button type="button" data-ns-pick="' + d + '" '
+              + 'class="inline-block rounded px-1.5 py-0.5 bg-amber-200 text-amber-900 '
+              + 'font-semibold hover:bg-amber-300 transition-colors">' + d + '</button>'
+            ).join(' ') + '.';
+      }
+      remEl.classList.remove('hidden');
+    } else {
+      remEl.classList.add('hidden');
+    }
+
+    // 4. Update string configurator DOM
+    document.getElementById('ns-value').textContent      = currentNs;
+    document.getElementById('np-value').textContent      = Np;
     document.getElementById('str-voc-cold').textContent  = Voc_cold.toFixed(1)  + ' V';
     document.getElementById('str-vmpp-hot').textContent  = Vmpp_hot.toFixed(1)  + ' V';
     document.getElementById('str-vmpp-cold').textContent = Vmpp_cold.toFixed(1) + ' V';
+    document.getElementById('str-area-total').textContent =
+      (N_total * mod.length_m * mod.width_m).toFixed(1) + ' m²';
 
-    // Ns upper bound: can't exceed N_total (Np ≥ 1), also capped by voltage safety
-    const Ns_volt = Math.floor(Math.max(...allInverters.map(i => i.max_dc_voltage)) / Voc_cold_per);
-    const Ns_max  = Math.min(N_total, Ns_volt);
-    document.getElementById('ns-range-hint').textContent =
-      `Rango: 1 – ${Ns_max} módulos/string (total: ${N_total} módulos)`;
+    // 5. Np vs MPPT hint
+    const hintEl = document.getElementById('np-mppt-hint');
+    if (selectedInverter) {
+      const ok = Np <= selectedInverter.mppt_count;
+      hintEl.textContent = (ok ? '✓ ' : '✗ ') + Np + ' / ' + selectedInverter.mppt_count + ' entradas MPPT';
+      hintEl.className   = 'text-xs font-semibold ' + (ok ? 'text-green-600' : 'text-red-500');
+    } else {
+      hintEl.textContent = 'Selecciona un inversor para verificar';
+      hintEl.className   = 'text-xs text-gray-400';
+    }
 
-    document.getElementById('btn-ns-dec').disabled = currentNs <= 1;
+    // 6. Range hint and stepper buttons
+    const rangeText = selectedInverter
+      ? `Rango: ${Ns_min} (${Ns_min_reason}) – ${Ns_max} (${Ns_max_reason}) mód/string · total: ${N_total}`
+      : `Rango: 1 – ${Ns_max} (${Ns_max_reason}) mód/string · total: ${N_total}`;
+    document.getElementById('ns-range-hint').textContent = rangeText;
+
+    document.getElementById('btn-ns-dec').disabled = currentNs <= Ns_min;
     document.getElementById('btn-ns-inc').disabled = currentNs >= Ns_max;
 
     refreshAllBadges();
@@ -553,10 +665,18 @@ $extraScripts = <<<'HTML'
   }
 
   document.getElementById('btn-ns-dec').addEventListener('click', function () {
-    if (currentNs > 1) { currentNs--; refreshStringUI(); }
+    if (!this.disabled) { currentNs--; refreshStringUI(); }
   });
   document.getElementById('btn-ns-inc').addEventListener('click', function () {
     if (!this.disabled) { currentNs++; refreshStringUI(); }
+  });
+
+  // Delegated listener for remainder-banner Ns suggestion buttons
+  document.getElementById('str-remainder-warning').addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-ns-pick]');
+    if (!btn) return;
+    currentNs = parseInt(btn.dataset.nsPick);
+    refreshStringUI();
   });
 
   // ── Filters ────────────────────────────────────────────────
@@ -616,19 +736,19 @@ $extraScripts = <<<'HTML'
 
   // ── Compatibility check ────────────────────────────────────
   function checkCompat(inv) {
-    const Np           = Math.ceil(N_total / currentNs);
-    const Voc_cold     = currentNs * Voc_cold_per;
-    const Vmpp_hot     = currentNs * Vmpp_hot_per;
-    const Vmpp_cold    = currentNs * Vmpp_cold_per;
-    const str_per_mppt  = Math.ceil(Np / inv.mppt_count);
-    const I_per_mppt    = str_per_mppt * mod.imp_stc * 1.25;  // NOM-001: Imp × 1.25
-    const I_total       = Np * mod.isc_stc * 1.25;            // NOM-001: Isc × 1.25
+    const Np            = Math.ceil(N_total / currentNs);
+    const Voc_cold      = currentNs * Voc_cold_per;
+    const Vmpp_hot      = currentNs * Vmpp_hot_per;
+    const Vmpp_cold     = currentNs * Vmpp_cold_per;
+    const I_per_mppt    = mod.imp_stc * 1.25;
+    const I_total       = mod.isc_stc * 1.25;
     const P_cold_total  = N_total * P_cold_per;
 
     const hardFail =
+      Np              > inv.mppt_count                   ||
       Voc_cold        > inv.max_dc_voltage               ||
       I_per_mppt      > inv.max_input_current_per_mppt   ||
-      I_total         > inv.max_short_circuit_current     ||
+      I_total         > inv.max_short_circuit_current    ||
       P_cold_total    > inv.pmax_dc_input;
 
     const warn =
@@ -758,20 +878,25 @@ $extraScripts = <<<'HTML'
     const Voc_cold     = currentNs * Voc_cold_per;
     const Vmpp_hot     = currentNs * Vmpp_hot_per;
     const Vmpp_cold    = currentNs * Vmpp_cold_per;
-    const str_per_mppt = Math.ceil(Np / inv.mppt_count);
-    const I_per_mppt   = str_per_mppt * mod.imp_stc * 1.25;  // NOM-001: Imp × 1.25
-    const I_total      = Np * mod.isc_stc * 1.25;            // NOM-001: Isc × 1.25
+    const I_per_mppt   = mod.imp_stc * 1.25;        // 1 str/MPPT, NOM-001: Imp × 1.25
+    const I_total      = mod.isc_stc * 1.25;        // 1 str/MPPT, NOM-001: Isc × 1.25
     const P_cold_total = N_total * P_cold_per;                // W at Tmin
     const P_stc_W      = window.calcState.P_stc_kW * 1000;
     const dc_ac        = P_stc_W / inv.nominal_ac_power;
 
     // Evaluate all checks
-    const vocPass      = Voc_cold     <= inv.max_dc_voltage;
-    const vmppHotPass  = Vmpp_hot     >= inv.mppt_voltage_min;
-    const vmppColdPass = Vmpp_cold    <= inv.mppt_voltage_max;
-    const iMpptPass    = I_per_mppt   <= inv.max_input_current_per_mppt;
-    const iTotalPass   = I_total      <= inv.max_short_circuit_current;
-    const pDcPass      = P_cold_total <= inv.pmax_dc_input;
+    const npPass       = Np            <= inv.mppt_count;
+    const vocPass      = Voc_cold      <= inv.max_dc_voltage;
+    const vmppHotPass  = Vmpp_hot      >= inv.mppt_voltage_min;
+    const vmppColdPass = Vmpp_cold     <= inv.mppt_voltage_max;
+    const iMpptPass    = I_per_mppt    <= inv.max_input_current_per_mppt;
+    const iTotalPass   = I_total       <= inv.max_short_circuit_current;
+    const pDcPass      = P_cold_total  <= inv.pmax_dc_input;
+
+    setCheck('chk-np-mppt',
+      Np + ' strings',
+      '≤ ' + inv.mppt_count + ' entradas MPPT',
+      npPass, true);
 
     setCheck('chk-voc',
       Voc_cold.toFixed(1) + ' V',
@@ -789,17 +914,17 @@ $extraScripts = <<<'HTML'
       vmppColdPass, false);
 
     setCheck('chk-i-mppt',
-      I_per_mppt.toFixed(2) + ' A (' + str_per_mppt + ' str/MPPT × Imp×1.25)',
+      I_per_mppt.toFixed(2) + ' A (Imp ×1.25, 1 str/MPPT)',
       '≤ ' + inv.max_input_current_per_mppt + ' A',
       iMpptPass, true);
 
     setCheck('chk-i-total',
-      I_total.toFixed(2) + ' A (Np×Isc×1.25)',
+      I_total.toFixed(2) + ' A (Isc×1.25, 1 str/MPPT)',
       '≤ ' + inv.max_short_circuit_current + ' A',
       iTotalPass, true);
 
     setCheck('chk-p-dc',
-      (P_cold_total / 1000).toFixed(2) + ' kW (Tₘᴵₙ = ' +
+      (P_cold_total / 1000).toFixed(2) + ' kW (T_min = ' +
         (parseFloat(document.getElementById('tmin').value) || 25) + '°C)',
       '≤ ' + (inv.pmax_dc_input / 1000).toFixed(2) + ' kW',
       pDcPass, true);
@@ -808,17 +933,17 @@ $extraScripts = <<<'HTML'
     const dcacHint = document.getElementById('res-dcac-hint');
     dcacEl.textContent = dc_ac.toFixed(2);
 
-    let dcacLabel, dcacColor, dcacBlocked = false;
+    let dcacLabel, dcacColor;
     if (dc_ac < 0.80) {
-      dcacLabel = 'Arreglo insuficiente'; dcacColor = 'text-red-500';   dcacBlocked = true;
+      dcacLabel = 'Arreglo insuficiente'; dcacColor = 'text-red-500';
     } else if (dc_ac < 1.00) {
-      dcacLabel = 'Subóptimo';            dcacColor = 'text-amber-500'; dcacBlocked = false;
+      dcacLabel = 'Subóptimo';            dcacColor = 'text-amber-500';
     } else if (dc_ac <= 1.25) {
-      dcacLabel = 'Óptimo';               dcacColor = 'text-green-600'; dcacBlocked = false;
+      dcacLabel = 'Conservador';          dcacColor = 'text-green-400';
     } else if (dc_ac <= 1.50) {
-      dcacLabel = 'Aceptable';            dcacColor = 'text-amber-500'; dcacBlocked = false;
+      dcacLabel = 'Óptimo';               dcacColor = 'text-green-600';
     } else {
-      dcacLabel = 'Sobredimensionado';    dcacColor = 'text-red-500';   dcacBlocked = true;
+      dcacLabel = 'Sobredimensionado';    dcacColor = 'text-red-500';
     }
 
     dcacEl.className     = 'text-lg font-bold ' + dcacColor;
@@ -827,17 +952,16 @@ $extraScripts = <<<'HTML'
     document.getElementById('res-dcac-pstc').textContent = (P_stc_W / 1000).toFixed(2) + ' kW';
     document.getElementById('res-dcac-pac').textContent  = (inv.nominal_ac_power / 1000).toFixed(2) + ' kW';
 
-    // Block continue if ANY hard fail or DC/AC out of range
-    const anyHardFail = !vocPass || !iMpptPass || !iTotalPass || !pDcPass;
-    const blocked     = anyHardFail || dcacBlocked;
-    contBtn3.disabled = blocked;
-    if (blocked) {
+    // Block continue only on hard electrical fails — DC/AC ratio is a design warning, not a hard limit
+    const anyHardFail = !npPass || !vocPass || !iMpptPass || !iTotalPass || !pDcPass;
+    contBtn3.disabled = anyHardFail;
+    if (anyHardFail) {
       const reasons = [];
+      if (!npPass)     reasons.push('Np (' + Np + ') supera entradas MPPT (' + inv.mppt_count + ')');
       if (!vocPass)    reasons.push('Voc en frío supera Vdc máx');
       if (!iMpptPass)  reasons.push('I por MPPT supera el límite');
       if (!iTotalPass) reasons.push('Isc total supera el límite');
       if (!pDcPass)    reasons.push('P arreglo en frío supera entrada DC máx');
-      if (dcacBlocked) reasons.push('Relación DC/AC fuera de rango (0.80–1.50)');
       contBtn3.title = reasons.join(' • ');
     } else {
       contBtn3.title = '';
@@ -882,10 +1006,8 @@ $extraScripts = <<<'HTML'
 
   // ── Back to Block 2 ───────────────────────────────────────
   document.getElementById('btn-bloque3-volver').addEventListener('click', function () {
-    document.getElementById('bloque-3').classList.add('hidden');
-    const b2 = document.getElementById('bloque-2');
-    b2.classList.remove('hidden');
-    b2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    history.pushState({ step: 2 }, '', '#paso-2');
+    window.showStep(2);
   });
 
   // ── Continue to Block 4 ───────────────────────────────────

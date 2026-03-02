@@ -29,7 +29,7 @@
     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
       Configuración de Cadena (String)
     </p>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
 
       <!-- Ns stepper -->
       <div class="flex flex-col gap-1">
@@ -52,7 +52,14 @@
       <div class="flex flex-col gap-1">
         <p class="text-xs text-gray-500">Strings en paralelo <span class="font-semibold">(Np)</span></p>
         <p id="np-value" class="text-lg font-bold text-gray-800">—</p>
-        <p class="text-xs text-gray-400">Calculado automáticamente</p>
+        <p id="np-mppt-hint" class="text-xs text-gray-400">Selecciona un inversor para verificar</p>
+      </div>
+
+      <!-- Total array area -->
+      <div class="flex flex-col gap-1">
+        <p class="text-xs text-gray-500">Superficie total del arreglo</p>
+        <p id="str-area-total" class="text-lg font-bold text-gray-800">—</p>
+        <p class="text-xs text-gray-400">m² (área neta de módulos)</p>
       </div>
 
       <!-- String voltages preview -->
@@ -77,7 +84,39 @@
     </div>
   </div>
 
+  <!-- ── Remainder string warning ──────────────────────────────────── -->
+  <div id="str-remainder-warning" class="hidden mx-6 mt-3 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800">
+    <div class="flex gap-2 items-start">
+      <span class="text-base leading-none mt-0.5">⚠</span>
+      <div class="flex-1">
+        <p class="font-semibold mb-1">String incompleto detectado</p>
+        <p id="str-rem-breakdown" class="mb-2 text-amber-700"></p>
+        <div class="grid grid-cols-3 gap-2 bg-amber-100/60 rounded-lg px-3 py-2 mb-2">
+          <div>
+            <p class="text-amber-600 mb-0.5">Voc frío</p>
+            <p id="str-rem-voc-cold" class="font-bold">—</p>
+          </div>
+          <div>
+            <p class="text-amber-600 mb-0.5">Vmpp calor</p>
+            <p id="str-rem-vmpp-hot" class="font-bold">—</p>
+          </div>
+          <div>
+            <p class="text-amber-600 mb-0.5">Vmpp frío</p>
+            <p id="str-rem-vmpp-cold" class="font-bold">—</p>
+          </div>
+        </div>
+        <p id="str-rem-advice" class="leading-relaxed"></p>
+        <p id="str-rem-mppt-note" class="hidden mt-2 font-semibold"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Filters ──────────────────────────────────────────────────── -->
+  <!-- Assumption note -->
+  <div class="mx-6 mt-1 mb-0 rounded-lg bg-blue-50 border border-blue-100 px-4 py-2.5 flex gap-2 items-start text-xs text-blue-700">
+    <span class="text-base leading-none mt-0.5">&#9432;</span>
+    <span><strong>Supuesto de diseño:</strong> Este sistema asume <strong>1 string por entrada MPPT</strong> para evitar la necesidad de caja combinadora. Np = número de strings = número de entradas MPPT utilizadas. Si Np supera las entradas disponibles del inversor, se debe <strong>aumentar Ns</strong> (strings más largas → menos strings en paralelo).</span>
+  </div>
   <div class="px-6 pt-4 pb-3 border-b border-gray-100 flex flex-wrap items-center gap-4">
 
     <div class="flex items-center gap-2 flex-wrap">
@@ -182,10 +221,20 @@
         <p data-limit class="text-xs text-gray-400 mt-0.5">límite —</p>
       </div>
 
-      <!-- Hard: I per MPPT -->
+      <!-- Hard: I per MPPT (1 string per MPPT assumed) -->
       <div id="chk-i-mppt" class="rounded-xl border border-gray-200 px-4 py-3">
         <div class="flex items-start justify-between mb-1">
-          <p class="text-xs text-gray-400">Corriente por MPPT</p>
+          <p class="text-xs text-gray-400">Corriente por MPPT <span class="text-gray-300">(1 string)</span></p>
+          <span data-badge class="text-xs font-semibold rounded-full px-2 py-0.5 bg-gray-100 text-gray-400">—</span>
+        </div>
+        <p data-actual class="text-lg font-bold text-gray-700">—</p>
+        <p data-limit class="text-xs text-gray-400 mt-0.5">límite —</p>
+      </div>
+
+      <!-- Hard: Np vs mppt_count -->
+      <div id="chk-np-mppt" class="rounded-xl border border-gray-200 px-4 py-3">
+        <div class="flex items-start justify-between mb-1">
+          <p class="text-xs text-gray-400">Strings vs. entradas MPPT</p>
           <span data-badge class="text-xs font-semibold rounded-full px-2 py-0.5 bg-gray-100 text-gray-400">—</span>
         </div>
         <p data-actual class="text-lg font-bold text-gray-700">—</p>
@@ -230,8 +279,8 @@
         <div class="mt-2 space-y-0.5 border-t border-gray-100 pt-2">
           <div class="flex justify-between text-xs"><span class="text-red-400">  &lt; 0.80</span><span class="text-gray-400">Arreglo insuficiente</span></div>
           <div class="flex justify-between text-xs"><span class="text-amber-400">0.80 – 1.00</span><span class="text-gray-400">Subóptimo</span></div>
-          <div class="flex justify-between text-xs"><span class="text-green-500">1.00 – 1.25</span><span class="text-gray-400">Óptimo</span></div>
-          <div class="flex justify-between text-xs"><span class="text-amber-400">1.25 – 1.50</span><span class="text-gray-400">Aceptable</span></div>
+          <div class="flex justify-between text-xs"><span class="text-green-400">1.00 – 1.25</span><span class="text-gray-400">Conservador</span></div>
+          <div class="flex justify-between text-xs"><span class="text-green-600">1.25 – 1.50</span><span class="text-gray-400">Óptimo</span></div>
           <div class="flex justify-between text-xs"><span class="text-red-400">  &gt; 1.50</span><span class="text-gray-400">Sobredimensionado</span></div>
         </div>
       </div>

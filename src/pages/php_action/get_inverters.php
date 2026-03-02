@@ -47,6 +47,7 @@ while ($row = $result->fetch_assoc()) {
     ] as $field) {
         $row[$field] = (float)$row[$field];
     }
+    $row['id']         = (int)$row['id'];
     $row['mppt_count'] = (int)$row['mppt_count'];
     $inverters[] = $row;
 }
