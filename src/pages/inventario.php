@@ -403,33 +403,33 @@ include '../components/header-dashboard.php';
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax STC (W)</label>
-              <input type="number" step="0.01" id="mod-pmax_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax STC (W) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-pmax_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Voc STC (V)</label>
-              <input type="number" step="0.01" id="mod-voc_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Voc STC (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-voc_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc STC (A)</label>
-              <input type="number" step="0.01" id="mod-isc_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc STC (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-isc_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Vmpp STC (V)</label>
-              <input type="number" step="0.01" id="mod-vmpp_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Vmpp STC (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-vmpp_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Imp STC (A)</label>
-              <input type="number" step="0.01" id="mod-imp_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Imp STC (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-imp_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">β Voc (%/°C)</label>
-              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_voc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">β Voc (%/°C) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_voc" required
                 oninput="validateNegative(this, 'warn-tcv')"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
               <p id="warn-tcv" class="hidden mt-1 text-xs text-red-500 items-center gap-1">
@@ -438,8 +438,8 @@ include '../components/header-dashboard.php';
               </p>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">β Pmax (%/°C)</label>
-              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_pmax"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">β Pmax (%/°C) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_pmax" required
                 oninput="validateNegative(this, 'warn-tcp')"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
               <p id="warn-tcp" class="hidden mt-1 text-xs text-red-500 items-center gap-1">
@@ -448,13 +448,13 @@ include '../components/header-dashboard.php';
               </p>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Largo (m)</label>
-              <input type="number" step="0.01" id="mod-length_m"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Largo (m) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-length_m" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Ancho (m)</label>
-              <input type="number" step="0.01" id="mod-width_m"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Ancho (m) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-width_m" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
           </div>
@@ -477,48 +477,48 @@ include '../components/header-dashboard.php';
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax entrada DC (W)</label>
-              <input type="number" step="0.01" id="inv-pmax_dc_input"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax entrada DC (W) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-pmax_dc_input" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V DC máxima (V)</label>
-              <input type="number" step="0.01" id="inv-max_dc_voltage"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V DC máxima (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-max_dc_voltage" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT mínima (V)</label>
-              <input type="number" step="0.01" id="inv-mppt_voltage_min"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT mínima (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-mppt_voltage_min" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT máxima (V)</label>
-              <input type="number" step="0.01" id="inv-mppt_voltage_max"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT máxima (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-mppt_voltage_max" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V de arranque (V)</label>
-              <input type="number" step="0.01" id="inv-startup_voltage"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V de arranque (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-startup_voltage" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">I entrada máx por MPPT (A)</label>
-              <input type="number" step="0.01" id="inv-max_input_current_per_mppt"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">I entrada máx por MPPT (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-max_input_current_per_mppt" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc máxima (A)</label>
-              <input type="number" step="0.01" id="inv-max_short_circuit_current"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc máxima (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-max_short_circuit_current" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">P AC nominal (W)</label>
-              <input type="number" step="0.01" id="inv-nominal_ac_power"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">P AC nominal (W) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-nominal_ac_power" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V AC nominal (V)</label>
-              <input type="number" step="0.01" id="inv-ac_voltage_nominal"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V AC nominal (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-ac_voltage_nominal" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
@@ -532,13 +532,13 @@ include '../components/header-dashboard.php';
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Eficiencia ponderada (%)</label>
-              <input type="number" step="0.01" id="inv-efficiency_weighted"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Eficiencia ponderada (%) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-efficiency_weighted" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Cantidad MPPT</label>
-              <input type="number" step="1" min="1" id="inv-mppt_count"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Cantidad MPPT <span class="text-red-500">*</span></label>
+              <input type="number" step="1" min="1" id="inv-mppt_count" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
           </div>
@@ -791,7 +791,9 @@ include '../components/header-dashboard.php';
     }
 
     async function saveEntity() {
-      const tab = currentTab;
+      const tab  = currentTab;
+      const form = document.getElementById('form-' + tab);
+      if (!form.reportValidity()) return;
       let payload = {};
 
       if (tab === 'manufacturadores') {
