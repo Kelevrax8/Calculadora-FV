@@ -57,6 +57,30 @@ class PVModuleRepository
     }
 
     /**
+     * All PV modules, unpaginated, ordered for the calculator's card grid.
+     *
+     * @return PVModule[]
+     */
+    public function findAllForCalculator(): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT m.id, mf.name AS manufacturer, m.manufacturer_id, m.model,
+                    m.technology, m.pmax_stc, m.voc_stc, m.isc_stc, m.vmpp_stc, m.imp_stc,
+                    m.temp_coeff_voc, m.temp_coeff_pmax, m.length_m, m.width_m,
+                    DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at
+             FROM pv_modules m
+             JOIN manufacturers mf ON m.manufacturer_id = mf.id
+             ORDER BY mf.name, m.pmax_stc"
+        );
+        $stmt->execute();
+
+        return array_map(
+            fn(array $row) => PVModule::fromArray($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
      * Find a single PV module by primary key.
      */
     public function findById(int $id): ?PVModule

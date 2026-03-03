@@ -59,6 +59,32 @@ class InverterRepository
     }
 
     /**
+     * All inverters, unpaginated, ordered for the calculator's card grid.
+     *
+     * @return Inverter[]
+     */
+    public function findAllForCalculator(): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT i.id, mf.name AS manufacturer, i.manufacturer_id, i.model,
+                    i.pmax_dc_input, i.max_dc_voltage, i.mppt_voltage_min, i.mppt_voltage_max,
+                    i.startup_voltage, i.max_input_current_per_mppt, i.max_short_circuit_current,
+                    i.nominal_ac_power, i.ac_voltage_nominal, i.phase_type, i.efficiency_weighted,
+                    i.mppt_count,
+                    DATE_FORMAT(i.created_at, '%d/%m/%Y') AS created_at
+             FROM inverters i
+             JOIN manufacturers mf ON i.manufacturer_id = mf.id
+             ORDER BY mf.name, i.nominal_ac_power"
+        );
+        $stmt->execute();
+
+        return array_map(
+            fn(array $row) => Inverter::fromArray($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
      * Find a single inverter by primary key.
      */
     public function findById(int $id): ?Inverter
