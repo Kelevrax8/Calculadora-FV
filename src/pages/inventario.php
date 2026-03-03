@@ -1,205 +1,6 @@
 <?php
-require_once '../php_actions/conn_db.php';
-
 // ─────────────────────────────────────────────────────────────────────────────
-//  AJAX handler — exits before any HTML is rendered
-// ─────────────────────────────────────────────────────────────────────────────
-if (isset($_GET['action'])) {
-    ob_start();
-    ini_set('display_errors', '0');
-    error_reporting(E_ERROR | E_PARSE);
-    mysqli_report(MYSQLI_REPORT_OFF);
-    header('Content-Type: application/json');
-    $action = $_GET['action'];
-    $db     = db();
-
-    $page   = max(1, (int)($_GET['page'] ?? 1));
-    $limit  = 5;
-    $offset = ($page - 1) * $limit;
-    $q      = '%' . $db->real_escape_string($_GET['q'] ?? '') . '%';
-
-    // ── MANUFACTURERS ────────────────────────────────────────────────────────
-    if ($action === 'list_manufacturers') {
-        $total = $db->query("SELECT COUNT(*) FROM manufacturers WHERE name LIKE '$q'")->fetch_row()[0];
-        $rows  = $db->query("SELECT id, name, DATE_FORMAT(created_at,'%d/%m/%Y') AS created_at
-                              FROM manufacturers WHERE name LIKE '$q'
-                              ORDER BY name LIMIT $limit OFFSET $offset");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode(['total' => (int)$total, 'data' => $data]);
-        exit;
-    }
-
-    if ($action === 'save_manufacturer') {
-        $b    = json_decode(file_get_contents('php://input'), true);
-        $name = $db->real_escape_string(trim($b['name'] ?? ''));
-        $id   = (int)($b['id'] ?? 0);
-        if ($name === '') { ob_clean(); echo json_encode(['error' => 'Nombre requerido']); exit; }
-        if ($id > 0) {
-            $db->query("UPDATE manufacturers SET name='$name' WHERE id=$id");
-        } else {
-            $db->query("INSERT INTO manufacturers (name) VALUES ('$name')");
-        }
-        ob_clean();
-        if ($db->errno === 1062) {
-            echo json_encode(['error' => 'Este fabricante ya está registrado. Utiliza un nombre diferente.']);
-        } else {
-            echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        }
-        exit;
-    }
-
-    if ($action === 'delete_manufacturer') {
-        $b  = json_decode(file_get_contents('php://input'), true);
-        $id = (int)($b['id'] ?? 0);
-        $db->query("DELETE FROM manufacturers WHERE id=$id");
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    if ($action === 'manufacturers_select') {
-        $rows = $db->query("SELECT id, name FROM manufacturers ORDER BY name");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode($data);
-        exit;
-    }
-
-    // ── PV MODULES ───────────────────────────────────────────────────────────
-    if ($action === 'list_modules') {
-        $total = $db->query("SELECT COUNT(*) FROM pv_modules m
-                              JOIN manufacturers mf ON m.manufacturer_id = mf.id
-                              WHERE m.model LIKE '$q' OR mf.name LIKE '$q'")->fetch_row()[0];
-        $rows  = $db->query("SELECT m.id, mf.name AS manufacturer, m.manufacturer_id, m.model,
-                               m.technology, m.pmax_stc, m.voc_stc, m.isc_stc, m.vmpp_stc, m.imp_stc,
-                               m.temp_coeff_voc, m.temp_coeff_pmax, m.length_m, m.width_m,
-                               DATE_FORMAT(m.created_at,'%d/%m/%Y') AS created_at
-                              FROM pv_modules m
-                              JOIN manufacturers mf ON m.manufacturer_id = mf.id
-                              WHERE m.model LIKE '$q' OR mf.name LIKE '$q'
-                              ORDER BY mf.name, m.model LIMIT $limit OFFSET $offset");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode(['total' => (int)$total, 'data' => $data]);
-        exit;
-    }
-
-    if ($action === 'save_module') {
-        $b   = json_decode(file_get_contents('php://input'), true);
-        $id  = (int)($b['id'] ?? 0);
-        $mid = (int)($b['manufacturer_id'] ?? 0);
-        $model = $db->real_escape_string(trim($b['model'] ?? ''));
-        $tech  = $db->real_escape_string($b['technology'] ?? '');
-        $pmax  = (float)($b['pmax_stc']        ?? 0);
-        $voc   = (float)($b['voc_stc']         ?? 0);
-        $isc   = (float)($b['isc_stc']         ?? 0);
-        $vmpp  = (float)($b['vmpp_stc']        ?? 0);
-        $imp   = (float)($b['imp_stc']         ?? 0);
-        $tcv   = (float)($b['temp_coeff_voc']  ?? 0);
-        $tcp   = (float)($b['temp_coeff_pmax'] ?? 0);
-        $len   = (float)($b['length_m']        ?? 0);
-        $wid   = (float)($b['width_m']         ?? 0);
-        if ($tcv >= 0) { echo json_encode(['error' => 'El coeficiente de temperatura de Voc (β Voc) debe ser negativo.']); exit; }
-        if ($tcp >= 0) { echo json_encode(['error' => 'El coeficiente de temperatura de Pmax (β Pmax) debe ser negativo.']); exit; }
-        if ($id > 0) {
-            $db->query("UPDATE pv_modules SET manufacturer_id=$mid, model='$model', technology='$tech',
-                         pmax_stc=$pmax, voc_stc=$voc, isc_stc=$isc, vmpp_stc=$vmpp, imp_stc=$imp,
-                         temp_coeff_voc=$tcv, temp_coeff_pmax=$tcp, length_m=$len, width_m=$wid
-                         WHERE id=$id");
-        } else {
-            $db->query("INSERT INTO pv_modules
-                         (manufacturer_id,model,technology,pmax_stc,voc_stc,isc_stc,vmpp_stc,imp_stc,
-                          temp_coeff_voc,temp_coeff_pmax,length_m,width_m)
-                         VALUES ($mid,'$model','$tech',$pmax,$voc,$isc,$vmpp,$imp,$tcv,$tcp,$len,$wid)");
-        }
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    if ($action === 'delete_module') {
-        $b  = json_decode(file_get_contents('php://input'), true);
-        $id = (int)($b['id'] ?? 0);
-        $db->query("DELETE FROM pv_modules WHERE id=$id");
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    // ── INVERTERS ────────────────────────────────────────────────────────────
-    if ($action === 'list_inverters') {
-        $total = $db->query("SELECT COUNT(*) FROM inverters i
-                              JOIN manufacturers mf ON i.manufacturer_id = mf.id
-                              WHERE i.model LIKE '$q' OR mf.name LIKE '$q'")->fetch_row()[0];
-        $rows  = $db->query("SELECT i.id, mf.name AS manufacturer, i.manufacturer_id, i.model,
-                               i.pmax_dc_input, i.max_dc_voltage, i.mppt_voltage_min, i.mppt_voltage_max,
-                               i.startup_voltage, i.max_input_current_per_mppt, i.max_short_circuit_current,
-                               i.nominal_ac_power, i.ac_voltage_nominal, i.phase_type, i.efficiency_weighted,
-                               i.mppt_count,
-                               DATE_FORMAT(i.created_at,'%d/%m/%Y') AS created_at
-                              FROM inverters i
-                              JOIN manufacturers mf ON i.manufacturer_id = mf.id
-                              WHERE i.model LIKE '$q' OR mf.name LIKE '$q'
-                              ORDER BY mf.name, i.model LIMIT $limit OFFSET $offset");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode(['total' => (int)$total, 'data' => $data]);
-        exit;
-    }
-
-    if ($action === 'save_inverter') {
-        $b    = json_decode(file_get_contents('php://input'), true);
-        $id   = (int)($b['id'] ?? 0);
-        $mid  = (int)($b['manufacturer_id'] ?? 0);
-        $model    = $db->real_escape_string(trim($b['model'] ?? ''));
-        $pmax     = (float)($b['pmax_dc_input']               ?? 0);
-        $vmax     = (float)($b['max_dc_voltage']               ?? 0);
-        $vmppt_lo = (float)($b['mppt_voltage_min']             ?? 0);
-        $vmppt_hi = (float)($b['mppt_voltage_max']             ?? 0);
-        $vstrt    = (float)($b['startup_voltage']              ?? 0);
-        $imax     = (float)($b['max_input_current_per_mppt']   ?? 0);
-        $isc      = (float)($b['max_short_circuit_current']    ?? 0);
-        $pac      = (float)($b['nominal_ac_power']             ?? 0);
-        $vac      = (float)($b['ac_voltage_nominal']           ?? 0);
-        $phase    = $db->real_escape_string($b['phase_type']   ?? '');
-        $eff      = (float)($b['efficiency_weighted']          ?? 0);
-        $mppt     = (int)($b['mppt_count']                     ?? 0);
-        if ($id > 0) {
-            $db->query("UPDATE inverters SET manufacturer_id=$mid, model='$model',
-                         pmax_dc_input=$pmax, max_dc_voltage=$vmax,
-                         mppt_voltage_min=$vmppt_lo, mppt_voltage_max=$vmppt_hi,
-                         startup_voltage=$vstrt, max_input_current_per_mppt=$imax,
-                         max_short_circuit_current=$isc, nominal_ac_power=$pac,
-                         ac_voltage_nominal=$vac, phase_type='$phase', efficiency_weighted=$eff,
-                         mppt_count=$mppt
-                         WHERE id=$id");
-        } else {
-            $db->query("INSERT INTO inverters
-                         (manufacturer_id,model,pmax_dc_input,max_dc_voltage,
-                          mppt_voltage_min,mppt_voltage_max,startup_voltage,
-                          max_input_current_per_mppt,max_short_circuit_current,
-                          nominal_ac_power,ac_voltage_nominal,phase_type,efficiency_weighted,mppt_count)
-                         VALUES ($mid,'$model',$pmax,$vmax,
-                                 $vmppt_lo,$vmppt_hi,$vstrt,
-                                 $imax,$isc,
-                                 $pac,$vac,'$phase',$eff,$mppt)");
-        }
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    if ($action === 'delete_inverter') {
-        $b  = json_decode(file_get_contents('php://input'), true);
-        $id = (int)($b['id'] ?? 0);
-        $db->query("DELETE FROM inverters WHERE id=$id");
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    echo json_encode(['error' => 'Unknown action']);
-    exit;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Page render
+//  Page render — AJAX is handled by /api/inventario.php
 // ─────────────────────────────────────────────────────────────────────────────
 define('APP', true);
 $pageTitle = 'Inventario - IPTE';
@@ -603,7 +404,7 @@ include '../components/header-dashboard.php';
       state[tab].page = page;
       const q   = document.getElementById('search-' + tab)?.value ?? '';
       const map = { manufacturadores:'list_manufacturers', modulos:'list_modules', inversores:'list_inverters' };
-      const res = await fetch(`inventario.php?action=${map[tab]}&page=${page}&q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/inventario.php?action=${map[tab]}&page=${page}&q=${encodeURIComponent(q)}`);
       const json = await res.json();
       state[tab].total = json.total;
       state[tab].loaded = true;
@@ -776,7 +577,7 @@ include '../components/header-dashboard.php';
     }
 
     async function populateManufacturers(selectId, selectedId = null) {
-      const res  = await fetch('inventario.php?action=manufacturers_select');
+      const res  = await fetch('/api/inventario.php?action=manufacturers_select');
       const list = await res.json();
       const sel  = document.getElementById(selectId);
       sel.innerHTML = '<option value="">— Seleccionar —</option>' +
@@ -839,7 +640,7 @@ include '../components/header-dashboard.php';
       const actionMap = { manufacturadores: 'save_manufacturer', modulos: 'save_module', inversores: 'save_inverter' };
       let json;
       try {
-        const res  = await fetch(`inventario.php?action=${actionMap[tab]}`, {
+        const res  = await fetch(`/api/inventario.php?action=${actionMap[tab]}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -872,7 +673,7 @@ include '../components/header-dashboard.php';
     async function deleteEntity(tab, id) {
       if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
       const actionMap = { manufacturadores: 'delete_manufacturer', modulos: 'delete_module', inversores: 'delete_inverter' };
-      const res  = await fetch(`inventario.php?action=${actionMap[tab]}`, {
+      const res  = await fetch(`/api/inventario.php?action=${actionMap[tab]}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
