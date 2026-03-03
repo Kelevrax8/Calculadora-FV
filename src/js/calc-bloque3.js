@@ -113,17 +113,25 @@
       const adviceEl  = document.getElementById('str-rem-advice');
       const mpptNote  = document.getElementById('str-rem-mppt-note');
       if (selectedInverter) {
-        const rem_vmpp_hot_ok = (n_rem * Vmpp_hot_per) >= selectedInverter.mppt_voltage_min;
-        if (!rem_vmpp_hot_ok) {
-          mpptNote.textContent = '⚠ El string corto (' + n_rem + ' mód) tiene Vmpp calor = '
-            + (n_rem * Vmpp_hot_per).toFixed(1) + ' V, por debajo del mínimo MPPT del inversor seleccionado ('
-            + selectedInverter.mppt_voltage_min + ' V). Ese canal no podrá rastrear.';
-          mpptNote.className = 'mt-2 font-semibold text-red-700';
-        } else {
-          mpptNote.textContent = '✓ El string corto (' + n_rem + ' mód) Vmpp calor = '
-            + (n_rem * Vmpp_hot_per).toFixed(1) + ' V — dentro del rango MPPT del inversor seleccionado.';
-          mpptNote.className = 'mt-2 font-semibold text-green-700';
-        }
+        const remV            = (n_rem * Vmpp_hot_per).toFixed(1);
+        const rem_mppt_ok     = (n_rem * Vmpp_hot_per) >= selectedInverter.mppt_voltage_min;
+        const rem_startup_ok  = (n_rem * Vmpp_hot_per) >= selectedInverter.startup_voltage;
+
+        const line1 = (rem_mppt_ok ? '✓' : '✗')
+          + ' MPPT mín (' + selectedInverter.mppt_voltage_min + ' V): '
+          + 'Vmpp calor string corto = ' + remV + ' V'
+          + (rem_mppt_ok ? ' — dentro del rango.' : ' — ese canal no podrá rastrear.');
+        const line2 = (rem_startup_ok ? '✓' : '⚠')
+          + ' V arranque (' + selectedInverter.startup_voltage + ' V): '
+          + remV + ' V'
+          + (rem_startup_ok ? ' — el string corto la supera.' : ' — el string corto podría no arrancar el inversor.');
+
+        mpptNote.innerHTML = '<span class="block">' + line1 + '</span>'
+          + '<span class="block mt-1">' + line2 + '</span>';
+        mpptNote.className = 'mt-2 text-sm font-semibold '
+          + (!rem_mppt_ok               ? 'text-red-700'
+             : !rem_startup_ok          ? 'text-amber-700'
+             :                            'text-green-700');
         mpptNote.classList.remove('hidden');
       } else {
         mpptNote.classList.add('hidden');
@@ -270,6 +278,7 @@
 
     const warn =
       Vmpp_hot  < inv.mppt_voltage_min ||
+      Vmpp_hot  < inv.startup_voltage  ||
       Vmpp_cold > inv.mppt_voltage_max;
 
     return { hardFail, warn };
@@ -318,6 +327,8 @@
         <span class="font-semibold text-gray-800">${inv.max_dc_voltage} V</span>
         <span class="text-gray-500">MPPT</span>
         <span class="font-semibold text-gray-800">${inv.mppt_voltage_min}–${inv.mppt_voltage_max} V</span>
+        <span class="text-gray-500">V arranque</span>
+        <span class="font-semibold text-gray-800">${inv.startup_voltage} V</span>
         <span class="text-gray-500">I MPPT máx</span>
         <span class="font-semibold text-gray-800">${inv.max_input_current_per_mppt} A</span>
         <span class="text-gray-500">I<sub>sc</sub> máx</span>
@@ -371,6 +382,7 @@
                     : inv.phase_type === 'Three Phase'  ? 'Trifásico' : 'Bifásico'],
       ['Vdc máx',    inv.max_dc_voltage + ' V'],
       ['MPPT',       inv.mppt_voltage_min + '–' + inv.mppt_voltage_max + ' V'],
+      ['V arranque', inv.startup_voltage + ' V'],
       ['I MPPT máx', inv.max_input_current_per_mppt + ' A'],
       ['η ponderada', inv.efficiency_weighted + '%'],
       ['# MPPT',     inv.mppt_count],
@@ -405,6 +417,7 @@
     const npPass       = Np            <= inv.mppt_count;
     const vocPass      = Voc_cold      <= inv.max_dc_voltage;
     const vmppHotPass  = Vmpp_hot      >= inv.mppt_voltage_min;
+    const startupPass  = Vmpp_hot      >= inv.startup_voltage;
     const vmppColdPass = Vmpp_cold     <= inv.mppt_voltage_max;
     const iMpptPass    = I_per_mppt    <= inv.max_input_current_per_mppt;
     const iTotalPass   = I_total       <= inv.max_short_circuit_current;
@@ -424,6 +437,11 @@
       Vmpp_hot.toFixed(1) + ' V',
       '≥ ' + inv.mppt_voltage_min + ' V',
       vmppHotPass, false);
+
+    setCheck('chk-startup-v',
+      Vmpp_hot.toFixed(1) + ' V',
+      '≥ ' + inv.startup_voltage + ' V (arranque)',
+      startupPass, false);
 
     setCheck('chk-vmpp-cold',
       Vmpp_cold.toFixed(1) + ' V',

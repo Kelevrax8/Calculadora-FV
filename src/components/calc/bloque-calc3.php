@@ -211,6 +211,16 @@
         <p data-limit class="text-xs text-gray-400 mt-0.5">límite —</p>
       </div>
 
+      <!-- Soft: Vmpp hot vs startup voltage -->
+      <div id="chk-startup-v" class="rounded-xl border border-gray-200 px-4 py-3">
+        <div class="flex items-start justify-between mb-1">
+          <p class="text-xs text-gray-400">Vmpp en calor (V arranque)</p>
+          <span data-badge class="text-xs font-semibold rounded-full px-2 py-0.5 bg-gray-100 text-gray-400">—</span>
+        </div>
+        <p data-actual class="text-lg font-bold text-gray-700">—</p>
+        <p data-limit class="text-xs text-gray-400 mt-0.5">límite —</p>
+      </div>
+
       <!-- Soft: Vmpp cold vs MPPT max -->
       <div id="chk-vmpp-cold" class="rounded-xl border border-gray-200 px-4 py-3">
         <div class="flex items-start justify-between mb-1">
