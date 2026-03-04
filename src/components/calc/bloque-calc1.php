@@ -73,7 +73,7 @@
             class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2
                    text-sm text-gray-800 placeholder-gray-400
                    focus:outline-none focus:ring-2 focus:ring-Ipteblue/40"/>
-          <p class="mt-1 text-xs text-gray-400">Puedes encontrarlo en tu recibo de CFE anual</p>
+          <p class="mt-1 text-xs text-gray-400">Puedes encontrarlo en tu recibo de CFE anual (suma de los consumos mensuales)</p>
         </div>
       </fieldset>
 
@@ -110,12 +110,12 @@
               <!-- Mode toggle: only visible after NASA data loads -->
               <div id="hsp-mode-toggle" class="flex items-center rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
                 <button type="button" data-mode="min"
-                  class="hsp-mode-btn px-2.5 py-1 bg-Ipteblue text-white transition-colors">
+                  class="hsp-mode-btn px-2.5 py-1 bg-Ipteblue text-white transition-colors duration-300">
                   Peor mes
                 </button>
                 <button type="button" data-mode="avg"
-                  class="hsp-mode-btn px-2.5 py-1 bg-white text-gray-500 hover:bg-gray-50 transition-colors">
-                  Promedio
+                  class="hsp-mode-btn px-2.5 py-1 bg-white text-gray-500 transition-colors duration-300">
+                  Promedio anual
                 </button>
               </div>
             </div>
