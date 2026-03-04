@@ -6,5 +6,8 @@
     </p>
   </footer>
 
+  <!-- Per-page scripts -->
+  <?= $extraScripts ?? '' ?>
+
 </body>
 </html>
