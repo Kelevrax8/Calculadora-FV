@@ -8,6 +8,9 @@
 
   <!-- Tailwind CSS 4.x (CLI build) -->
   <link rel="stylesheet" href="/output.css">
+
+  <!-- Per-page extra head tags (stylesheets, preloads, etc.) -->
+  <?= $extraHead ?? '' ?>
 </head>
 <body class="h-full flex flex-col overflow-hidden bg-gray-100">
 

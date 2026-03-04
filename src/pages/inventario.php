@@ -1,205 +1,6 @@
 <?php
-require_once '../php_actions/conn_db.php';
-
 // ─────────────────────────────────────────────────────────────────────────────
-//  AJAX handler — exits before any HTML is rendered
-// ─────────────────────────────────────────────────────────────────────────────
-if (isset($_GET['action'])) {
-    ob_start();
-    ini_set('display_errors', '0');
-    error_reporting(E_ERROR | E_PARSE);
-    mysqli_report(MYSQLI_REPORT_OFF);
-    header('Content-Type: application/json');
-    $action = $_GET['action'];
-    $db     = db();
-
-    $page   = max(1, (int)($_GET['page'] ?? 1));
-    $limit  = 5;
-    $offset = ($page - 1) * $limit;
-    $q      = '%' . $db->real_escape_string($_GET['q'] ?? '') . '%';
-
-    // ── MANUFACTURERS ────────────────────────────────────────────────────────
-    if ($action === 'list_manufacturers') {
-        $total = $db->query("SELECT COUNT(*) FROM manufacturers WHERE name LIKE '$q'")->fetch_row()[0];
-        $rows  = $db->query("SELECT id, name, DATE_FORMAT(created_at,'%d/%m/%Y') AS created_at
-                              FROM manufacturers WHERE name LIKE '$q'
-                              ORDER BY name LIMIT $limit OFFSET $offset");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode(['total' => (int)$total, 'data' => $data]);
-        exit;
-    }
-
-    if ($action === 'save_manufacturer') {
-        $b    = json_decode(file_get_contents('php://input'), true);
-        $name = $db->real_escape_string(trim($b['name'] ?? ''));
-        $id   = (int)($b['id'] ?? 0);
-        if ($name === '') { ob_clean(); echo json_encode(['error' => 'Nombre requerido']); exit; }
-        if ($id > 0) {
-            $db->query("UPDATE manufacturers SET name='$name' WHERE id=$id");
-        } else {
-            $db->query("INSERT INTO manufacturers (name) VALUES ('$name')");
-        }
-        ob_clean();
-        if ($db->errno === 1062) {
-            echo json_encode(['error' => 'Este fabricante ya está registrado. Utiliza un nombre diferente.']);
-        } else {
-            echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        }
-        exit;
-    }
-
-    if ($action === 'delete_manufacturer') {
-        $b  = json_decode(file_get_contents('php://input'), true);
-        $id = (int)($b['id'] ?? 0);
-        $db->query("DELETE FROM manufacturers WHERE id=$id");
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    if ($action === 'manufacturers_select') {
-        $rows = $db->query("SELECT id, name FROM manufacturers ORDER BY name");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode($data);
-        exit;
-    }
-
-    // ── PV MODULES ───────────────────────────────────────────────────────────
-    if ($action === 'list_modules') {
-        $total = $db->query("SELECT COUNT(*) FROM pv_modules m
-                              JOIN manufacturers mf ON m.manufacturer_id = mf.id
-                              WHERE m.model LIKE '$q' OR mf.name LIKE '$q'")->fetch_row()[0];
-        $rows  = $db->query("SELECT m.id, mf.name AS manufacturer, m.manufacturer_id, m.model,
-                               m.technology, m.pmax_stc, m.voc_stc, m.isc_stc, m.vmpp_stc, m.imp_stc,
-                               m.temp_coeff_voc, m.temp_coeff_pmax, m.length_m, m.width_m,
-                               DATE_FORMAT(m.created_at,'%d/%m/%Y') AS created_at
-                              FROM pv_modules m
-                              JOIN manufacturers mf ON m.manufacturer_id = mf.id
-                              WHERE m.model LIKE '$q' OR mf.name LIKE '$q'
-                              ORDER BY mf.name, m.model LIMIT $limit OFFSET $offset");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode(['total' => (int)$total, 'data' => $data]);
-        exit;
-    }
-
-    if ($action === 'save_module') {
-        $b   = json_decode(file_get_contents('php://input'), true);
-        $id  = (int)($b['id'] ?? 0);
-        $mid = (int)($b['manufacturer_id'] ?? 0);
-        $model = $db->real_escape_string(trim($b['model'] ?? ''));
-        $tech  = $db->real_escape_string($b['technology'] ?? '');
-        $pmax  = (float)($b['pmax_stc']        ?? 0);
-        $voc   = (float)($b['voc_stc']         ?? 0);
-        $isc   = (float)($b['isc_stc']         ?? 0);
-        $vmpp  = (float)($b['vmpp_stc']        ?? 0);
-        $imp   = (float)($b['imp_stc']         ?? 0);
-        $tcv   = (float)($b['temp_coeff_voc']  ?? 0);
-        $tcp   = (float)($b['temp_coeff_pmax'] ?? 0);
-        $len   = (float)($b['length_m']        ?? 0);
-        $wid   = (float)($b['width_m']         ?? 0);
-        if ($tcv >= 0) { echo json_encode(['error' => 'El coeficiente de temperatura de Voc (β Voc) debe ser negativo.']); exit; }
-        if ($tcp >= 0) { echo json_encode(['error' => 'El coeficiente de temperatura de Pmax (β Pmax) debe ser negativo.']); exit; }
-        if ($id > 0) {
-            $db->query("UPDATE pv_modules SET manufacturer_id=$mid, model='$model', technology='$tech',
-                         pmax_stc=$pmax, voc_stc=$voc, isc_stc=$isc, vmpp_stc=$vmpp, imp_stc=$imp,
-                         temp_coeff_voc=$tcv, temp_coeff_pmax=$tcp, length_m=$len, width_m=$wid
-                         WHERE id=$id");
-        } else {
-            $db->query("INSERT INTO pv_modules
-                         (manufacturer_id,model,technology,pmax_stc,voc_stc,isc_stc,vmpp_stc,imp_stc,
-                          temp_coeff_voc,temp_coeff_pmax,length_m,width_m)
-                         VALUES ($mid,'$model','$tech',$pmax,$voc,$isc,$vmpp,$imp,$tcv,$tcp,$len,$wid)");
-        }
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    if ($action === 'delete_module') {
-        $b  = json_decode(file_get_contents('php://input'), true);
-        $id = (int)($b['id'] ?? 0);
-        $db->query("DELETE FROM pv_modules WHERE id=$id");
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    // ── INVERTERS ────────────────────────────────────────────────────────────
-    if ($action === 'list_inverters') {
-        $total = $db->query("SELECT COUNT(*) FROM inverters i
-                              JOIN manufacturers mf ON i.manufacturer_id = mf.id
-                              WHERE i.model LIKE '$q' OR mf.name LIKE '$q'")->fetch_row()[0];
-        $rows  = $db->query("SELECT i.id, mf.name AS manufacturer, i.manufacturer_id, i.model,
-                               i.pmax_dc_input, i.max_dc_voltage, i.mppt_voltage_min, i.mppt_voltage_max,
-                               i.startup_voltage, i.max_input_current_per_mppt, i.max_short_circuit_current,
-                               i.nominal_ac_power, i.ac_voltage_nominal, i.phase_type, i.efficiency_weighted,
-                               i.mppt_count,
-                               DATE_FORMAT(i.created_at,'%d/%m/%Y') AS created_at
-                              FROM inverters i
-                              JOIN manufacturers mf ON i.manufacturer_id = mf.id
-                              WHERE i.model LIKE '$q' OR mf.name LIKE '$q'
-                              ORDER BY mf.name, i.model LIMIT $limit OFFSET $offset");
-        $data = [];
-        while ($r = $rows->fetch_assoc()) $data[] = $r;
-        echo json_encode(['total' => (int)$total, 'data' => $data]);
-        exit;
-    }
-
-    if ($action === 'save_inverter') {
-        $b    = json_decode(file_get_contents('php://input'), true);
-        $id   = (int)($b['id'] ?? 0);
-        $mid  = (int)($b['manufacturer_id'] ?? 0);
-        $model    = $db->real_escape_string(trim($b['model'] ?? ''));
-        $pmax     = (float)($b['pmax_dc_input']               ?? 0);
-        $vmax     = (float)($b['max_dc_voltage']               ?? 0);
-        $vmppt_lo = (float)($b['mppt_voltage_min']             ?? 0);
-        $vmppt_hi = (float)($b['mppt_voltage_max']             ?? 0);
-        $vstrt    = (float)($b['startup_voltage']              ?? 0);
-        $imax     = (float)($b['max_input_current_per_mppt']   ?? 0);
-        $isc      = (float)($b['max_short_circuit_current']    ?? 0);
-        $pac      = (float)($b['nominal_ac_power']             ?? 0);
-        $vac      = (float)($b['ac_voltage_nominal']           ?? 0);
-        $phase    = $db->real_escape_string($b['phase_type']   ?? '');
-        $eff      = (float)($b['efficiency_weighted']          ?? 0);
-        $mppt     = (int)($b['mppt_count']                     ?? 0);
-        if ($id > 0) {
-            $db->query("UPDATE inverters SET manufacturer_id=$mid, model='$model',
-                         pmax_dc_input=$pmax, max_dc_voltage=$vmax,
-                         mppt_voltage_min=$vmppt_lo, mppt_voltage_max=$vmppt_hi,
-                         startup_voltage=$vstrt, max_input_current_per_mppt=$imax,
-                         max_short_circuit_current=$isc, nominal_ac_power=$pac,
-                         ac_voltage_nominal=$vac, phase_type='$phase', efficiency_weighted=$eff,
-                         mppt_count=$mppt
-                         WHERE id=$id");
-        } else {
-            $db->query("INSERT INTO inverters
-                         (manufacturer_id,model,pmax_dc_input,max_dc_voltage,
-                          mppt_voltage_min,mppt_voltage_max,startup_voltage,
-                          max_input_current_per_mppt,max_short_circuit_current,
-                          nominal_ac_power,ac_voltage_nominal,phase_type,efficiency_weighted,mppt_count)
-                         VALUES ($mid,'$model',$pmax,$vmax,
-                                 $vmppt_lo,$vmppt_hi,$vstrt,
-                                 $imax,$isc,
-                                 $pac,$vac,'$phase',$eff,$mppt)");
-        }
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    if ($action === 'delete_inverter') {
-        $b  = json_decode(file_get_contents('php://input'), true);
-        $id = (int)($b['id'] ?? 0);
-        $db->query("DELETE FROM inverters WHERE id=$id");
-        echo $db->error ? json_encode(['error' => $db->error]) : json_encode(['ok' => true]);
-        exit;
-    }
-
-    echo json_encode(['error' => 'Unknown action']);
-    exit;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Page render
+//  Page render — AJAX is handled by /api/inventario.php
 // ─────────────────────────────────────────────────────────────────────────────
 define('APP', true);
 $pageTitle = 'Inventario - IPTE';
@@ -403,33 +204,33 @@ include '../components/header-dashboard.php';
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax STC (W)</label>
-              <input type="number" step="0.01" id="mod-pmax_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax STC (W) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-pmax_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Voc STC (V)</label>
-              <input type="number" step="0.01" id="mod-voc_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Voc STC (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-voc_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc STC (A)</label>
-              <input type="number" step="0.01" id="mod-isc_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc STC (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-isc_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Vmpp STC (V)</label>
-              <input type="number" step="0.01" id="mod-vmpp_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Vmpp STC (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-vmpp_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Imp STC (A)</label>
-              <input type="number" step="0.01" id="mod-imp_stc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Imp STC (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-imp_stc" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">β Voc (%/°C)</label>
-              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_voc"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">β Voc (%/°C) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_voc" required
                 oninput="validateNegative(this, 'warn-tcv')"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
               <p id="warn-tcv" class="hidden mt-1 text-xs text-red-500 items-center gap-1">
@@ -438,8 +239,8 @@ include '../components/header-dashboard.php';
               </p>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">β Pmax (%/°C)</label>
-              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_pmax"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">β Pmax (%/°C) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.0001" max="-0.0001" id="mod-temp_coeff_pmax" required
                 oninput="validateNegative(this, 'warn-tcp')"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2 transition-colors">
               <p id="warn-tcp" class="hidden mt-1 text-xs text-red-500 items-center gap-1">
@@ -448,13 +249,13 @@ include '../components/header-dashboard.php';
               </p>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Largo (m)</label>
-              <input type="number" step="0.01" id="mod-length_m"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Largo (m) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-length_m" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Ancho (m)</label>
-              <input type="number" step="0.01" id="mod-width_m"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Ancho (m) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="mod-width_m" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
           </div>
@@ -477,48 +278,48 @@ include '../components/header-dashboard.php';
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax entrada DC (W)</label>
-              <input type="number" step="0.01" id="inv-pmax_dc_input"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Pmax entrada DC (W) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-pmax_dc_input" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V DC máxima (V)</label>
-              <input type="number" step="0.01" id="inv-max_dc_voltage"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V DC máxima (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-max_dc_voltage" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT mínima (V)</label>
-              <input type="number" step="0.01" id="inv-mppt_voltage_min"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT mínima (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-mppt_voltage_min" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT máxima (V)</label>
-              <input type="number" step="0.01" id="inv-mppt_voltage_max"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V MPPT máxima (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-mppt_voltage_max" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V de arranque (V)</label>
-              <input type="number" step="0.01" id="inv-startup_voltage"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V de arranque (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-startup_voltage" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">I entrada máx por MPPT (A)</label>
-              <input type="number" step="0.01" id="inv-max_input_current_per_mppt"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">I entrada máx por MPPT (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-max_input_current_per_mppt" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc máxima (A)</label>
-              <input type="number" step="0.01" id="inv-max_short_circuit_current"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Isc máxima (A) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-max_short_circuit_current" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">P AC nominal (W)</label>
-              <input type="number" step="0.01" id="inv-nominal_ac_power"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">P AC nominal (W) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-nominal_ac_power" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">V AC nominal (V)</label>
-              <input type="number" step="0.01" id="inv-ac_voltage_nominal"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">V AC nominal (V) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-ac_voltage_nominal" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
@@ -532,13 +333,13 @@ include '../components/header-dashboard.php';
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Eficiencia ponderada (%)</label>
-              <input type="number" step="0.01" id="inv-efficiency_weighted"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Eficiencia ponderada (%) <span class="text-red-500">*</span></label>
+              <input type="number" step="0.01" id="inv-efficiency_weighted" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 mb-1">Cantidad MPPT</label>
-              <input type="number" step="1" min="1" id="inv-mppt_count"
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Cantidad MPPT <span class="text-red-500">*</span></label>
+              <input type="number" step="1" min="1" id="inv-mppt_count" required
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-Ipteblue2">
             </div>
           </div>
@@ -565,397 +366,5 @@ include '../components/header-dashboard.php';
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <div id="toast-container" class="fixed bottom-6 right-6 z-100 flex flex-col gap-2 items-end pointer-events-none"></div>
 
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!--  JAVASCRIPT                                                             -->
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <script>
-    // ── Tab switching ─────────────────────────────────────────────────────
-    const ACTIVE_BTN   = ['bg-white','border-gray-200','text-Ipteblue'];
-    const INACTIVE_BTN = ['bg-gray-50','border-transparent','text-gray-500',
-                          'hover:text-Ipteblue','hover:bg-white','hover:border-gray-200'];
-
-    // ── Table state ───────────────────────────────────────────────────────
-    const state = {
-      manufacturadores: { page: 1, total: 0, loaded: false },
-      modulos:          { page: 1, total: 0, loaded: false },
-      inversores:       { page: 1, total: 0, loaded: false },
-    };
-
-    function switchTab(name) {
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove(...ACTIVE_BTN);
-        btn.classList.add(...INACTIVE_BTN);
-      });
-      document.getElementById('panel-' + name).classList.remove('hidden');
-      const activeBtn = document.getElementById('tab-' + name);
-      activeBtn.classList.remove(...INACTIVE_BTN);
-      activeBtn.classList.add(...ACTIVE_BTN);
-
-      // Load data the first time a tab is opened
-      if (!state[name].loaded) {
-        loadTable(name, 1);
-      }
-    }
-
-    // ── Load & render table ───────────────────────────────────────────────
-    async function loadTable(tab, page = 1) {
-      state[tab].page = page;
-      const q   = document.getElementById('search-' + tab)?.value ?? '';
-      const map = { manufacturadores:'list_manufacturers', modulos:'list_modules', inversores:'list_inverters' };
-      const res = await fetch(`inventario.php?action=${map[tab]}&page=${page}&q=${encodeURIComponent(q)}`);
-      const json = await res.json();
-      state[tab].total = json.total;
-      state[tab].loaded = true;
-      renderRows(tab, json.data);
-      renderPagination(tab, json.total, page);
-    }
-
-    // ── Translation maps ────────────────────────────────────────────────
-    const TECHNOLOGY_ES = {
-      'Monocrystalline': 'Monocristalino',
-      'Polycrystalline':  'Policristalino',
-      'Thin Film':        'Película delgada',
-      'Other':            'Otro',
-    };
-    const PHASE_ES = {
-      'Single Phase': 'Monofásico',
-      'Split Phase':  'Bifásico',
-      'Three Phase':  'Trifásico',
-    };
-
-    function renderRows(tab, data) {
-      const tbody = document.getElementById('tbody-' + tab);
-      if (!data.length) {
-        tbody.innerHTML = `<tr><td colspan="20" class="px-4 py-8 text-center text-gray-400 text-sm">Sin registros</td></tr>`;
-        return;
-      }
-      const tdC  = 'px-4 py-3';
-      const tdR  = 'px-4 py-3 text-right tabular-nums';
-      tbody.innerHTML = data.map(r => {
-        const actions = `
-          <div class="flex items-center justify-center gap-2">
-            <button onclick="openModal('${tab}', ${JSON.stringify(r).replace(/"/g,'&quot;')})"
-              class="p-1.5 rounded-md text-gray-400 hover:text-Ipteblue2 hover:bg-blue-50 transition" title="Editar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2.414a2 2 0 01.586-1.414z"/></svg>
-            </button>
-            <button onclick="deleteEntity('${tab}', ${r.id})"
-              class="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition" title="Eliminar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16"/></svg>
-            </button>
-          </div>`;
-
-        if (tab === 'manufacturadores') return `
-          <tr class="hover:bg-gray-50 transition">
-            <td class="${tdC} font-medium">${esc(r.name)}</td>
-            <td class="${tdC}">${actions}</td>
-          </tr>`;
-
-        if (tab === 'modulos') return `
-          <tr class="hover:bg-gray-50 transition">
-            <td class="${tdC} font-medium">${esc(r.manufacturer)}</td>
-            <td class="${tdC}">${esc(r.model)}</td>
-            <td class="${tdC}">${esc(TECHNOLOGY_ES[r.technology] ?? r.technology)}</td>
-            <td class="${tdR}">${r.pmax_stc}</td>
-            <td class="${tdR}">${r.voc_stc}</td>
-            <td class="${tdR}">${r.isc_stc}</td>
-            <td class="${tdR}">${r.vmpp_stc}</td>
-            <td class="${tdR}">${r.imp_stc}</td>
-            <td class="${tdR}">${r.temp_coeff_voc}</td>
-            <td class="${tdR}">${r.temp_coeff_pmax}</td>
-            <td class="${tdR}">${r.length_m}</td>
-            <td class="${tdR}">${r.width_m}</td>
-            <td class="${tdC}">${actions}</td>
-          </tr>`;
-
-        if (tab === 'inversores') return `
-          <tr class="hover:bg-gray-50 transition">
-            <td class="${tdC} font-medium">${esc(r.manufacturer)}</td>
-            <td class="${tdC}">${esc(r.model)}</td>
-            <td class="${tdR}">${r.pmax_dc_input}</td>
-            <td class="${tdR}">${r.max_dc_voltage}</td>
-            <td class="${tdR}">${r.mppt_voltage_min} – ${r.mppt_voltage_max}</td>
-            <td class="${tdR}">${r.startup_voltage}</td>
-            <td class="${tdR}">${r.max_input_current_per_mppt}</td>
-            <td class="${tdR}">${r.max_short_circuit_current}</td>
-            <td class="${tdR}">${r.nominal_ac_power}</td>
-            <td class="${tdR}">${r.ac_voltage_nominal}</td>
-            <td class="${tdC}">${esc(PHASE_ES[r.phase_type] ?? r.phase_type)}</td>
-            <td class="${tdR}">${r.efficiency_weighted}</td>
-            <td class="${tdR}">${r.mppt_count}</td>
-            <td class="${tdC}">${actions}</td>
-          </tr>`;
-      }).join('');
-    }
-
-    function renderPagination(tab, total, page) {
-      const pages = Math.ceil(total / 5) || 1;
-      const el    = document.getElementById('pagination-' + tab);
-      const from  = total === 0 ? 0 : (page - 1) * 5 + 1;
-      const to    = Math.min(page * 5, total);
-      const btnCls = 'px-3 py-1.5 rounded-lg border text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed';
-      el.innerHTML = `
-        <span>${from}–${to} de ${total} registros</span>
-        <div class="flex items-center gap-2">
-          <button class="${btnCls} ${page <= 1 ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200 text-gray-400' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}"
-            onclick="loadTable('${tab}', ${page - 1})" ${page <= 1 ? 'disabled' : ''}>
-            ← Anterior
-          </button>
-          <span class="text-xs text-gray-400">Pág. ${page} / ${pages}</span>
-          <button class="${btnCls} ${page >= pages ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200 text-gray-400' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}"
-            onclick="loadTable('${tab}', ${page + 1})" ${page >= pages ? 'disabled' : ''}>
-            Siguiente →
-          </button>
-        </div>`;
-    }
-
-    // ── Modal ─────────────────────────────────────────────────────────────
-    let currentTab = null;
-
-    function showModalError(msg) {
-      const el = document.getElementById('modal-error');
-      document.getElementById('modal-error-text').textContent = msg;
-      el.style.display = 'flex';
-    }
-
-    function clearModalError() {
-      const el = document.getElementById('modal-error');
-      el.style.display = 'none';
-      document.getElementById('modal-error-text').textContent = '';
-    }
-
-    async function openModal(tab, row = null) {
-      currentTab = tab;
-      clearModalError();
-      document.getElementById('modal-title').textContent = row ? 'Editar registro' : 'Nuevo registro';
-      document.querySelectorAll('.entity-form').forEach(f => f.classList.add('hidden'));
-      document.getElementById('form-' + tab).classList.remove('hidden');
-      resetNegativeWarnings();
-      if (tab === 'modulos' || tab === 'inversores') {
-        await populateManufacturers(tab === 'modulos' ? 'mod-manufacturer' : 'inv-manufacturer', row?.manufacturer_id);
-      }
-
-      // Populate form fields
-      if (tab === 'manufacturadores') {
-        document.getElementById('man-id').value   = row?.id   ?? '';
-        document.getElementById('man-name').value = row?.name ?? '';
-      }
-      if (tab === 'modulos') {
-        document.getElementById('mod-id').value            = row?.id             ?? '';
-        document.getElementById('mod-model').value         = row?.model          ?? '';
-        document.getElementById('mod-technology').value    = row?.technology     ?? '';
-        document.getElementById('mod-pmax_stc').value      = row?.pmax_stc       ?? '';
-        document.getElementById('mod-voc_stc').value       = row?.voc_stc        ?? '';
-        document.getElementById('mod-isc_stc').value       = row?.isc_stc        ?? '';
-        document.getElementById('mod-vmpp_stc').value      = row?.vmpp_stc       ?? '';
-        document.getElementById('mod-imp_stc').value       = row?.imp_stc        ?? '';
-        document.getElementById('mod-temp_coeff_voc').value  = row?.temp_coeff_voc  ?? '';
-        document.getElementById('mod-temp_coeff_pmax').value = row?.temp_coeff_pmax ?? '';
-        document.getElementById('mod-length_m').value      = row?.length_m       ?? '';
-        document.getElementById('mod-width_m').value       = row?.width_m        ?? '';
-      }
-      if (tab === 'inversores') {
-        document.getElementById('inv-id').value                          = row?.id                           ?? '';
-        document.getElementById('inv-model').value                       = row?.model                        ?? '';
-        document.getElementById('inv-pmax_dc_input').value               = row?.pmax_dc_input                ?? '';
-        document.getElementById('inv-max_dc_voltage').value              = row?.max_dc_voltage               ?? '';
-        document.getElementById('inv-mppt_voltage_min').value            = row?.mppt_voltage_min             ?? '';
-        document.getElementById('inv-mppt_voltage_max').value            = row?.mppt_voltage_max             ?? '';
-        document.getElementById('inv-startup_voltage').value             = row?.startup_voltage              ?? '';
-        document.getElementById('inv-max_input_current_per_mppt').value  = row?.max_input_current_per_mppt  ?? '';
-        document.getElementById('inv-max_short_circuit_current').value   = row?.max_short_circuit_current   ?? '';
-        document.getElementById('inv-nominal_ac_power').value            = row?.nominal_ac_power             ?? '';
-        document.getElementById('inv-ac_voltage_nominal').value          = row?.ac_voltage_nominal           ?? '';
-        document.getElementById('inv-phase_type').value                  = row?.phase_type                   ?? '';
-        document.getElementById('inv-efficiency_weighted').value         = row?.efficiency_weighted          ?? '';
-        document.getElementById('inv-mppt_count').value                  = row?.mppt_count                   ?? '';
-      }
-
-      document.getElementById('modal').classList.remove('hidden');
-      document.getElementById('modal').classList.add('flex');
-    }
-
-    async function populateManufacturers(selectId, selectedId = null) {
-      const res  = await fetch('inventario.php?action=manufacturers_select');
-      const list = await res.json();
-      const sel  = document.getElementById(selectId);
-      sel.innerHTML = '<option value="">— Seleccionar —</option>' +
-        list.map(m => `<option value="${m.id}" ${m.id == selectedId ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
-    }
-
-    function closeModal() {
-      clearModalError();
-      document.getElementById('modal').classList.add('hidden');
-      document.getElementById('modal').classList.remove('flex');
-      currentTab = null;
-    }
-
-    async function saveEntity() {
-      const tab = currentTab;
-      let payload = {};
-
-      if (tab === 'manufacturadores') {
-        payload = { id: document.getElementById('man-id').value, name: document.getElementById('man-name').value };
-      }
-      if (tab === 'modulos') {
-          payload = {
-          id: document.getElementById('mod-id').value,
-          manufacturer_id: document.getElementById('mod-manufacturer').value,
-          model:            document.getElementById('mod-model').value,
-          technology:       document.getElementById('mod-technology').value,
-          pmax_stc:         document.getElementById('mod-pmax_stc').value,
-          voc_stc:          document.getElementById('mod-voc_stc').value,
-          isc_stc:          document.getElementById('mod-isc_stc').value,
-          vmpp_stc:         document.getElementById('mod-vmpp_stc').value,
-          imp_stc:          document.getElementById('mod-imp_stc').value,
-          temp_coeff_voc:   document.getElementById('mod-temp_coeff_voc').value,
-          temp_coeff_pmax:  document.getElementById('mod-temp_coeff_pmax').value,
-          length_m:         document.getElementById('mod-length_m').value,
-          width_m:          document.getElementById('mod-width_m').value,
-        };
-      }
-      if (tab === 'inversores') {
-        payload = {
-          id:                          document.getElementById('inv-id').value,
-          manufacturer_id:             document.getElementById('inv-manufacturer').value,
-          model:                       document.getElementById('inv-model').value,
-          pmax_dc_input:               document.getElementById('inv-pmax_dc_input').value,
-          max_dc_voltage:              document.getElementById('inv-max_dc_voltage').value,
-          mppt_voltage_min:            document.getElementById('inv-mppt_voltage_min').value,
-          mppt_voltage_max:            document.getElementById('inv-mppt_voltage_max').value,
-          startup_voltage:             document.getElementById('inv-startup_voltage').value,
-          max_input_current_per_mppt:  document.getElementById('inv-max_input_current_per_mppt').value,
-          max_short_circuit_current:   document.getElementById('inv-max_short_circuit_current').value,
-          nominal_ac_power:            document.getElementById('inv-nominal_ac_power').value,
-          ac_voltage_nominal:          document.getElementById('inv-ac_voltage_nominal').value,
-          phase_type:                  document.getElementById('inv-phase_type').value,
-          efficiency_weighted:         document.getElementById('inv-efficiency_weighted').value,
-          mppt_count:                  document.getElementById('inv-mppt_count').value,
-        };
-      }
-
-      const actionMap = { manufacturadores: 'save_manufacturer', modulos: 'save_module', inversores: 'save_inverter' };
-      let json;
-      try {
-        const res  = await fetch(`inventario.php?action=${actionMap[tab]}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const text = await res.text();
-        console.debug('[saveEntity] raw response:', text);
-        try {
-          json = JSON.parse(text);
-        } catch (_) {
-          const match = text.match(/\{"[\s\S]*?(?:"ok"|"error")[\s\S]*?\}/);
-          if (!match) throw new Error('No JSON found: ' + text);
-          json = JSON.parse(match[0]);
-        }
-      } catch (e) {
-        console.error('[saveEntity] parse error:', e);
-        showModalError('Error de comunicación con el servidor.');
-        return;
-      }
-      if (json.error) {
-        showModalError(json.error);
-        return;
-      }
-      const isEdit = !!payload.id;
-      closeModal();
-      loadTable(tab, state[tab].page);
-      showToast(isEdit ? 'Registro actualizado correctamente.' : 'Registro creado correctamente.');
-    }
-
-    // ── Delete ────────────────────────────────────────────────────────────
-    async function deleteEntity(tab, id) {
-      if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
-      const actionMap = { manufacturadores: 'delete_manufacturer', modulos: 'delete_module', inversores: 'delete_inverter' };
-      const res  = await fetch(`inventario.php?action=${actionMap[tab]}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-      const json = await res.json();
-      if (json.error) { showToast('Error: ' + json.error, 'error'); return; }
-      const newPage = state[tab].page;
-      loadTable(tab, newPage);
-      showToast('Registro eliminado correctamente.', 'info');
-    }
-
-    // ── Toast notifications ─────────────────────────────────────────────
-    function showToast(message, type = 'success') {
-      const colours = {
-        success: 'bg-green-600',
-        error:   'bg-red-600',
-        info:    'bg-Ipteblue2',
-      };
-      const icons = {
-        success: `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`,
-        error:   `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
-        info:    `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01"/></svg>`,
-      };
-
-      const toast = document.createElement('div');
-      toast.className = [
-        'pointer-events-auto flex items-center gap-2.5 text-white text-sm font-medium',
-        'px-4 py-2.5 rounded-xl shadow-lg',
-        'translate-x-0 opacity-100 transition-all duration-300',
-        colours[type] ?? colours.info,
-      ].join(' ');
-      toast.innerHTML = (icons[type] ?? '') + `<span>${esc(message)}</span>`;
-
-      const container = document.getElementById('toast-container');
-      container.appendChild(toast);
-
-      // Fade out then remove
-      setTimeout(() => {
-        toast.style.opacity    = '0';
-        toast.style.transform  = 'translateX(1rem)';
-        setTimeout(() => toast.remove(), 300);
-      }, 3500);
-    }
-
-    // ── Negative coefficient real-time validation ──────────────────────
-    function validateNegative(input, warningId) {
-      const val  = parseFloat(input.value);
-      const warn = document.getElementById(warningId);
-      const invalid = input.value !== '' && !isNaN(val) && val >= 0;
-      if (invalid) {
-        input.classList.add('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
-        input.classList.remove('border-gray-200', 'focus:ring-Ipteblue2');
-        warn.classList.remove('hidden');
-        warn.classList.add('flex');
-      } else {
-        input.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
-        input.classList.add('border-gray-200', 'focus:ring-Ipteblue2');
-        warn.classList.remove('flex');
-        warn.classList.add('hidden');
-      }
-    }
-
-    function resetNegativeWarnings() {
-      ['mod-temp_coeff_voc', 'mod-temp_coeff_pmax'].forEach((id, i) => {
-        const input = document.getElementById(id);
-        const warn  = document.getElementById(['warn-tcv', 'warn-tcp'][i]);
-        input.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
-        input.classList.add('border-gray-200', 'focus:ring-Ipteblue2');
-        warn.classList.add('hidden');
-      });
-    }
-
-    // ── XSS-safe string helper ────────────────────────────────────────────
-    function esc(s) {
-      if (s == null) return '';
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    // ── Close modal on backdrop click ─────────────────────────────────────
-    document.getElementById('modal').addEventListener('click', function(e) {
-      if (e.target === this) closeModal();
-    });
-
-    // ── Bootstrap ─────────────────────────────────────────────────────────
-    loadTable('manufacturadores');
-  </script>
-
+  <script src="/js/inventario.js"></script>
 <?php include '../components/footer.php'; ?>

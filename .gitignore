@@ -1,6 +1,9 @@
 # Node
 node_modules/
 
+# Composer dependencies (generated, not tracked)
+src/vendor/
+
 # Tailwind generated output (can be rebuilt)
 src/output.css
 
