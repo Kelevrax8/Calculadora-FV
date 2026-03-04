@@ -224,6 +224,22 @@
     window.calcState.P_stc_kW = P_stc_kW;
   }
 
+  // ── Reset (called by showStep when navigating back to step 1) ──
+  window.resetBlock2 = function () {
+    selectedModule = null;
+    resultsEl.classList.add('hidden');
+    contBtn.disabled = true;
+    document.getElementById('selected-module-name').textContent = '—';
+    document.querySelectorAll('[data-module-id]').forEach(card => {
+      card.className = 'cursor-pointer rounded-xl border border-gray-200 p-4 transition-all hover:border-Ipteblue hover:shadow-sm';
+    });
+    if (window.calcState) {
+      delete window.calcState.module;
+      delete window.calcState.N;
+      delete window.calcState.P_stc_kW;
+    }
+  };
+
   // ── Deselect ──────────────────────────────────────────────
   document.getElementById('btn-deselect-module').addEventListener('click', function () {
     selectedModule = null;
