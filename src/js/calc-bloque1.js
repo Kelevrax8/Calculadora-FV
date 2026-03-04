@@ -6,6 +6,10 @@
   history.replaceState({ step: 1 }, '', '#paso-1');
 
   window.showStep = function (step) {
+    // Clear downstream blocks so stale selections never carry forward
+    if (step <= 2 && typeof window.resetBlock3 === 'function') window.resetBlock3();
+    if (step <= 1 && typeof window.resetBlock2 === 'function') window.resetBlock2();
+
     const blocks = [
       document.getElementById('bloque-1'),
       document.getElementById('bloque-2'),
@@ -91,7 +95,7 @@
       btn.classList.toggle('text-gray-500', !active);
     });
     hspModeHint.textContent = mode === 'min'
-      ? 'Usando el mes con menor radiación (diseño conservador)'
+      ? 'Usando el mes con menor radiación'
       : 'Usando el promedio anual de radiación';
   }
 

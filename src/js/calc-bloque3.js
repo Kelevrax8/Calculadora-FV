@@ -523,6 +523,22 @@
     card.querySelector('[data-limit]').textContent  = limit;
   }
 
+  // ── Reset (called by showStep when navigating back to step ≤ 2) ──
+  window.resetBlock3 = function () {
+    selectedInverter = null;
+    results3.classList.add('hidden');
+    contBtn3.disabled = true;
+    document.getElementById('selected-inverter-name').textContent = '—';
+    document.querySelectorAll('[data-inverter-id]').forEach(card => {
+      card.className = 'cursor-pointer rounded-xl border border-gray-200 p-4 transition-all hover:border-Ipteblue hover:shadow-sm';
+    });
+    if (window.calcState) {
+      delete window.calcState.inverter;
+      delete window.calcState.Ns;
+      delete window.calcState.Np;
+    }
+  };
+
   // ── Deselect ──────────────────────────────────────────────
   document.getElementById('btn-deselect-inverter').addEventListener('click', function () {
     selectedInverter = null;
