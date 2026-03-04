@@ -8,6 +8,8 @@ services:
       - ./src:/var/www/html
     depends_on:
       - db
+    environment:
+      TZ: America/Mexico_City
     command: >-
       sh -c "composer install --no-interaction --optimize-autoloader
       && apache2-foreground"
@@ -21,6 +23,7 @@ services:
       MYSQL_DATABASE: app_db
       MYSQL_USER: app_user
       MYSQL_PASSWORD: secret
+      TZ: America/Mexico_City
     volumes:
       - db_data:/var/lib/mysql
 
