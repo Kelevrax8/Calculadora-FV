@@ -12,8 +12,8 @@
 <body class="h-full flex flex-col overflow-hidden bg-Ipteblue2">
 
   <!-- Top bar -->
-  <header class="w-full bg-white border-Ipteblue/20 ">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between bg-linear-to-b from-white-80 via-Ipteblue2/40 to-Ipteblue/80 backdrop-blur-sm">
+  <header class="w-full bg-linear-to-b from-white via-Ipteblue2/40 to-Ipteblue/80 backdrop-blur-sm border-Ipteblue/20">
+    <div class="w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center">
       <!-- Logo (left) -->
       <a href="/" class="flex items-center">
         <img
