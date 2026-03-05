@@ -23,7 +23,7 @@ include 'components/header.php';
           Soluciones Tecnológicas
         </span>
         <h1 class="text-4xl sm:text-5xl font-bold text-white leading-tight mb-6">
-          Calculadora para<br>dimensionamiento de sistemas fotovoltaicos
+          DAN<br>Calculadora solar interconectada a CFE
         </h1>
         <p class="text-white/70 text-base sm:text-lg leading-relaxed mb-8">
           Módulo web diseñado para el dimensionamiento de Sistemas Fotovoltaicos conectados
