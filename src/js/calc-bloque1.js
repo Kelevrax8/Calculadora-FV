@@ -7,6 +7,7 @@
 
   window.showStep = function (step) {
     // Clear downstream blocks so stale selections never carry forward
+    if (step <= 3 && typeof window.resetBlock4 === 'function') window.resetBlock4();
     if (step <= 2 && typeof window.resetBlock3 === 'function') window.resetBlock3();
     if (step <= 1 && typeof window.resetBlock2 === 'function') window.resetBlock2();
 
@@ -14,12 +15,14 @@
       document.getElementById('bloque-1'),
       document.getElementById('bloque-2'),
       document.getElementById('bloque-3'),
+      document.getElementById('bloque-4'),
     ];
     blocks.forEach((b, i) => b.classList.toggle('hidden', i + 1 !== step));
     const target = blocks[step - 1];
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (step === 2 && typeof window.loadPVModules === 'function') window.loadPVModules();
     if (step === 3 && typeof window.loadInverters  === 'function') window.loadInverters();
+    if (step === 4 && typeof window.loadBlock4     === 'function') window.loadBlock4();
   };
 
   window.addEventListener('popstate', function (e) {
@@ -59,8 +62,39 @@
     if (marker) { marker.setLatLng(e.latlng); }
     else         { marker = L.marker(e.latlng).addTo(map); }
 
+    // If location changed after a successful fetch, invalidate stale climate data
+    const locationChanged = monthlyGHI !== null;
+    if (locationChanged) {
+      monthlyGHI  = null;
+      monthlyData = null;
+
+      // Clear NASA-filled fields and their blue highlights
+      hspInput.value  = '';
+      tminInput.value = '';
+      tmaxInput.value = '';
+      [hspInput, tminInput, tmaxInput].forEach(el => {
+        el.classList.remove('bg-blue-50', 'border-Ipteblue');
+      });
+
+      // Hide HSP mode toggle since it no longer has valid data
+      hspToggle.classList.add('hidden');
+      hspModeHint.classList.add('hidden');
+      hspModeHint.textContent = '';
+
+      // Reset NASA button inner content back to fetch prompt
+      nasaBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15-6.36-.71.71M6.05 17.66l-.71.71m12.02 0-.71-.71M6.05 6.34l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7Z"/>
+        </svg>
+        Consultar NASA POWER`;
+    }
+
+    // Always ensure button is enabled and in the ready (blue) state
     nasaBtn.disabled = false;
-    nasaBtn.classList.remove('text-gray-400', 'cursor-not-allowed', 'bg-gray-50');
+    nasaBtn.classList.remove('text-green-600', 'border-green-300', 'bg-green-50',
+                             'text-gray-400', 'cursor-not-allowed', 'bg-gray-50');
     nasaBtn.classList.add('text-Ipteblue', 'cursor-pointer', 'bg-white');
     nasaBtn.title = 'Obtener datos solares para esta ubicación';
   });
@@ -74,8 +108,9 @@
   const hspModeHint = document.getElementById('hsp-mode-hint');
   const hspModeBtns = document.querySelectorAll('.hsp-mode-btn');
 
-  let monthlyGHI = null;
-  let hspMode    = 'min';
+  let monthlyGHI  = null;
+  let monthlyData  = null;   // full monthly objects — survives calcState resets
+  let hspMode      = 'avg';
 
   function computeHSP() {
     if (!monthlyGHI) return null;
@@ -125,13 +160,18 @@
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || 'Error desconocido');
 
-      monthlyGHI = json.monthly.map(m => m.ghi);
+      monthlyGHI  = json.monthly.map(m => m.ghi);
+      monthlyData = json.monthly;   // persists across resets
       tminInput.value = json.tmin.toFixed(1);
       tmaxInput.value = json.tmax.toFixed(1);
 
+      // Save full monthly data for block 4 monthly production table
+      window.calcState          = window.calcState || {};
+      window.calcState.monthly  = json.monthly;
+
       hspToggle.classList.remove('hidden');
       hspModeHint.classList.remove('hidden');
-      applyHSPMode('min');
+      applyHSPMode('avg');
 
       [hspInput, tminInput, tmaxInput].forEach(el => {
         el.classList.add('bg-blue-50', 'border-Ipteblue');
@@ -161,6 +201,70 @@
     }
   });
 
+  // ── Reset block 1 (called by btn-reiniciar in block 4) ────
+  window.resetBlock1 = function () {
+    // Closure state
+    monthlyGHI  = null;
+    monthlyData = null;
+    hspMode     = 'avg';
+
+    // Input fields
+    latInput.value  = '';
+    lngInput.value  = '';
+    hspInput.value  = '';
+    tminInput.value = '';
+    tmaxInput.value = '';
+    document.getElementById('consumo_anual_kwh').value = '';
+
+    // Remove blue highlight from NASA-filled fields
+    [hspInput, tminInput, tmaxInput].forEach(el => {
+      el.classList.remove('bg-blue-50', 'border-Ipteblue');
+    });
+
+    // Hide coordinate badge
+    badge.classList.add('hidden');
+    document.getElementById('badge-lat').textContent = '—';
+    document.getElementById('badge-lng').textContent = '—';
+
+    // Remove map marker
+    if (marker) { marker.remove(); marker = null; }
+
+    // Reset map view to initial position
+    map.setView([23.6345, -102.5528], 5);
+
+    // Reset NASA button to initial disabled state
+    nasaBtn.disabled = true;
+    nasaBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
+           viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15-6.36-.71.71M6.05 17.66l-.71.71m12.02 0-.71-.71M6.05 6.34l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7Z"/>
+      </svg>
+      Consultar NASA POWER`;
+    nasaBtn.classList.remove('text-green-600', 'border-green-300', 'bg-green-50',
+                             'text-Ipteblue', 'cursor-pointer', 'bg-white');
+    nasaBtn.classList.add('text-gray-400', 'cursor-not-allowed', 'bg-gray-50');
+    nasaBtn.title = 'Selecciona primero una ubicación en el mapa';
+
+    // Hide HSP mode toggle + hint
+    hspToggle.classList.add('hidden');
+    hspModeHint.classList.add('hidden');
+    hspModeHint.textContent = '';
+
+    // Reset HSP mode buttons to default (avg active)
+    hspModeBtns.forEach(btn => {
+      const active = btn.dataset.mode === 'avg';
+      btn.classList.toggle('bg-Ipteblue',   active);
+      btn.classList.toggle('text-white',    active);
+      btn.classList.toggle('bg-white',      !active);
+      btn.classList.toggle('text-gray-500', !active);
+    });
+
+    // Hide any lingering error
+    nasaError.classList.add('hidden');
+    nasaError.textContent = '';
+  };
+
   // ── Continue to Block 2 ───────────────────────────────────
   document.getElementById('btn-bloque1-continuar').addEventListener('click', function () {
     const errors = [];
@@ -184,6 +288,13 @@
     }
 
     nasaError.classList.add('hidden');
+
+    // Re-inject monthly data in case resetBlock2() wiped calcState.monthly
+    // (e.g. user navigated back without re-fetching NASA)
+    if (monthlyData) {
+      window.calcState         = window.calcState || {};
+      window.calcState.monthly = monthlyData;
+    }
 
     history.pushState({ step: 2 }, '', '#paso-2');
     window.showStep(2);

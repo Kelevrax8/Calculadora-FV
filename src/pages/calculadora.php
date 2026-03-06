@@ -24,7 +24,7 @@ include '../components/header-dashboard.php';
     <?php include '../components/calc/bloque-calc1.php'; ?>
     <?php include '../components/calc/bloque-calc2.php'; ?>
     <?php include '../components/calc/bloque-calc3.php'; ?>
-    <!-- future blocks included here -->
+    <?php include '../components/calc/bloque-calc4.php'; ?>
 
   </div><!-- /max-w-7xl -->
 </main>
@@ -35,6 +35,7 @@ $extraScripts = <<<'HTML'
 <script src="/js/calc-bloque1.js"></script>
 <script src="/js/calc-bloque2.js"></script>
 <script src="/js/calc-bloque3.js"></script>
+<script src="/js/calc-bloque4.js"></script>
 HTML;
 include '../components/footer.php';
 ?>

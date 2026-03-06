@@ -109,13 +109,13 @@
               </label>
               <!-- Mode toggle: only visible after NASA data loads -->
               <div id="hsp-mode-toggle" class="flex items-center rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
-                <button type="button" data-mode="min"
-                  class="hsp-mode-btn px-2.5 py-1 bg-Ipteblue text-white transition-colors duration-300">
-                  Peor mes
-                </button>
                 <button type="button" data-mode="avg"
-                  class="hsp-mode-btn px-2.5 py-1 bg-white text-gray-500 transition-colors duration-300">
+                  class="hsp-mode-btn px-2.5 py-1 bg-Ipteblue text-white transition-colors duration-300">
                   Promedio anual
+                </button>
+                <button type="button" data-mode="min"
+                  class="hsp-mode-btn px-2.5 py-1 bg-white text-gray-500 transition-colors duration-300">
+                  Peor mes
                 </button>
               </div>
             </div>
@@ -152,6 +152,13 @@
           </div>
         </div>
       </fieldset>
+
+      <!-- PR assumption note -->
+      <p class="mt-3 text-xs text-gray-400">
+        <span class="font-medium text-gray-500">Nota:</span>
+        Los cálculos utilizan un factor de rendimiento (PR) de <span class="font-semibold">0.75</span>,
+        valor típico en diseño preliminar que engloba pérdidas por temperatura, cableado, inversor y suciedad.
+      </p>
 
       <!-- Continue button -->
       <div class="mt-auto pt-2">

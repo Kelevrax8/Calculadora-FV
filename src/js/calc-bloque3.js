@@ -564,8 +564,8 @@
   // ── Continue to Block 4 ───────────────────────────────────
   contBtn3.addEventListener('click', function () {
     if (!selectedInverter) return;
-    // TODO: show bloque-4
-    alert('Bloque 4 – Resultados (próximamente)');
+    history.pushState({ step: 4 }, '', '#paso-4');
+    window.showStep(4);
   });
 
 })();
