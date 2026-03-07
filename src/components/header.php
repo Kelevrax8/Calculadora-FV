@@ -1,26 +1,27 @@
 <?php defined('APP') or die('Access denied'); ?>
 <!doctype html>
-<html lang="es" class="h-full">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title><?= htmlspecialchars($pageTitle ?? 'Calculadora FV - IPTE') ?></title>
 
-  <!-- Tailwind CSS 4.x (CLI build) -->
-  <link rel="stylesheet" href="/output.css">
+  <!-- Bootstrap 4 (AdminLTE dependency) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- AdminLTE 3 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
+  <style>
+    :root { --ipte-blue: #171933; --ipte-blue2: #0665F7; }
+  </style>
 </head>
-<body class="h-full flex flex-col overflow-hidden bg-Ipteblue2">
+<body style="background-color:#171933; min-height:100vh; display:flex; flex-direction:column;">
 
   <!-- Top bar -->
-  <header class="w-full bg-linear-to-r from-white via-Ipteblue2/40 to-Ipteblue/80">
-    <div class="w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center">
-      <!-- Logo (left) -->
-      <a href="/" class="flex items-center">
-        <img
-          src="/Images/Logo-IPTE.png"
-          alt="Logo de la empresa"
-          class="h-12 w-auto object-contain"
-        />
-      </a>
-    </div>
-  </header>
+  <nav class="navbar" style="background:white">
+    <a class="navbar-brand py-1" href="/">
+      <img src="/Images/Logo-IPTE.png" alt="Logo IPTE"
+           style="height:3rem; width:auto; object-fit:contain;">
+    </a>
+  </nav>

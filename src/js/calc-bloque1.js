@@ -17,7 +17,7 @@
       document.getElementById('bloque-3'),
       document.getElementById('bloque-4'),
     ];
-    blocks.forEach((b, i) => b.classList.toggle('hidden', i + 1 !== step));
+    blocks.forEach((b, i) => b.classList.toggle('d-none', i + 1 !== step));
     const target = blocks[step - 1];
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (step === 2 && typeof window.loadPVModules === 'function') window.loadPVModules();
@@ -57,7 +57,7 @@
     lngInput.value = lng;
     document.getElementById('badge-lat').textContent = lat;
     document.getElementById('badge-lng').textContent = lng;
-    badge.classList.remove('hidden');
+    badge.classList.remove('d-none');
 
     if (marker) { marker.setLatLng(e.latlng); }
     else         { marker = L.marker(e.latlng).addTo(map); }
@@ -77,25 +77,19 @@
       });
 
       // Hide HSP mode toggle since it no longer has valid data
-      hspToggle.classList.add('hidden');
-      hspModeHint.classList.add('hidden');
+      hspToggle.classList.add('d-none');
+      hspModeHint.classList.add('d-none');
       hspModeHint.textContent = '';
 
       // Reset NASA button inner content back to fetch prompt
-      nasaBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15-6.36-.71.71M6.05 17.66l-.71.71m12.02 0-.71-.71M6.05 6.34l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7Z"/>
-        </svg>
-        Consultar NASA POWER`;
+      nasaBtn.innerHTML = `<i class="fas fa-sun mr-1"></i>Consultar NASA POWER`;
     }
 
     // Always ensure button is enabled and in the ready (blue) state
     nasaBtn.disabled = false;
-    nasaBtn.classList.remove('text-green-600', 'border-green-300', 'bg-green-50',
-                             'text-gray-400', 'cursor-not-allowed', 'bg-gray-50');
-    nasaBtn.classList.add('text-Ipteblue', 'cursor-pointer', 'bg-white');
+    nasaBtn.classList.remove('btn-success', 'btn-secondary', 'disabled');
+    nasaBtn.classList.add('btn-default');
+    nasaBtn.innerHTML = `<i class="fas fa-sun mr-1"></i>Consultar NASA POWER`;
     nasaBtn.title = 'Obtener datos solares para esta ubicación';
   });
 
@@ -124,10 +118,8 @@
     hspInput.value = computeHSP().toFixed(2);
     hspModeBtns.forEach(btn => {
       const active = btn.dataset.mode === mode;
-      btn.classList.toggle('bg-Ipteblue', active);
-      btn.classList.toggle('text-white',  active);
-      btn.classList.toggle('bg-white',    !active);
-      btn.classList.toggle('text-gray-500', !active);
+      btn.classList.toggle('btn-primary', active);
+      btn.classList.toggle('btn-default', !active);
     });
     hspModeHint.textContent = mode === 'min'
       ? 'Usando el mes con menor radiación'
@@ -143,13 +135,8 @@
     if (!lat || !lng) return;
 
     nasaBtn.disabled = true;
-    nasaBtn.innerHTML = `
-      <svg class="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-      </svg>
-      Consultando NASA POWER…`;
-    nasaError.classList.add('hidden');
+    nasaBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i>Consultando NASA POWER…`;
+    nasaError.classList.add('d-none');
     nasaError.textContent = '';
 
     try {
@@ -169,35 +156,25 @@
       window.calcState          = window.calcState || {};
       window.calcState.monthly  = json.monthly;
 
-      hspToggle.classList.remove('hidden');
-      hspModeHint.classList.remove('hidden');
+      hspToggle.classList.remove('d-none');
+      hspModeHint.classList.remove('d-none');
       applyHSPMode('avg');
 
       [hspInput, tminInput, tmaxInput].forEach(el => {
-        el.classList.add('bg-blue-50', 'border-Ipteblue');
+        el.classList.add('border-primary');
+        el.classList.remove('bg-light');
       });
 
-      nasaBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
-        </svg>
-        Datos obtenidos${json.source === 'cache' ? ' (caché)' : ''}`;
-      nasaBtn.classList.remove('text-Ipteblue');
-      nasaBtn.classList.add('text-green-600', 'border-green-300', 'bg-green-50');
+      nasaBtn.innerHTML = `<i class="fas fa-check mr-1"></i>Datos obtenidos${json.source === 'cache' ? ' (caché)' : ''}`;
+      nasaBtn.classList.remove('btn-default');
+      nasaBtn.classList.add('btn-success');
       nasaBtn.disabled = false;
 
     } catch (err) {
       nasaError.textContent = '⚠ ' + err.message;
-      nasaError.classList.remove('hidden');
+      nasaError.classList.remove('d-none');
       nasaBtn.disabled = false;
-      nasaBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15-6.36-.71.71M6.05 17.66l-.71.71m12.02 0-.71-.71M6.05 6.34l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7Z"/>
-        </svg>
-        Reintentar NASA POWER`;
+      nasaBtn.innerHTML = `<i class="fas fa-sync mr-1"></i>Reintentar NASA POWER`;
     }
   });
 
@@ -216,13 +193,13 @@
     tmaxInput.value = '';
     document.getElementById('consumo_anual_kwh').value = '';
 
-    // Remove blue highlight from NASA-filled fields
     [hspInput, tminInput, tmaxInput].forEach(el => {
-      el.classList.remove('bg-blue-50', 'border-Ipteblue');
+      el.classList.remove('border-primary');
+      el.classList.add('bg-light');
     });
 
     // Hide coordinate badge
-    badge.classList.add('hidden');
+    badge.classList.add('d-none');
     document.getElementById('badge-lat').textContent = '—';
     document.getElementById('badge-lng').textContent = '—';
 
@@ -234,34 +211,25 @@
 
     // Reset NASA button to initial disabled state
     nasaBtn.disabled = true;
-    nasaBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
-           viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round"
-              d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15-6.36-.71.71M6.05 17.66l-.71.71m12.02 0-.71-.71M6.05 6.34l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7Z"/>
-      </svg>
-      Consultar NASA POWER`;
-    nasaBtn.classList.remove('text-green-600', 'border-green-300', 'bg-green-50',
-                             'text-Ipteblue', 'cursor-pointer', 'bg-white');
-    nasaBtn.classList.add('text-gray-400', 'cursor-not-allowed', 'bg-gray-50');
+    nasaBtn.innerHTML = `<i class="fas fa-sun mr-1"></i>Consultar NASA POWER`;
+    nasaBtn.classList.remove('btn-success');
+    nasaBtn.classList.add('btn-default');
     nasaBtn.title = 'Selecciona primero una ubicación en el mapa';
 
     // Hide HSP mode toggle + hint
-    hspToggle.classList.add('hidden');
-    hspModeHint.classList.add('hidden');
+    hspToggle.classList.add('d-none');
+    hspModeHint.classList.add('d-none');
     hspModeHint.textContent = '';
 
     // Reset HSP mode buttons to default (avg active)
     hspModeBtns.forEach(btn => {
       const active = btn.dataset.mode === 'avg';
-      btn.classList.toggle('bg-Ipteblue',   active);
-      btn.classList.toggle('text-white',    active);
-      btn.classList.toggle('bg-white',      !active);
-      btn.classList.toggle('text-gray-500', !active);
+      btn.classList.toggle('btn-primary', active);
+      btn.classList.toggle('btn-default', !active);
     });
 
     // Hide any lingering error
-    nasaError.classList.add('hidden');
+    nasaError.classList.add('d-none');
     nasaError.textContent = '';
   };
 
@@ -282,12 +250,12 @@
 
     if (errors.length > 0) {
       nasaError.textContent = '⚠ ' + errors[0];
-      nasaError.classList.remove('hidden');
+      nasaError.classList.remove('d-none');
       nasaError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
-    nasaError.classList.add('hidden');
+    nasaError.classList.add('d-none');
 
     // Re-inject monthly data in case resetBlock2() wiped calcState.monthly
     // (e.g. user navigated back without re-fetching NASA)

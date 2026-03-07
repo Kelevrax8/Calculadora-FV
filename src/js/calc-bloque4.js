@@ -184,16 +184,16 @@
 
     // ── DC/AC ratio ────────────────────────────────────────
     let dcacLabel, dcacColor;
-    if      (dc_ac < 0.80)  { dcacLabel = 'Arreglo insuficiente'; dcacColor = 'text-red-500'; }
-    else if (dc_ac < 1.00)  { dcacLabel = 'Subóptimo';            dcacColor = 'text-amber-500'; }
-    else if (dc_ac <= 1.25) { dcacLabel = 'Conservador';          dcacColor = 'text-green-400'; }
-    else if (dc_ac <= 1.50) { dcacLabel = 'Óptimo';               dcacColor = 'text-green-600'; }
-    else                    { dcacLabel = 'Sobredimensionado';     dcacColor = 'text-red-500'; }
+    if      (dc_ac < 0.80)  { dcacLabel = 'Arreglo insuficiente'; dcacColor = 'text-danger'; }
+    else if (dc_ac < 1.00)  { dcacLabel = 'Subóptimo';            dcacColor = 'text-warning'; }
+    else if (dc_ac <= 1.25) { dcacLabel = 'Conservador';          dcacColor = 'text-success'; }
+    else if (dc_ac <= 1.50) { dcacLabel = 'Óptimo';               dcacColor = 'text-success font-weight-bold'; }
+    else                    { dcacLabel = 'Sobredimensionado';     dcacColor = 'text-danger'; }
 
     const dcacEl = document.getElementById('s4-dcac-value');
     const dcacLabelEl = document.getElementById('s4-dcac-label');
-    if (dcacEl)      { dcacEl.textContent = dc_ac.toFixed(2); dcacEl.className = 'text-sm font-bold ' + dcacColor; }
-    if (dcacLabelEl) { dcacLabelEl.textContent = dcacLabel;   dcacLabelEl.className = 'text-xs font-semibold ' + dcacColor; }
+    if (dcacEl)      { dcacEl.textContent = dc_ac.toFixed(2); dcacEl.className = 'font-weight-bold small mb-0 ' + dcacColor; }
+    if (dcacLabelEl) { dcacLabelEl.textContent = dcacLabel;   dcacLabelEl.className = 'small font-weight-bold mb-0 ' + dcacColor; }
 
     // ── Energy estimate ────────────────────────────────────
     const E_year   = cs.P_stc_kW * hsp * 365 * PR;
@@ -222,11 +222,11 @@
     if (!section || !tbody || !tfoot) return;
 
     if (!monthly || monthly.length !== 12) {
-      section.classList.add('hidden');
+      section.classList.add('d-none');
       return;
     }
 
-    section.classList.remove('hidden');
+    section.classList.remove('d-none');
 
     // Pre-compute production per month
     monthlyProduction = monthly.map((row, i) =>
@@ -237,21 +237,20 @@
     tbody.innerHTML = monthly.map((row, i) => {
       const dias  = MONTH_DAYS[i];
       const prod  = monthlyProduction[i];
-      const rowBg = i % 2 === 0 ? '' : 'bg-gray-50/60';
+      const rowBg = i % 2 === 0 ? '' : 'table-light';
       return `
-        <tr class="${rowBg} border-b border-gray-100" data-month="${i}">
-          <td class="px-3 py-2 text-gray-700 font-medium">${MONTH_NAMES[i]}</td>
-          <td class="px-3 py-2 text-right text-gray-600">${row.ghi.toFixed(2)}</td>
-          <td class="px-3 py-2 text-right text-gray-600">${dias}</td>
-          <td class="px-3 py-2 text-right text-gray-700 font-semibold">${Math.round(prod)}</td>
-          <td class="cons-col hidden px-3 py-2 text-right">
+        <tr class="${rowBg}" data-month="${i}">
+          <td>${MONTH_NAMES[i]}</td>
+          <td class="text-right">${row.ghi.toFixed(2)}</td>
+          <td class="text-right">${dias}</td>
+          <td class="text-right font-weight-bold">${Math.round(prod)}</td>
+          <td class="cons-col d-none text-right">
             <input type="number" min="0" step="1"
               id="cons-input-${i}"
-              class="w-20 rounded border border-gray-200 px-2 py-1 text-right
-                     text-gray-700 focus:outline-none focus:ring-1 focus:ring-Ipteblue/50"
+              class="form-control form-control-sm text-right"
               placeholder="—"/>
           </td>
-          <td class="cons-col hidden px-3 py-2 text-right font-semibold text-gray-400"
+          <td class="cons-col d-none text-right font-weight-bold"
               id="bal-${i}">—</td>
         </tr>`;
     }).join('');
@@ -260,12 +259,12 @@
     const totalProd = monthlyProduction.reduce((a, b) => a + b, 0);
     tfoot.innerHTML = `
       <tr>
-        <td class="px-3 py-2 text-gray-700">Total anual</td>
-        <td class="px-3 py-2 text-right text-gray-500">—</td>
-        <td class="px-3 py-2 text-right text-gray-700">365</td>
-        <td class="px-3 py-2 text-right text-gray-800" id="s4-total-prod">${Math.round(totalProd)}</td>
-        <td class="cons-col hidden px-3 py-2 text-right text-gray-800" id="s4-total-cons">—</td>
-        <td class="cons-col hidden px-3 py-2 text-right" id="s4-total-bal">—</td>
+        <td>Total anual</td>
+        <td class="text-right">—</td>
+        <td class="text-right">365</td>
+        <td class="text-right" id="s4-total-prod">${Math.round(totalProd)}</td>
+        <td class="cons-col d-none text-right" id="s4-total-cons">—</td>
+        <td class="cons-col d-none text-right" id="s4-total-bal">—</td>
       </tr>`;
 
     // Live balance update on any consumption input
@@ -326,14 +325,12 @@
 
       document.querySelectorAll('.cons-toggle-btn').forEach(b => {
         const active = b.dataset.cons === (showConsumption ? 'on' : 'off');
-        b.classList.toggle('bg-Ipteblue',    active);
-        b.classList.toggle('text-white',     active);
-        b.classList.toggle('bg-white',       !active);
-        b.classList.toggle('text-gray-500',  !active);
+        b.classList.toggle('btn-primary',  active);
+        b.classList.toggle('btn-default',  !active);
       });
 
       document.querySelectorAll('.cons-col').forEach(el => {
-        el.classList.toggle('hidden', !showConsumption);
+        el.classList.toggle('d-none', !showConsumption);
       });
     });
   });
@@ -343,16 +340,15 @@
     const container = document.getElementById('s4-compat-table');
     if (!container) return;
     container.innerHTML = checks.map(c => {
-      const bg    = c.pass ? 'bg-green-50/40'  : c.hard ? 'bg-red-50/40'   : 'bg-amber-50/40';
-      const icon  = c.pass ? '✔'              : c.hard ? '✖'               : '⚠';
-      const color = c.pass ? 'text-green-600'  : c.hard ? 'text-red-500'   : 'text-amber-500';
+      const bg   = c.pass ? 'list-group-item-success' : c.hard ? 'list-group-item-danger' : 'list-group-item-warning';
+      const icon = c.pass ? '<i class="fas fa-check"></i>' : c.hard ? '<i class="fas fa-times"></i>' : '<i class="fas fa-exclamation-triangle"></i>';
       return `
-        <div class="flex items-center justify-between px-4 py-2.5 text-xs ${bg}">
+        <div class="list-group-item ${bg} d-flex align-items-center justify-content-between small">
           <div>
-            <span class="font-medium text-gray-700">${c.label}</span>
-            <span class="ml-2 text-gray-400">${c.detail}</span>
+            <span class="font-weight-bold">${c.label}</span>
+            <span class="text-muted ml-2">${c.detail}</span>
           </div>
-          <span class="text-base font-bold ${color} shrink-0 ml-3">${icon}</span>
+          <span class="ml-3">${icon}</span>
         </div>`;
     }).join('');
   }
@@ -362,14 +358,14 @@
     const el = document.getElementById('verdict-banner');
     if (!el) return;
     if (anyHardFail) {
-      el.className = 'flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700';
-      el.innerHTML = '<span class="text-lg">✖</span> Incompatibilidad crítica detectada — revisa los parámetros marcados en rojo';
+      el.className = 'alert alert-danger d-flex align-items-center mb-0';
+      el.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Incompatibilidad crítica detectada — revisa los parámetros marcados en rojo';
     } else if (anySoftFail) {
-      el.className = 'flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-700';
-      el.innerHTML = '<span class="text-lg">⚠</span> Compatible con advertencias — revisa los parámetros marcados en amarillo';
+      el.className = 'alert alert-warning d-flex align-items-center mb-0';
+      el.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Compatible con advertencias — revisa los parámetros marcados en amarillo';
     } else {
-      el.className = 'flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700';
-      el.innerHTML = '<span class="text-lg">✔</span> Sistema compatible — todos los parámetros dentro de especificación';
+      el.className = 'alert alert-success d-flex align-items-center mb-0';
+      el.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Sistema compatible — todos los parámetros dentro de especificación';
     }
   }
 
@@ -414,10 +410,8 @@
 
       document.querySelectorAll('.derating-btn').forEach(b => {
         const active = b.dataset.derating === (deratingOn ? 'on' : 'off');
-        b.classList.toggle('bg-Ipteblue', active);
-        b.classList.toggle('text-white',  active);
-        b.classList.toggle('bg-white',    !active);
-        b.classList.toggle('text-gray-500', !active);
+        b.classList.toggle('btn-primary',  active);
+        b.classList.toggle('btn-default',  !active);
       });
 
       const hint = document.getElementById('derating-hint');
@@ -425,9 +419,9 @@
         const tmax  = parseFloat(document.getElementById('tmax').value) || 25;
         const f     = getDeratingFactor(tmax);
         hint.textContent = `Tamb máx = ${tmax.toFixed(1)} °C → factor ${f} (Tabla 310.15(B)(2)(a), conductores a 75 °C)`;
-        hint.classList.remove('hidden');
-      } else {
-        hint.classList.add('hidden');
+hint.classList.remove('d-none');
+    } else {
+      hint.classList.add('d-none');
       }
 
       if (window.calcState && window.calcState.module && window.calcState.inverter) {
@@ -450,11 +444,11 @@
     if (typeof window.resetBlock1 === 'function') window.resetBlock1();
     window.calcState = {};
     deratingOn = false;
-    document.getElementById('btn-derating-off').classList.add('bg-Ipteblue', 'text-white');
-    document.getElementById('btn-derating-off').classList.remove('bg-white', 'text-gray-500');
-    document.getElementById('btn-derating-on').classList.remove('bg-Ipteblue', 'text-white');
-    document.getElementById('btn-derating-on').classList.add('bg-white', 'text-gray-500');
-    document.getElementById('derating-hint').classList.add('hidden');
+    document.getElementById('btn-derating-off').classList.add('btn-primary');
+    document.getElementById('btn-derating-off').classList.remove('btn-default');
+    document.getElementById('btn-derating-on').classList.remove('btn-primary');
+    document.getElementById('btn-derating-on').classList.add('btn-default');
+    document.getElementById('derating-hint').classList.add('d-none');
     history.pushState({ step: 1 }, '', '#paso-1');
     window.showStep(1);
   });
@@ -466,16 +460,16 @@
     monthlyProduction = [];
     const off = document.getElementById('btn-derating-off');
     const on  = document.getElementById('btn-derating-on');
-    if (off) { off.classList.add('bg-Ipteblue','text-white'); off.classList.remove('bg-white','text-gray-500'); }
-    if (on)  { on.classList.remove('bg-Ipteblue','text-white'); on.classList.add('bg-white','text-gray-500'); }
+    if (off) { off.classList.add('btn-primary'); off.classList.remove('btn-default'); }
+    if (on)  { on.classList.remove('btn-primary'); on.classList.add('btn-default'); }
     const hint = document.getElementById('derating-hint');
-    if (hint) hint.classList.add('hidden');
+    if (hint) hint.classList.add('d-none');
     // Reset consumption toggle
     const cOff = document.getElementById('btn-cons-off');
     const cOn  = document.getElementById('btn-cons-on');
-    if (cOff) { cOff.classList.add('bg-Ipteblue','text-white'); cOff.classList.remove('bg-white','text-gray-500'); }
-    if (cOn)  { cOn.classList.remove('bg-Ipteblue','text-white'); cOn.classList.add('bg-white','text-gray-500'); }
-    document.querySelectorAll('.cons-col').forEach(el => el.classList.add('hidden'));
+    if (cOff) { cOff.classList.add('btn-primary'); cOff.classList.remove('btn-default'); }
+    if (cOn)  { cOn.classList.remove('btn-primary'); cOn.classList.add('btn-default'); }
+    document.querySelectorAll('.cons-col').forEach(el => el.classList.add('d-none'));
   };
 
   // ── Export to Excel ───────────────────────────────────────

@@ -4,30 +4,40 @@ $pageTitle = 'Calculadora FV - IPTE';
 $extraHead = <<<'HEAD'
 <link rel="stylesheet" href="/lib/leaflet.css"/>
 <style>
-  /* Tailwind resets max-width on img elements which breaks Leaflet tiles */
+  /* Prevent Bootstrap from clipping Leaflet tiles */
   .leaflet-container img { max-width: none !important; max-height: none !important; }
 </style>
 HEAD;
 include '../components/header-dashboard.php';
 ?>
 
-<main class="flex-1 overflow-y-auto bg-gray-100">
-  <div class="max-w-7xl mx-auto px-6 py-8">
-
-    <!-- Page title -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-Ipteblue">Calculadora FV</h1>
-      <p class="text-sm text-gray-500 mt-1">Dimensionamiento de sistemas fotovoltaicos interconectados</p>
+<!-- Content Header -->
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Calculadora FV</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="/pages/dashboard.php">Inicio</a></li>
+          <li class="breadcrumb-item active">Calculadora FV</li>
+        </ol>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Blocks -->
+<section class="content">
+  <div class="container-fluid">
+
     <?php include '../components/calc/bloque-calc1.php'; ?>
     <?php include '../components/calc/bloque-calc2.php'; ?>
     <?php include '../components/calc/bloque-calc3.php'; ?>
     <?php include '../components/calc/bloque-calc4.php'; ?>
 
-  </div><!-- /max-w-7xl -->
-</main>
+  </div><!-- /.container-fluid -->
+</section>
 
 <?php
 $extraScripts = <<<'HTML'

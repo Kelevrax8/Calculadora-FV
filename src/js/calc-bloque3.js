@@ -50,12 +50,12 @@
       refreshStringUI();
       applyInvFilters();
 
-      invLoad.classList.add('hidden');
-      invGrid.classList.remove('hidden');
+      invLoad.classList.add('d-none');
+      invGrid.classList.remove('d-none');
     } catch (err) {
-      invLoad.classList.add('hidden');
+      invLoad.classList.add('d-none');
       invErr.textContent = '⚠ No se pudo cargar el inventario: ' + err.message;
-      invErr.classList.remove('hidden');
+      invErr.classList.remove('d-none');
     }
   };
 
@@ -128,13 +128,13 @@
 
         mpptNote.innerHTML = '<span class="block">' + line1 + '</span>'
           + '<span class="block mt-1">' + line2 + '</span>';
-        mpptNote.className = 'mt-2 text-sm font-semibold '
-          + (!rem_mppt_ok               ? 'text-red-700'
-             : !rem_startup_ok          ? 'text-amber-700'
-             :                            'text-green-700');
-        mpptNote.classList.remove('hidden');
+        mpptNote.className = 'mt-2 small font-weight-bold '
+          + (!rem_mppt_ok               ? 'text-danger'
+             : !rem_startup_ok          ? 'text-warning'
+             :                            'text-success');
+        mpptNote.classList.remove('d-none');
       } else {
-        mpptNote.classList.add('hidden');
+        mpptNote.classList.add('d-none');
       }
       if (usefulDivisors.length === 0) {
         adviceEl.innerHTML =
@@ -147,13 +147,12 @@
           'Para strings uniformes, ajusta Ns a: '
           + usefulDivisors.map(d =>
               '<button type="button" data-ns-pick="' + d + '" '
-              + 'class="inline-block rounded px-1.5 py-0.5 bg-amber-200 text-amber-900 '
-              + 'font-semibold hover:bg-amber-300 transition-colors">' + d + '</button>'
+              + 'class="btn btn-warning btn-xs mr-1">' + d + '</button>'
             ).join(' ') + '.';
       }
-      remEl.classList.remove('hidden');
+      remEl.classList.remove('d-none');
     } else {
-      remEl.classList.add('hidden');
+      remEl.classList.add('d-none');
     }
 
     // 4. Update string configurator DOM
@@ -170,10 +169,10 @@
     if (selectedInverter) {
       const ok = Np <= selectedInverter.mppt_count;
       hintEl.textContent = (ok ? '✓ ' : '✗ ') + Np + ' / ' + selectedInverter.mppt_count + ' entradas MPPT';
-      hintEl.className   = 'text-xs font-semibold ' + (ok ? 'text-green-600' : 'text-red-500');
+      hintEl.className   = 'small font-weight-bold ' + (ok ? 'text-success' : 'text-danger');
     } else {
       hintEl.textContent = 'Selecciona un inversor para verificar';
-      hintEl.className   = 'text-xs text-gray-400';
+      hintEl.className   = 'small text-muted';
     }
 
     // 6. Range hint and stepper buttons
@@ -233,9 +232,8 @@
   }
 
   function setInvFilterStyle(btn, active) {
-    btn.className = 'rounded-full px-3 py-1 text-xs font-medium transition-colors ' +
-      (active ? 'bg-Ipteblue text-white'
-              : 'bg-white text-gray-600 border border-gray-200 hover:border-Ipteblue');
+    btn.className = 'btn btn-xs mr-1 mb-1 ' +
+      (active ? 'btn-primary' : 'btn-default border');
   }
 
   function onInvFilter(type, val) {
@@ -254,8 +252,8 @@
       (activePhase === 'all' || i.phase_type   === activePhase)
     );
     invGrid.innerHTML = '';
-    if (visible.length === 0) { invEmpty.classList.remove('hidden'); return; }
-    invEmpty.classList.add('hidden');
+    if (visible.length === 0) { invEmpty.classList.remove('d-none'); return; }
+    invEmpty.classList.add('d-none');
     visible.forEach(inv => invGrid.appendChild(buildInvCard(inv)));
   }
 
@@ -294,54 +292,52 @@
                      : inv.phase_type === 'Split Phase'  ? 'Bifásico'
                      : inv.phase_type;
     const phaseColor = inv.phase_type === 'Three Phase'
-      ? 'bg-purple-50 text-purple-700' : 'bg-sky-50 text-sky-700';
+      ? 'badge-secondary' : 'badge-info';
 
     const compatText  = compat.hardFail ? '✗ Incompatible'
                       : compat.warn     ? '⚠ Revisar'
                       :                   '✓ Compatible';
-    const compatClass = compat.hardFail ? 'bg-red-50 text-red-600'
-                      : compat.warn     ? 'bg-amber-50 text-amber-600'
-                      :                   'bg-green-50 text-green-600';
+    const compatClass = compat.hardFail ? 'badge-danger'
+                      : compat.warn     ? 'badge-warning'
+                      :                   'badge-success';
 
+    const col = document.createElement('div');
+    col.className = 'col-12 col-sm-6 col-xl-4 mb-3';
     const div = document.createElement('div');
     div.dataset.inverterId = inv.id;
-    div.className = 'cursor-pointer rounded-xl border p-4 transition-all ' +
-      (isSelected
-        ? 'border-2 border-Ipteblue bg-Ipteblue/10'
-        : 'border-gray-200 hover:border-Ipteblue hover:shadow-sm');
+    div.className = 'card h-100 cursor-pointer ' +
+      (isSelected ? 'card-outline card-primary' : 'card-outline card-default');
 
     div.innerHTML = `
-      <div class="flex items-start justify-between gap-2 mb-2">
-        <div>
-          <p class="text-xs font-semibold text-gray-500">${inv.manufacturer}</p>
-          <p class="text-sm font-bold text-gray-800 leading-tight">${inv.model}</p>
+      <div class="card-body p-3">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <div>
+            <p class="text-muted small mb-0">${inv.manufacturer}</p>
+            <p class="font-weight-bold mb-0">${inv.model}</p>
+          </div>
+          <span class="badge ${phaseColor} ml-2">${phaseLabel}</span>
         </div>
-        <span class="shrink-0 text-xs font-medium rounded-full px-2 py-0.5 ${phaseColor}">${phaseLabel}</span>
-      </div>
-      <p class="text-lg font-bold text-Ipteblue mb-2">
-        ${(inv.nominal_ac_power / 1000).toFixed(1)}
-        <span class="text-xs font-normal text-gray-400">kW AC</span>
-      </p>
-      <div class="grid grid-cols-2 gap-1 mb-3 text-xs">
-        <span class="text-gray-500">Vdc máx</span>
-        <span class="font-semibold text-gray-800">${inv.max_dc_voltage} V</span>
-        <span class="text-gray-500">MPPT</span>
-        <span class="font-semibold text-gray-800">${inv.mppt_voltage_min}–${inv.mppt_voltage_max} V</span>
-        <span class="text-gray-500">V arranque</span>
-        <span class="font-semibold text-gray-800">${inv.startup_voltage} V</span>
-        <span class="text-gray-500">I MPPT máx</span>
-        <span class="font-semibold text-gray-800">${inv.max_input_current_per_mppt} A</span>
-        <span class="text-gray-500">I<sub>sc</sub> máx</span>
-        <span class="font-semibold text-gray-800">${inv.max_short_circuit_current} A</span>
-        <span class="text-gray-500">Eficiencia</span>
-        <span class="font-semibold text-green-600">${inv.efficiency_weighted}%</span>
-        <span class="text-gray-500"># MPPT</span>
-        <span class="font-semibold text-gray-800">${inv.mppt_count}</span>
-      </div>
-      <span data-compat-badge class="text-xs font-semibold rounded-full px-2 py-0.5 ${compatClass}">${compatText}</span>`;
+        <p class="h5 font-weight-bold text-primary mb-2">
+          ${(inv.nominal_ac_power / 1000).toFixed(1)}
+          <small class="text-muted font-weight-normal">kW AC</small>
+        </p>
+        <table class="table table-sm small mb-2">
+          <tbody>
+            <tr><td class="text-muted border-0 py-1">Vdc máx</td><td class="font-weight-bold border-0 py-1">${inv.max_dc_voltage} V</td></tr>
+            <tr><td class="text-muted border-0 py-1">MPPT</td><td class="font-weight-bold border-0 py-1">${inv.mppt_voltage_min}–${inv.mppt_voltage_max} V</td></tr>
+            <tr><td class="text-muted border-0 py-1">V arranque</td><td class="font-weight-bold border-0 py-1">${inv.startup_voltage} V</td></tr>
+            <tr><td class="text-muted border-0 py-1">I MPPT máx</td><td class="font-weight-bold border-0 py-1">${inv.max_input_current_per_mppt} A</td></tr>
+            <tr><td class="text-muted border-0 py-1">I<sub>sc</sub> máx</td><td class="font-weight-bold border-0 py-1">${inv.max_short_circuit_current} A</td></tr>
+            <tr><td class="text-muted border-0 py-1">Eficiencia</td><td class="font-weight-bold text-success border-0 py-1">${inv.efficiency_weighted}%</td></tr>
+            <tr><td class="text-muted border-0 py-1"># MPPT</td><td class="font-weight-bold border-0 py-1">${inv.mppt_count}</td></tr>
+          </tbody>
+        </table>
+        <span data-compat-badge class="badge ${compatClass}">${compatText}</span>
+      </div>`;
 
     div.addEventListener('click', () => selectInverter(inv));
-    return div;
+    col.appendChild(div);
+    return col;
   }
 
   // ── Badge refresh (triggered by Ns change) ─────────────────
@@ -355,10 +351,10 @@
       badge.textContent = compat.hardFail ? '✗ Incompatible'
                         : compat.warn     ? '⚠ Revisar'
                         :                   '✓ Compatible';
-      badge.className = 'text-xs font-semibold rounded-full px-2 py-0.5 ' +
-        (compat.hardFail ? 'bg-red-50 text-red-600'
-         : compat.warn   ? 'bg-amber-50 text-amber-600'
-         :                 'bg-green-50 text-green-600');
+      badge.className = 'badge ' +
+        (compat.hardFail ? 'badge-danger'
+         : compat.warn   ? 'badge-warning'
+         :                 'badge-success');
     });
   }
 
@@ -368,9 +364,8 @@
 
     document.querySelectorAll('[data-inverter-id]').forEach(card => {
       const sel = parseInt(card.dataset.inverterId) === inv.id;
-      card.className = 'cursor-pointer rounded-xl border p-4 transition-all ' +
-        (sel ? 'border-2 border-Ipteblue bg-Ipteblue/10'
-             : 'border-gray-200 hover:border-Ipteblue hover:shadow-sm');
+      card.className = 'card h-100 cursor-pointer ' +
+        (sel ? 'card-outline card-primary' : 'card-outline card-default');
     });
 
     document.getElementById('selected-inverter-name').textContent =
@@ -387,12 +382,11 @@
       ['η ponderada', inv.efficiency_weighted + '%'],
       ['# MPPT',     inv.mppt_count],
     ].map(([l, v]) =>
-      `<div><p class="text-xs text-gray-400">${l}</p>
-            <p class="text-xs font-semibold text-gray-800">${v}</p></div>`
+      `<div class="col-6 col-sm-4 col-lg-3 mb-1"><small class="text-muted d-block">${l}</small><span class="font-weight-bold small">${v}</span></div>`
     ).join('');
 
     computeInvResults(inv);
-    results3.classList.remove('hidden');
+    results3.classList.remove('d-none');
     results3.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     window.calcState          = window.calcState || {};
@@ -470,20 +464,20 @@
 
     let dcacLabel, dcacColor;
     if (dc_ac < 0.80) {
-      dcacLabel = 'Arreglo insuficiente'; dcacColor = 'text-red-500';
+      dcacLabel = 'Arreglo insuficiente'; dcacColor = 'text-danger';
     } else if (dc_ac < 1.00) {
-      dcacLabel = 'Subóptimo';            dcacColor = 'text-amber-500';
+      dcacLabel = 'Subóptimo';            dcacColor = 'text-warning';
     } else if (dc_ac <= 1.25) {
-      dcacLabel = 'Conservador';          dcacColor = 'text-green-400';
+      dcacLabel = 'Conservador';          dcacColor = 'text-success';
     } else if (dc_ac <= 1.50) {
-      dcacLabel = 'Óptimo';               dcacColor = 'text-green-600';
+      dcacLabel = 'Óptimo';               dcacColor = 'text-success font-weight-bold';
     } else {
-      dcacLabel = 'Sobredimensionado';    dcacColor = 'text-red-500';
+      dcacLabel = 'Sobredimensionado';    dcacColor = 'text-danger';
     }
 
-    dcacEl.className     = 'text-lg font-bold ' + dcacColor;
+    dcacEl.className     = 'h5 font-weight-bold mb-1 ' + dcacColor;
     dcacHint.textContent = dcacLabel;
-    dcacHint.className   = 'text-xs font-semibold ' + dcacColor;
+    dcacHint.className   = 'small font-weight-bold ' + dcacColor;
     document.getElementById('res-dcac-pstc').textContent = (P_stc_W / 1000).toFixed(2) + ' kW';
     document.getElementById('res-dcac-pac').textContent  = (inv.nominal_ac_power / 1000).toFixed(2) + ' kW';
 
@@ -510,14 +504,14 @@
   function setCheck(id, actual, limit, pass, isHard) {
     const card  = document.getElementById(id);
     const badge = card.querySelector('[data-badge]');
-    card.className = 'rounded-xl border px-4 py-3 ' +
-      (pass    ? 'border-green-200 bg-green-50/30'
-       : isHard ? 'border-red-200 bg-red-50/30'
-       :          'border-amber-200 bg-amber-50/30');
-    badge.className = 'text-xs font-semibold rounded-full px-2 py-0.5 ' +
-      (pass    ? 'bg-green-50 text-green-600'
-       : isHard ? 'bg-red-50 text-red-600'
-       :          'bg-amber-50 text-amber-600');
+    card.className = 'card card-outline h-100 ' +
+      (pass    ? 'card-success'
+       : isHard ? 'card-danger'
+       :          'card-warning');
+    badge.className = 'badge ' +
+      (pass    ? 'badge-success'
+       : isHard ? 'badge-danger'
+       :          'badge-warning');
     badge.textContent                              = pass ? '✓ OK' : isHard ? '✗ Falla' : '⚠ Revisar';
     card.querySelector('[data-actual]').textContent = actual;
     card.querySelector('[data-limit]').textContent  = limit;
@@ -526,11 +520,11 @@
   // ── Reset (called by showStep when navigating back to step ≤ 2) ──
   window.resetBlock3 = function () {
     selectedInverter = null;
-    results3.classList.add('hidden');
+    results3.classList.add('d-none');
     contBtn3.disabled = true;
     document.getElementById('selected-inverter-name').textContent = '—';
     document.querySelectorAll('[data-inverter-id]').forEach(card => {
-      card.className = 'cursor-pointer rounded-xl border border-gray-200 p-4 transition-all hover:border-Ipteblue hover:shadow-sm';
+      card.className = 'card h-100 cursor-pointer card-outline card-default';
     });
     if (window.calcState) {
       delete window.calcState.inverter;
@@ -542,11 +536,11 @@
   // ── Deselect ──────────────────────────────────────────────
   document.getElementById('btn-deselect-inverter').addEventListener('click', function () {
     selectedInverter = null;
-    results3.classList.add('hidden');
+    results3.classList.add('d-none');
     contBtn3.disabled = true;
     document.getElementById('selected-inverter-name').textContent = '—';
     document.querySelectorAll('[data-inverter-id]').forEach(card => {
-      card.className = 'cursor-pointer rounded-xl border border-gray-200 p-4 transition-all hover:border-Ipteblue hover:shadow-sm';
+      card.className = 'card h-100 cursor-pointer card-outline card-default';
     });
     if (window.calcState) {
       delete window.calcState.inverter;
