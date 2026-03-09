@@ -94,7 +94,7 @@
     const Vmpp_nom     = Ns * mod.vmpp_stc;   // STC — display only
     const Isc_array    = Np * mod.isc_stc;    // display only
     const I_per_mppt   = mod.imp_stc * 1.25;          // NOM-001: Imp × 1.25, per MPPT input (1 string/MPPT)
-    const I_total      = Np * mod.isc_stc * 1.25;    // NOM-001: Np × Isc × 1.25 total array
+    const I_total      = mod.isc_stc * 1.25;    // NOM-001: Isc × 1.25 per MPPT (1 string/MPPT)
     const P_cold_total = N   * P_cold_per;    // W at Tmin
     const P_stc_W      = cs.P_stc_kW * 1000;
     const dc_ac        = P_stc_W / inv.nominal_ac_power;
@@ -165,8 +165,8 @@
         pass:   iMpptPass, hard: true,
       },
       {
-        label:  'Isc total ≤ Corriente máx. CC entrada (Np × Isc × 1.25)',
-        detail: `${I_total.toFixed(2)} A = ${Np} × ${mod.isc_stc} A × 1.25 ≤ ${inv.max_short_circuit_current} A`,
+        label:  'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)',
+        detail: `${I_total.toFixed(2)} A = ${mod.isc_stc} A × 1.25 ≤ ${inv.max_short_circuit_current} A`,
         pass:   iTotalPass, hard: true,
       },
       {
@@ -504,7 +504,7 @@ hint.classList.remove('d-none');
     const P_cold_per    = mod.pmax_stc * (1 + gammaPmax * (tmin - 25));
     const Isc_array     = Np * mod.isc_stc;
     const I_per_mppt    = mod.imp_stc * 1.25;          // per MPPT input (1 string/MPPT)
-    const I_total       = Np * mod.isc_stc * 1.25;    // total array Np × Isc × 1.25
+    const I_total       = mod.isc_stc * 1.25;    // total array Isc × 1.25
     const P_cold_total  = N * P_cold_per;
     const dc_ac         = (cs.P_stc_kW * 1000) / inv.nominal_ac_power;
 
@@ -525,7 +525,7 @@ hint.classList.remove('d-none');
       { label: 'Vmpp en calor ≥ Tensión de arranque',       detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.startup_voltage} V`,                                                    pass: startupPass,  hard: false },
       { label: 'Vmpp en frío ≤ Límite superior MPPT',       detail: `${Vmpp_cold.toFixed(1)} V ≤ ${inv.mppt_voltage_max} V`,                                                  pass: vmppColdPass, hard: false },
       { label: 'Corriente por MPPT ≤ Imáx entrada (Imp × 1.25)',          detail: `${I_per_mppt.toFixed(2)} A ≤ ${inv.max_input_current_per_mppt} A`,                                                            pass: iMpptPass,    hard: true  },
-      { label: 'Isc total ≤ Corriente máx. CC entrada (Np × Isc × 1.25)', detail: `${I_total.toFixed(2)} A = ${Np} × ${mod.isc_stc} A × 1.25 ≤ ${inv.max_short_circuit_current} A`,                     pass: iTotalPass,   hard: true  },
+      { label: 'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)', detail: `${I_total.toFixed(2)} A = ${mod.isc_stc} A × 1.25 ≤ ${inv.max_short_circuit_current} A`,                     pass: iTotalPass,   hard: true  },
       { label: 'P arreglo en frío ≤ Entrada DC máx.',       detail: `${(P_cold_total/1000).toFixed(2)} kW (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`,    pass: pDcPass,      hard: true  },
     ];
 

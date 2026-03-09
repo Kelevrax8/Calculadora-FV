@@ -19,20 +19,20 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 class ExportService
 {
     // ── Color palette (ARGB) ──────────────────────────────────
-    private const C_TITLE_BG    = 'FF1D4ED8'; // blue-700
+    private const C_TITLE_BG    = 'FF1D4ED8'; 
     private const C_TITLE_FG    = 'FFFFFFFF';
-    private const C_SECTION_BG  = 'FFE5E7EB'; // gray-200
-    private const C_SECTION_FG  = 'FF111827'; // gray-900
-    private const C_SUBHDR_BG   = 'FFF3F4F6'; // gray-100
-    private const C_SUBHDR_FG   = 'FF374151'; // gray-700
-    private const C_ODD_BG      = 'FFF9FAFB'; // gray-50
-    private const C_LABEL_FG    = 'FF6B7280'; // gray-500
-    private const C_PASS_BG     = 'FFBBF7D0'; // green-200
-    private const C_PASS_FG     = 'FF15803D'; // green-700
-    private const C_FAIL_BG     = 'FFFECACA'; // red-200
-    private const C_FAIL_FG     = 'FFB91C1C'; // red-700
-    private const C_WARN_BG     = 'FFFEF08A'; // yellow-200
-    private const C_WARN_FG     = 'FFB45309'; // amber-700
+    private const C_SECTION_BG  = 'FFE5E7EB'; 
+    private const C_SECTION_FG  = 'FF111827'; 
+    private const C_SUBHDR_BG   = 'FFF3F4F6'; 
+    private const C_SUBHDR_FG   = 'FF374151'; 
+    private const C_ODD_BG      = 'FFF9FAFB'; 
+    private const C_LABEL_FG    = 'FF6B7280'; 
+    private const C_PASS_BG     = 'FFBBF7D0'; 
+    private const C_PASS_FG     = 'FF15803D';
+    private const C_FAIL_BG     = 'FFFECACA'; 
+    private const C_FAIL_FG     = 'FFB91C1C';
+    private const C_WARN_BG     = 'FFFEF08A';
+    private const C_WARN_FG     = 'FFB45309';
 
     private int $row = 1;
 
@@ -117,7 +117,7 @@ class ExportService
         // ── Configuración del Arreglo ─────────────────────────
         $this->addSectionHeader($s, 'CONFIGURACIÓN DEL ARREGLO');
         $this->addDataRow($s, 'Módulos en serie (Ns)',           $arr['Ns']         ?? '—');
-        $this->addDataRow($s, 'Strings en paralelo (Np)',        $arr['Np']         ?? '—');
+        $this->addDataRow($s, 'Strings totales (Np)',        $arr['Np']         ?? '—');
         $this->addDataRow($s, 'Total de módulos (N)',            $arr['N']          ?? '—');
         $this->addDataRow($s, 'Potencia total STC',              number_format((float)($arr['P_stc_kW'] ?? 0), 2), 'kWp');
         $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  number_format((float)($arr['Voc_cold']  ?? 0), 1), 'V');
