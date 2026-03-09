@@ -379,11 +379,13 @@
     const I_dc_design   = mod.isc_stc * 1.56;
     const I_dc_required = I_dc_design / factor;
     setText('prot-isc-module', mod.isc_stc.toFixed(2) + ' A');
-    setText('prot-dc-idesign', I_dc_design.toFixed(2) + ' A'
-      + (deratingOn ? ` ÷ ${factor} = ${I_dc_required.toFixed(2)} A requeridos en tabla` : ''));
-    // Both OCPD and conductor are sized to the derated table requirement.
-    // When derating is off, factor = 1.0 so I_dc_required = I_dc_design (no change in behaviour).
-    setText('prot-dc-ocpd', fmtOCPD(nextOCPD(I_dc_required)));
+    setText('prot-dc-idesign', I_dc_design.toFixed(2) + ' A');
+    // OCPD is sized to design current (norm: OCPD trips on circuit current, not ambient temp).
+    // Conductor is sized to the derated table requirement.
+    setText('prot-dc-derated', deratingOn ? `${I_dc_design.toFixed(2)} A ÷ ${factor} = ${I_dc_required.toFixed(2)} A requeridos en tabla` : '—');
+    const dcDeratedRow = document.getElementById('prot-dc-derated-row');
+    if (dcDeratedRow) dcDeratedRow.classList.toggle('d-none', !deratingOn);
+    setText('prot-dc-ocpd', fmtOCPD(nextOCPD(I_dc_design)));
     setText('prot-dc-awg',  minAWG(I_dc_required));
 
     // AC circuit — formula depends on phase type
@@ -397,10 +399,12 @@
     const I_ac_required = I_ac_design / factor;
     setText('prot-ac-phase',   inv.phase_type);
     setText('prot-ac-ratio',   phaseFmt + I_ac_base.toFixed(2) + ' A');
-    setText('prot-ac-idesign', I_ac_design.toFixed(2) + ' A'
-      + (deratingOn ? ` ÷ ${factor} = ${I_ac_required.toFixed(2)} A requeridos en tabla` : ''));
-    // Both OCPD and conductor sized to derated table requirement (same logic as DC above).
-    setText('prot-ac-ocpd', fmtOCPD(nextOCPD(I_ac_required)));
+    setText('prot-ac-idesign', I_ac_design.toFixed(2) + ' A');
+    // Same as DC: OCPD on design current, conductor on derated requirement.
+    setText('prot-ac-derated', deratingOn ? `${I_ac_design.toFixed(2)} A ÷ ${factor} = ${I_ac_required.toFixed(2)} A requeridos en tabla` : '—');
+    const acDeratedRow = document.getElementById('prot-ac-derated-row');
+    if (acDeratedRow) acDeratedRow.classList.toggle('d-none', !deratingOn);
+    setText('prot-ac-ocpd', fmtOCPD(nextOCPD(I_ac_design)));
     setText('prot-ac-awg',  minAWG(I_ac_required));
   }
 

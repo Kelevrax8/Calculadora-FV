@@ -346,6 +346,10 @@
                   <td class="text-muted small">Corriente de diseño (&times; 1.56)</td>
                   <td id="prot-dc-idesign" class="font-weight-bold text-right small">—</td>
                 </tr>
+                <tr id="prot-dc-derated-row" class="d-none">
+                  <td class="text-muted small">Corriente requerida en tabla (corr. temp.)</td>
+                  <td id="prot-dc-derated" class="font-weight-bold text-right small">—</td>
+                </tr>
                 <tr class="table-info">
                   <td class="small font-weight-bold">Protección recomendada</td>
                   <td id="prot-dc-ocpd" class="font-weight-bold text-right small">—</td>
@@ -376,6 +380,10 @@
                 <tr>
                   <td class="text-muted small">Corriente de diseño (&times; 1.25)</td>
                   <td id="prot-ac-idesign" class="font-weight-bold text-right small">—</td>
+                </tr>
+                <tr id="prot-ac-derated-row" class="d-none">
+                  <td class="text-muted small">Corriente requerida en tabla (corr. temp.)</td>
+                  <td id="prot-ac-derated" class="font-weight-bold text-right small">—</td>
                 </tr>
                 <tr class="table-info">
                   <td class="small font-weight-bold">Protección recomendada</td>
