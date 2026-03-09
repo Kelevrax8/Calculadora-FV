@@ -41,7 +41,7 @@
 
       <!-- Np auto -->
       <div class="col-sm-3 mb-2">
-        <p class="text-muted small mb-1">Strings en paralelo <strong>(Np)</strong></p>
+        <p class="text-muted small mb-1">Número de strings <strong>(Np)</strong></p>
         <p id="np-value" class="font-weight-bold h5 mb-0">—</p>
         <small id="np-mppt-hint" class="text-muted">Selecciona un inversor para verificar</small>
       </div>

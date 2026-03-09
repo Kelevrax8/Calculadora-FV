@@ -486,7 +486,7 @@
     contBtn3.disabled = anyHardFail;
     if (anyHardFail) {
       const reasons = [];
-      if (!npPass)     reasons.push('Np (' + Np + ') supera entradas MPPT (' + inv.mppt_count + ')');
+      if (!npPass)     reasons.push('Núm. strings (' + Np + ') supera entradas MPPT (' + inv.mppt_count + ')');
       if (!vocPass)    reasons.push('Voc en frío supera Vdc máx');
       if (!iMpptPass)  reasons.push('I por MPPT supera el límite');
       if (!iTotalPass) reasons.push('Isc total supera el límite');

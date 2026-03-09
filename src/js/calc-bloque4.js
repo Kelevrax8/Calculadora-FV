@@ -108,7 +108,7 @@
     // ── PV Array ───────────────────────────────────────────
     setText('s4-module-name',    `${mod.manufacturer} — ${mod.model}`);
     setText('s4-module-power',   mod.pmax_stc + ' Wp');
-    setText('s4-total-modules',  `${N} (${Ns}S × ${Np}P)`);
+    setText('s4-total-modules',  `${N} (${Ns} mód/str × ${Np} strings)`);
     setText('s4-array-power',    cs.P_stc_kW.toFixed(2) + ' kWp');
     setText('s4-vmpp-array',     `${Ns} × ${mod.vmpp_stc} V = ${Vmpp_nom.toFixed(1)} V`);
     setText('s4-voc-array',      `${Ns} × ${mod.voc_stc} V = ${(Ns * mod.voc_stc).toFixed(1)} V`);
@@ -135,7 +135,7 @@
     // hard = blocks continue in block 3; soft = warning only
     const checks = [
       {
-        label:  'Np ≤ Entradas MPPT del inversor',
+        label:  'Núm. strings ≤ Entradas MPPT del inversor',
         detail: `${Np} string(s) ≤ ${inv.mppt_count} MPPT`,
         pass:   npPass,  hard: true,
       },
@@ -519,7 +519,7 @@ hint.classList.remove('d-none');
     const pDcPass      = P_cold_total <= inv.pmax_dc_input;
 
     const checks = [
-      { label: 'Np ≤ Entradas MPPT del inversor',           detail: `${Np} string(s) ≤ ${inv.mppt_count} MPPT`,                                                               pass: npPass,       hard: true  },
+      { label: 'Núm. strings ≤ Entradas MPPT del inversor',  detail: `${Np} string(s) ≤ ${inv.mppt_count} MPPT`,                                                               pass: npPass,       hard: true  },
       { label: 'Voc en frío ≤ Tensión máx. DC',             detail: `${Voc_cold.toFixed(1)} V ≤ ${inv.max_dc_voltage} V`,                                                     pass: vocPass,      hard: true  },
       { label: 'Vmpp en calor ≥ Límite inferior MPPT',      detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.mppt_voltage_min} V`,                                                   pass: vmppHotPass,  hard: false },
       { label: 'Vmpp en calor ≥ Tensión de arranque',       detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.startup_voltage} V`,                                                    pass: startupPass,  hard: false },

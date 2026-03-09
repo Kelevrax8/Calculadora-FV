@@ -116,8 +116,8 @@ class ExportService
 
         // ── Configuración del Arreglo ─────────────────────────
         $this->addSectionHeader($s, 'CONFIGURACIÓN DEL ARREGLO');
-        $this->addDataRow($s, 'Módulos en serie (Ns)',           $arr['Ns']         ?? '—');
-        $this->addDataRow($s, 'Strings totales (Np)',        $arr['Np']         ?? '—');
+        $this->addDataRow($s, 'Módulos por string',               $arr['Ns']         ?? '—');
+        $this->addDataRow($s, 'Número de strings',               $arr['Np']         ?? '—');
         $this->addDataRow($s, 'Total de módulos (N)',            $arr['N']          ?? '—');
         $this->addDataRow($s, 'Potencia total STC',              number_format((float)($arr['P_stc_kW'] ?? 0), 2), 'kWp');
         $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  number_format((float)($arr['Voc_cold']  ?? 0), 1), 'V');
