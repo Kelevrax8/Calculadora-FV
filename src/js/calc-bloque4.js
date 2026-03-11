@@ -167,7 +167,7 @@
       },
       {
         label:  'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)',
-        detail: `${I_total.toFixed(2)} A = ${mod.isc_stc} A × 1.25 ≤ ${inv.max_short_circuit_current} A`,
+        detail: `${I_total.toFixed(2)} A ≤ ${inv.max_short_circuit_current} A`,
         pass:   iTotalPass, hard: true,
       },
       {
