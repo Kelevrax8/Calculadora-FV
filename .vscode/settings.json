@@ -1,4 +1,0 @@
-{
-  "tailwindCSS.experimental.configFile": "src/input.css",
-  "css.lint.unknownAtRules": "ignore"
-}
