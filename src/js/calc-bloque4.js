@@ -113,7 +113,7 @@
     setText('s4-array-power',    cs.P_stc_kW.toFixed(2) + ' kWp');
     setText('s4-vmpp-array',     `${Ns} × ${mod.vmpp_stc} V = ${Vmpp_nom.toFixed(1)} V`);
     setText('s4-voc-array',      `${Ns} × ${mod.voc_stc} V = ${(Ns * mod.voc_stc).toFixed(1)} V`);
-    setText('s4-module-area',    `${Ns} × ${modArea} m² = ${(Ns * modArea).toFixed(2)} m²`);
+    setText('s4-module-area',    `${N} × ${modArea} m² = ${(N * modArea).toFixed(2)} m²`);
 
     // ── Inverter ───────────────────────────────────────────
     setText('s4-inverter-name',  `${inv.manufacturer} — ${inv.model}`);
@@ -495,7 +495,7 @@ hint.classList.remove('d-none');
     const lat     = parseFloat(document.getElementById('latitud').value)           || 0;
     const lng     = parseFloat(document.getElementById('longitud').value)          || 0;
     const consumo = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
-    const arrArea  = mod.length_m * mod.width_m * Ns;
+    const arrArea  = mod.length_m * mod.width_m * N;
 
 
     // Re-derive electrical values (same as populateBlock4)
