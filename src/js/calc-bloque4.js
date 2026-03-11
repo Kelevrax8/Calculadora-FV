@@ -113,7 +113,7 @@
     setText('s4-array-power',    cs.P_stc_kW.toFixed(2) + ' kWp');
     setText('s4-vmpp-array',     `${Ns} × ${mod.vmpp_stc} V = ${Vmpp_nom.toFixed(1)} V`);
     setText('s4-voc-array',      `${Ns} × ${mod.voc_stc} V = ${(Ns * mod.voc_stc).toFixed(1)} V`);
-    setText('s4-module-area',    `${N} × ${modArea} m² = ${(N * modArea).toFixed(2)} m²`);
+    setText('s4-module-area',    `${N} × ${(modArea).toFixed(2)} m² = ${(N * modArea).toFixed(2)} m²`);
 
     // ── Inverter ───────────────────────────────────────────
     setText('s4-inverter-name',  `${inv.manufacturer} — ${inv.model}`);
