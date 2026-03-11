@@ -123,7 +123,7 @@ class ExportService
         $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  number_format((float)($arr['Voc_cold']  ?? 0), 1), 'V');
         $this->addDataRow($s, 'Vmpp del arreglo en calor (Tmax)',number_format((float)($arr['Vmpp_hot']  ?? 0), 1), 'V');
         $this->addDataRow($s, 'Vmpp del arreglo en frío (Tmin)', number_format((float)($arr['Vmpp_cold'] ?? 0), 1), 'V');
-        $this->addDataRow($s, 'Isc del arreglo',                 number_format((float)($arr['Isc_array'] ?? 0), 2), 'A');
+        $this->addDataRow($s, 'Área del arreglo',                 number_format((float)($arr['arrArea'] ?? 0), 2), 'm²');
         $this->row++;
 
         // ── Inversor ──────────────────────────────────────────

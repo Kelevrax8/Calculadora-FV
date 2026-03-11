@@ -79,6 +79,7 @@
     const lat  = document.getElementById('latitud').value  || '—';
     const lng  = document.getElementById('longitud').value || '—';
     const consumo = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
+    const modArea = mod.length_m * mod.width_m;
 
     // ── Derived electrical values ──────────────────────────
     const betaVoc      = mod.temp_coeff_voc  / 100;
@@ -112,7 +113,7 @@
     setText('s4-array-power',    cs.P_stc_kW.toFixed(2) + ' kWp');
     setText('s4-vmpp-array',     `${Ns} × ${mod.vmpp_stc} V = ${Vmpp_nom.toFixed(1)} V`);
     setText('s4-voc-array',      `${Ns} × ${mod.voc_stc} V = ${(Ns * mod.voc_stc).toFixed(1)} V`);
-    setText('s4-isc-array',      `${Np} × ${mod.isc_stc} A = ${Isc_array.toFixed(1)} A`);
+    setText('s4-module-area',    `${Ns} × ${modArea} m² = ${(Ns * modArea).toFixed(2)} m²`);
 
     // ── Inverter ───────────────────────────────────────────
     setText('s4-inverter-name',  `${inv.manufacturer} — ${inv.model}`);
@@ -494,6 +495,8 @@ hint.classList.remove('d-none');
     const lat     = parseFloat(document.getElementById('latitud').value)           || 0;
     const lng     = parseFloat(document.getElementById('longitud').value)          || 0;
     const consumo = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
+    const arrArea  = mod.length_m * mod.width_m * Ns;
+
 
     // Re-derive electrical values (same as populateBlock4)
     const betaVoc       = mod.temp_coeff_voc  / 100;
@@ -565,7 +568,7 @@ hint.classList.remove('d-none');
     return {
       site:    { lat, lng, consumo, hsp, tmin, tmax },
       module:  { ...mod },
-      array:   { Ns, Np, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, Isc_array },
+      array:   { Ns, Np, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea },
       inverter:{ ...inv },
       checks,
       energy:  { E_year, coverage, PR, dc_ac },

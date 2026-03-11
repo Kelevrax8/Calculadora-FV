@@ -132,8 +132,8 @@
       <div class="col-sm-6 col-lg-3 mb-2">
         <div class="card bg-light border-0 h-100">
           <div class="card-body p-3">
-            <p class="text-muted small mb-1">Isc del arreglo</p>
-            <p id="s4-isc-array" class="font-weight-bold small mb-0">—</p>
+            <p class="text-muted small mb-1">Área del arreglo</p>
+            <p id="s4-module-area" class="font-weight-bold small mb-0">—</p>
           </div>
         </div>
       </div>

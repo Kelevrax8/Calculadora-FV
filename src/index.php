@@ -5,8 +5,7 @@ include 'components/header.php';
 ?>
 
   <!-- Hero / Main section -->
-  <main class="flex-fill position-relative d-flex align-items-center"
-        style="min-height:calc(100vh - 56px);">
+  <main class="flex-fill position-relative d-flex align-items-center">
 
     <!-- Background image -->
     <div class="position-absolute w-100 h-100"
