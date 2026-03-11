@@ -1,8 +1,3 @@
-// ── Tab switching ─────────────────────────────────────────────────────
-const ACTIVE_BTN   = ['bg-white','border-gray-200','text-Ipteblue'];
-const INACTIVE_BTN = ['bg-gray-50','border-transparent','text-gray-500',
-                      'hover:text-Ipteblue','hover:bg-white','hover:border-gray-200'];
-
 // ── Table state ───────────────────────────────────────────────────────
 const state = {
   manufacturadores: { page: 1, total: 0, loaded: false },
@@ -11,15 +6,10 @@ const state = {
 };
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove(...ACTIVE_BTN);
-    btn.classList.add(...INACTIVE_BTN);
-  });
-  document.getElementById('panel-' + name).classList.remove('hidden');
-  const activeBtn = document.getElementById('tab-' + name);
-  activeBtn.classList.remove(...INACTIVE_BTN);
-  activeBtn.classList.add(...ACTIVE_BTN);
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('d-none'));
+  document.querySelectorAll('#inv-tabs .nav-link').forEach(a => a.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.remove('d-none');
+  document.getElementById('tab-' + name).classList.add('active');
 
   // Load data the first time a tab is opened
   if (!state[name].loaded) {
@@ -56,63 +46,61 @@ const PHASE_ES = {
 function renderRows(tab, data) {
   const tbody = document.getElementById('tbody-' + tab);
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="20" class="px-4 py-8 text-center text-gray-400 text-sm">Sin registros</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="20" class="text-center text-muted py-4">Sin registros</td></tr>`;
     return;
   }
-  const tdC  = 'px-4 py-3';
-  const tdR  = 'px-4 py-3 text-right tabular-nums';
   tbody.innerHTML = data.map(r => {
     const actions = `
-      <div class="flex items-center justify-center gap-2">
+      <div class="btn-group btn-group-sm">
         <button onclick="openModal('${tab}', ${JSON.stringify(r).replace(/"/g,'&quot;')})"
-          class="p-1.5 rounded-md text-gray-400 hover:text-Ipteblue2 hover:bg-blue-50 transition" title="Editar">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2.414a2 2 0 01.586-1.414z"/></svg>
+          class="btn btn-default" title="Editar">
+          <i class="fas fa-edit text-primary"></i>
         </button>
         <button onclick="deleteEntity('${tab}', ${r.id})"
-          class="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition" title="Eliminar">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16"/></svg>
+          class="btn btn-default" title="Eliminar">
+          <i class="fas fa-trash text-danger"></i>
         </button>
       </div>`;
 
     if (tab === 'manufacturadores') return `
-      <tr class="hover:bg-gray-50 transition">
-        <td class="${tdC} font-medium">${esc(r.name)}</td>
-        <td class="${tdC}">${actions}</td>
+      <tr>
+        <td class="font-weight-bold">${esc(r.name)}</td>
+        <td class="text-center">${actions}</td>
       </tr>`;
 
     if (tab === 'modulos') return `
-      <tr class="hover:bg-gray-50 transition">
-        <td class="${tdC} font-medium">${esc(r.manufacturer)}</td>
-        <td class="${tdC}">${esc(r.model)}</td>
-        <td class="${tdC}">${esc(TECHNOLOGY_ES[r.technology] ?? r.technology)}</td>
-        <td class="${tdR}">${r.pmax_stc}</td>
-        <td class="${tdR}">${r.voc_stc}</td>
-        <td class="${tdR}">${r.isc_stc}</td>
-        <td class="${tdR}">${r.vmpp_stc}</td>
-        <td class="${tdR}">${r.imp_stc}</td>
-        <td class="${tdR}">${r.temp_coeff_voc}</td>
-        <td class="${tdR}">${r.temp_coeff_pmax}</td>
-        <td class="${tdR}">${r.length_m}</td>
-        <td class="${tdR}">${r.width_m}</td>
-        <td class="${tdC}">${actions}</td>
+      <tr>
+        <td class="font-weight-bold">${esc(r.manufacturer)}</td>
+        <td>${esc(r.model)}</td>
+        <td>${esc(TECHNOLOGY_ES[r.technology] ?? r.technology)}</td>
+        <td class="text-right">${r.pmax_stc}</td>
+        <td class="text-right">${r.voc_stc}</td>
+        <td class="text-right">${r.isc_stc}</td>
+        <td class="text-right">${r.vmpp_stc}</td>
+        <td class="text-right">${r.imp_stc}</td>
+        <td class="text-right">${r.temp_coeff_voc}</td>
+        <td class="text-right">${r.temp_coeff_pmax}</td>
+        <td class="text-right">${r.length_m}</td>
+        <td class="text-right">${r.width_m}</td>
+        <td class="text-center">${actions}</td>
       </tr>`;
 
     if (tab === 'inversores') return `
-      <tr class="hover:bg-gray-50 transition">
-        <td class="${tdC} font-medium">${esc(r.manufacturer)}</td>
-        <td class="${tdC}">${esc(r.model)}</td>
-        <td class="${tdR}">${r.pmax_dc_input}</td>
-        <td class="${tdR}">${r.max_dc_voltage}</td>
-        <td class="${tdR}">${r.mppt_voltage_min} – ${r.mppt_voltage_max}</td>
-        <td class="${tdR}">${r.startup_voltage}</td>
-        <td class="${tdR}">${r.max_input_current_per_mppt}</td>
-        <td class="${tdR}">${r.max_short_circuit_current}</td>
-        <td class="${tdR}">${r.nominal_ac_power}</td>
-        <td class="${tdR}">${r.ac_voltage_nominal}</td>
-        <td class="${tdC}">${esc(PHASE_ES[r.phase_type] ?? r.phase_type)}</td>
-        <td class="${tdR}">${r.efficiency_weighted}</td>
-        <td class="${tdR}">${r.mppt_count}</td>
-        <td class="${tdC}">${actions}</td>
+      <tr>
+        <td class="font-weight-bold">${esc(r.manufacturer)}</td>
+        <td>${esc(r.model)}</td>
+        <td class="text-right">${r.pmax_dc_input}</td>
+        <td class="text-right">${r.max_dc_voltage}</td>
+        <td class="text-right">${r.mppt_voltage_min} – ${r.mppt_voltage_max}</td>
+        <td class="text-right">${r.startup_voltage}</td>
+        <td class="text-right">${r.max_input_current_per_mppt}</td>
+        <td class="text-right">${r.max_short_circuit_current}</td>
+        <td class="text-right">${r.nominal_ac_power}</td>
+        <td class="text-right">${r.ac_voltage_nominal}</td>
+        <td>${esc(PHASE_ES[r.phase_type] ?? r.phase_type)}</td>
+        <td class="text-right">${r.efficiency_weighted}</td>
+        <td class="text-right">${r.mppt_count}</td>
+        <td class="text-center">${actions}</td>
       </tr>`;
   }).join('');
 }
@@ -122,20 +110,18 @@ function renderPagination(tab, total, page) {
   const el    = document.getElementById('pagination-' + tab);
   const from  = total === 0 ? 0 : (page - 1) * 5 + 1;
   const to    = Math.min(page * 5, total);
-  const btnCls = 'px-3 py-1.5 rounded-lg border text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed';
   el.innerHTML = `
-    <span>${from}–${to} de ${total} registros</span>
-    <div class="flex items-center gap-2">
-      <button class="${btnCls} ${page <= 1 ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200 text-gray-400' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}"
-        onclick="loadTable('${tab}', ${page - 1})" ${page <= 1 ? 'disabled' : ''}>
-        ← Anterior
-      </button>
-      <span class="text-xs text-gray-400">Pág. ${page} / ${pages}</span>
-      <button class="${btnCls} ${page >= pages ? 'opacity-40 cursor-not-allowed bg-gray-50 border-gray-200 text-gray-400' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}"
-        onclick="loadTable('${tab}', ${page + 1})" ${page >= pages ? 'disabled' : ''}>
-        Siguiente →
-      </button>
-    </div>`;
+    <ul class="pagination pagination-sm m-0 float-right">
+      <li class="page-item${page <= 1 ? ' disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadTable('${tab}', ${page - 1}); return false;">&laquo;</a>
+      </li>
+      <li class="page-item disabled">
+        <span class="page-link">${from}–${to} de ${total}</span>
+      </li>
+      <li class="page-item${page >= pages ? ' disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadTable('${tab}', ${page + 1}); return false;">&raquo;</a>
+      </li>
+    </ul>`;
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────
@@ -143,22 +129,22 @@ let currentTab = null;
 
 function showModalError(msg) {
   const el = document.getElementById('modal-error');
-  document.getElementById('modal-error-text').textContent = msg;
-  el.style.display = 'flex';
+  el.textContent = msg;
+  el.classList.remove('d-none');
 }
 
 function clearModalError() {
   const el = document.getElementById('modal-error');
-  el.style.display = 'none';
-  document.getElementById('modal-error-text').textContent = '';
+  el.classList.add('d-none');
+  el.textContent = '';
 }
 
 async function openModal(tab, row = null) {
   currentTab = tab;
   clearModalError();
   document.getElementById('modal-title').textContent = row ? 'Editar registro' : 'Nuevo registro';
-  document.querySelectorAll('.entity-form').forEach(f => f.classList.add('hidden'));
-  document.getElementById('form-' + tab).classList.remove('hidden');
+  document.querySelectorAll('.entity-form').forEach(f => f.classList.add('d-none'));
+  document.getElementById('form-' + tab).classList.remove('d-none');
   resetNegativeWarnings();
   if (tab === 'modulos' || tab === 'inversores') {
     await populateManufacturers(tab === 'modulos' ? 'mod-manufacturer' : 'inv-manufacturer', row?.manufacturer_id);
@@ -200,8 +186,7 @@ async function openModal(tab, row = null) {
     document.getElementById('inv-mppt_count').value                  = row?.mppt_count                   ?? '';
   }
 
-  document.getElementById('modal').classList.remove('hidden');
-  document.getElementById('modal').classList.add('flex');
+  $('#modal').modal('show');
 }
 
 async function populateManufacturers(selectId, selectedId = null) {
@@ -214,8 +199,7 @@ async function populateManufacturers(selectId, selectedId = null) {
 
 function closeModal() {
   clearModalError();
-  document.getElementById('modal').classList.add('hidden');
-  document.getElementById('modal').classList.remove('flex');
+  $('#modal').modal('hide');
   currentTab = null;
 }
 
@@ -313,54 +297,23 @@ async function deleteEntity(tab, id) {
   showToast('Registro eliminado correctamente.', 'info');
 }
 
-// ── Toast notifications ─────────────────────────────────────────────
+// ── Toast notifications (toastr) ────────────────────────────────────
 function showToast(message, type = 'success') {
-  const colours = {
-    success: 'bg-green-600',
-    error:   'bg-red-600',
-    info:    'bg-Ipteblue2',
-  };
-  const icons = {
-    success: `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`,
-    error:   `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`,
-    info:    `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01"/></svg>`,
-  };
-
-  const toast = document.createElement('div');
-  toast.className = [
-    'pointer-events-auto flex items-center gap-2.5 text-white text-sm font-medium',
-    'px-4 py-2.5 rounded-xl shadow-lg',
-    'translate-x-0 opacity-100 transition-all duration-300',
-    colours[type] ?? colours.info,
-  ].join(' ');
-  toast.innerHTML = (icons[type] ?? '') + `<span>${esc(message)}</span>`;
-
-  const container = document.getElementById('toast-container');
-  container.appendChild(toast);
-
-  // Fade out then remove
-  setTimeout(() => {
-    toast.style.opacity    = '0';
-    toast.style.transform  = 'translateX(1rem)';
-    setTimeout(() => toast.remove(), 300);
-  }, 3500);
+  const map = { success: 'success', error: 'error', info: 'info' };
+  toastr[map[type] ?? 'info'](message);
 }
 
 // ── Negative coefficient real-time validation ──────────────────────
 function validateNegative(input, warningId) {
-  const val  = parseFloat(input.value);
-  const warn = document.getElementById(warningId);
+  const val     = parseFloat(input.value);
+  const warn    = document.getElementById(warningId);
   const invalid = input.value !== '' && !isNaN(val) && val >= 0;
   if (invalid) {
-    input.classList.add('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
-    input.classList.remove('border-gray-200', 'focus:ring-Ipteblue2');
-    warn.classList.remove('hidden');
-    warn.classList.add('flex');
+    input.classList.add('is-invalid');
+    warn.classList.remove('d-none');
   } else {
-    input.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
-    input.classList.add('border-gray-200', 'focus:ring-Ipteblue2');
-    warn.classList.remove('flex');
-    warn.classList.add('hidden');
+    input.classList.remove('is-invalid');
+    warn.classList.add('d-none');
   }
 }
 
@@ -368,9 +321,8 @@ function resetNegativeWarnings() {
   ['mod-temp_coeff_voc', 'mod-temp_coeff_pmax'].forEach((id, i) => {
     const input = document.getElementById(id);
     const warn  = document.getElementById(['warn-tcv', 'warn-tcp'][i]);
-    input.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'focus:ring-red-300');
-    input.classList.add('border-gray-200', 'focus:ring-Ipteblue2');
-    warn.classList.add('hidden');
+    input.classList.remove('is-invalid');
+    warn.classList.add('d-none');
   });
 }
 
@@ -380,10 +332,11 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Close modal on backdrop click ─────────────────────────────────────
-document.getElementById('modal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
+// ── Bootstrap Modal cleanup on close ─────────────────────────────────
+$('#modal').on('hide.bs.modal', function () {
+  clearModalError();
+  currentTab = null;
 });
 
-// ── Bootstrap ─────────────────────────────────────────────────────────
+// ── Init ─────────────────────────────────────────────────────────────
 loadTable('manufacturadores');

@@ -3,166 +3,150 @@
 <!-- ================================================================
      BLOQUE 1 – UBICACIÓN Y DATOS SOLARES
 ================================================================ -->
-<div id="bloque-1" class="bg-white rounded-2xl shadow-sm border border-gray-200">
+<div id="bloque-1" class="card card-primary card-outline mb-3">
 
   <!-- Block header -->
-  <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50">
-    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-Ipteblue text-white text-sm font-bold shrink-0">1</span>
-    <div>
-      <h2 class="text-base font-semibold text-gray-800">Ubicación y Consumo Energético</h2>
-      <p class="text-xs text-gray-400">Selecciona la ubicación en el mapa y captura el consumo anual</p>
+  <div class="card-header">
+    <h3 class="card-title">
+      <span class="badge badge-primary mr-2">1</span>
+      Ubicación y Consumo Energético
+    </h3>
+    <div class="card-tools">
+      <small class="text-muted">Selecciona la ubicación en el mapa y captura el consumo anual</small>
     </div>
   </div>
 
-  <!-- Two-column layout: map | form -->
-  <div class="grid grid-cols-1 lg:grid-cols-2">
+  <div class="card-body p-0">
+    <!-- Two-column layout: map | form -->
+    <div class="row no-gutters">
 
-    <!-- ── LEFT: Map ────────────────────────────────────────── -->
-    <div class="relative border-b lg:border-b-0 lg:border-r border-gray-100">
-      <div id="map" class="w-full" style="height: 480px;"></div>
-      <!-- Coordinate badge overlay -->
-      <div id="coord-badge"
-           class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm
-                  rounded-lg px-4 py-2 shadow text-xs text-gray-600 pointer-events-none hidden">
-        <span class="font-medium text-Ipteblue">📍</span>
-        Lat: <span id="badge-lat" class="font-semibold text-gray-800">—</span>
-        &nbsp;|&nbsp;
-        Lng: <span id="badge-lng" class="font-semibold text-gray-800">—</span>
+      <!-- ── LEFT: Map -->
+      <div class="col-lg-6 position-relative border-right">
+        <div id="map" class="w-100" style="height: 480px;"></div>
+        <!-- Coordinate badge overlay -->
+        <div id="coord-badge"
+             class="position-absolute d-none"
+             style="bottom:1rem; left:50%; transform:translateX(-50%); background:rgba(255,255,255,.92);
+                    border-radius:.5rem; padding:.4rem 1rem; box-shadow:0 1px 4px rgba(0,0,0,.15);
+                    font-size:.75rem; color:#555; pointer-events:none; white-space:nowrap;">
+          <i class="fas fa-map-marker-alt text-primary mr-1"></i>
+          Lat: <strong id="badge-lat" class="text-dark">—</strong>
+          &nbsp;|&nbsp;
+          Lng: <strong id="badge-lng" class="text-dark">—</strong>
+        </div>
       </div>
-    </div>
 
-    <!-- ── RIGHT: Form ───────────────────────────────────────── -->
-    <div class="px-6 py-6 flex flex-col gap-6">
+      <!-- ── RIGHT: Form -->
+      <div class="col-lg-6 p-4 d-flex flex-column">
 
-      <!-- Section: Coordinates (auto-filled by map) -->
-      <fieldset>
-        <legend class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Coordenadas Seleccionadas
-        </legend>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="latitud">Latitud</label>
-            <input type="text" id="latitud" name="latitud" readonly
-              placeholder="Haz clic en el mapa"
-              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
-                     text-sm text-gray-700 placeholder-gray-400
-                     focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
+        <!-- Section: Coordinates -->
+        <fieldset class="mb-4">
+          <legend class="font-weight-bold text-muted text-uppercase mb-2" style="font-size:.7rem;">
+            Coordenadas Seleccionadas
+          </legend>
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group mb-2">
+                <label for="latitud" class="mb-1">Latitud</label>
+                <input type="text" id="latitud" name="latitud" readonly
+                  placeholder="Haz clic en el mapa"
+                  class="form-control form-control-sm bg-light">
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-group mb-2">
+                <label for="longitud" class="mb-1">Longitud</label>
+                <input type="text" id="longitud" name="longitud" readonly
+                  placeholder="Haz clic en el mapa"
+                  class="form-control form-control-sm bg-light">
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="longitud">Longitud</label>
-            <input type="text" id="longitud" name="longitud" readonly
-              placeholder="Haz clic en el mapa"
-              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
-                     text-sm text-gray-700 placeholder-gray-400
-                     focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
+        </fieldset>
+
+        <!-- Section: Consumption -->
+        <fieldset class="mb-4">
+          <legend class="font-weight-bold text-muted text-uppercase mb-2" style="font-size:.7rem;">
+            Consumo Energético
+          </legend>
+          <div class="form-group mb-1">
+            <label for="consumo_anual_kwh">Consumo Anual <small class="text-muted">(kWh/año)</small></label>
+            <input type="number" id="consumo_anual_kwh" name="consumo_anual_kwh"
+              min="0" step="1" placeholder="Ej. 3650"
+              class="form-control form-control-sm">
           </div>
-        </div>
-      </fieldset>
+          <small class="text-muted">Puedes encontrarlo en tu recibo de CFE anual (suma de los consumos mensuales)</small>
+        </fieldset>
 
-      <!-- Section: Consumption -->
-      <fieldset>
-        <legend class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          Consumo Energético
-        </legend>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="consumo_anual_kwh">
-            Consumo Anual <span class="text-gray-400 font-normal">(kWh/año)</span>
-          </label>
-          <input type="number" id="consumo_anual_kwh" name="consumo_anual_kwh"
-            min="0" step="1" placeholder="Ej. 3650"
-            class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2
-                   text-sm text-gray-800 placeholder-gray-400
-                   focus:outline-none focus:ring-2 focus:ring-Ipteblue/40"/>
-          <p class="mt-1 text-xs text-gray-400">Puedes encontrarlo en tu recibo de CFE anual</p>
-        </div>
-      </fieldset>
+        <!-- Section: Solar Data -->
+        <fieldset class="mb-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <legend class="font-weight-bold text-muted text-uppercase mb-0" style="font-size:.7rem;">
+              Datos Solares
+            </legend>
+            <button type="button" id="btn-nasa-api" disabled
+              title="Selecciona primero una ubicación en el mapa"
+              class="btn btn-xs btn-default border">
+              <i class="fas fa-sun mr-1"></i>Obtener de NASA POWER
+            </button>
+          </div>
 
-      <!-- Section: Solar Data -->
-      <fieldset>
-        <legend class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Datos Solares
-          </span>
-          <button type="button" id="btn-nasa-api" disabled
-            title="Selecciona primero una ubicación en el mapa"
-            class="flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50
-                   px-3 py-1 text-xs font-medium text-gray-400 cursor-not-allowed transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
-                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15-6.36-.71.71M6.05 17.66l-.71.71m12.02 0-.71-.71M6.05 6.34l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7Z"/>
-            </svg>
-            Obtener de NASA POWER
-          </button>
-        </legend>
-
-        <div class="grid grid-cols-1 gap-3">
-          <!-- Error message from NASA API -->
-          <p id="nasa-error" class="hidden text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 border border-red-200"></p>
+          <!-- Error banner -->
+          <div id="nasa-error" class="alert alert-danger d-none py-1 px-2 mb-2" style="font-size:.8rem;"></div>
 
           <!-- HSP -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-sm font-medium text-gray-700" for="hsp">
-                Horas Solar Pico – HSP
-                <span class="text-gray-400 font-normal">(kWh/m²/día)</span>
+          <div class="form-group mb-2">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <label for="hsp" class="mb-0">
+                Horas Solar Pico – HSP <small class="text-muted">(kWh/m²/día)</small>
               </label>
-              <!-- Mode toggle: only visible after NASA data loads -->
-              <div id="hsp-mode-toggle" class="flex items-center rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
-                <button type="button" data-mode="min"
-                  class="hsp-mode-btn px-2.5 py-1 bg-Ipteblue text-white transition-colors">
-                  Peor mes
-                </button>
-                <button type="button" data-mode="avg"
-                  class="hsp-mode-btn px-2.5 py-1 bg-white text-gray-500 hover:bg-gray-50 transition-colors">
-                  Promedio
-                </button>
+              <div id="hsp-mode-toggle" class="btn-group btn-group-xs d-none">
+                <button type="button" data-mode="avg" class="hsp-mode-btn btn btn-primary btn-xs">Promedio anual</button>
+                <button type="button" data-mode="min" class="hsp-mode-btn btn btn-default btn-xs">Peor mes</button>
               </div>
             </div>
             <input type="number" id="hsp" name="hsp_kwh_m2_dia"
               min="0" step="0.01" placeholder="Selecciona una ubicación y consulta la NASA" readonly
-              class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
-                     text-sm text-gray-700 placeholder-gray-400
-                     focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
-            <p id="hsp-mode-hint" class="hidden mt-1 text-xs text-gray-400"></p>
+              class="form-control form-control-sm bg-light">
+            <small id="hsp-mode-hint" class="text-muted d-none"></small>
           </div>
 
           <!-- Tmin / Tmax -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="tmin">
-                T. Mínima <span class="text-gray-400 font-normal">(°C)</span>
-              </label>
-              <input type="number" id="tmin" name="tmin_ambiente"
-                step="0.1" placeholder="—" readonly
-                class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
-                       text-sm text-gray-700 placeholder-gray-400
-                       focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
+          <div class="row">
+            <div class="col-6">
+              <div class="form-group mb-0">
+                <label for="tmin">T. Mínima <small class="text-muted">(°C)</small></label>
+                <input type="number" id="tmin" name="tmin_ambiente"
+                  step="0.1" placeholder="—" readonly
+                  class="form-control form-control-sm bg-light">
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="tmax">
-                T. Máxima <span class="text-gray-400 font-normal">(°C)</span>
-              </label>
-              <input type="number" id="tmax" name="tmax_ambiente"
-                step="0.1" placeholder="—" readonly
-                class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2
-                       text-sm text-gray-700 placeholder-gray-400
-                       focus:outline-none focus:ring-2 focus:ring-Ipteblue/40 cursor-default"/>
+            <div class="col-6">
+              <div class="form-group mb-0">
+                <label for="tmax">T. Máxima <small class="text-muted">(°C)</small></label>
+                <input type="number" id="tmax" name="tmax_ambiente"
+                  step="0.1" placeholder="—" readonly
+                  class="form-control form-control-sm bg-light">
+              </div>
             </div>
           </div>
+        </fieldset>
+
+        <!-- PR note -->
+        <p class="text-muted mb-3" style="font-size:.8rem;">
+          <strong>Nota:</strong>
+          Los cálculos utilizan un factor de rendimiento (PR) de <strong>0.75</strong>,
+          valor típico en diseño preliminar que engloba pérdidas por temperatura, cableado, inversor y suciedad.
+        </p>
+
+        <!-- Continue button -->
+        <div class="mt-auto">
+          <button type="button" id="btn-bloque1-continuar" class="btn btn-primary btn-block">
+            Continuar al Paso 2 <i class="fas fa-arrow-right ml-1"></i>
+          </button>
         </div>
-      </fieldset>
 
-      <!-- Continue button -->
-      <div class="mt-auto pt-2">
-        <button type="button" id="btn-bloque1-continuar"
-          class="w-full rounded-xl bg-Ipteblue px-4 py-3 text-sm font-semibold
-                 text-white shadow-sm hover:bg-Ipteblue/90 transition-colors
-                 focus:outline-none focus:ring-2 focus:ring-Ipteblue/50">
-          Continuar al Paso 2 →
-        </button>
-      </div>
-
-    </div><!-- /right form -->
-  </div><!-- /grid -->
+      </div><!-- /right form -->
+    </div><!-- /row -->
+  </div><!-- /card-body -->
 </div><!-- /bloque-1 -->

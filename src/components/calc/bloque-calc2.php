@@ -3,159 +3,133 @@
 <!-- ================================================================
      BLOQUE 2 – MÓDULO FOTOVOLTAICO
 ================================================================ -->
-<div id="bloque-2" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200">
+<div id="bloque-2" class="card card-primary card-outline mb-3 d-none">
 
   <!-- Block header -->
-  <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
-    <div class="flex items-center gap-3">
-      <span class="flex items-center justify-center w-7 h-7 rounded-full bg-Ipteblue text-white text-sm font-bold shrink-0">2</span>
-      <div>
-        <h2 class="text-base font-semibold text-gray-800">Módulo Fotovoltaico</h2>
-        <p class="text-xs text-gray-400">Selecciona el panel fotovoltaico del inventario</p>
-      </div>
+  <div class="card-header">
+    <h3 class="card-title">
+      <span class="badge badge-primary mr-2">2</span>
+      Módulo Fotovoltaico
+    </h3>
+    <div class="card-tools">
+      <button type="button" id="btn-bloque2-volver" class="btn btn-xs btn-default">
+        <i class="fas fa-chevron-left mr-1"></i>Volver al Paso 1
+      </button>
     </div>
-    <button type="button" id="btn-bloque2-volver"
-      class="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-Ipteblue transition-colors">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none"
-           viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/>
-      </svg>
-      Volver al Paso 1
-    </button>
   </div>
 
   <!-- Filters -->
-  <div class="px-6 pt-5 pb-3 border-b border-gray-100 flex flex-wrap items-center gap-4">
-
-    <!-- Manufacturer filter -->
-    <div class="flex items-center gap-2 flex-wrap">
-      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Fabricante:</span>
-      <div id="filter-manufacturer" class="flex flex-wrap gap-1.5">
-        <!-- populated by JS -->
+  <div class="card-header border-bottom-0 pt-2 pb-2">
+    <div class="d-flex flex-wrap align-items-center" style="gap:.75rem;">
+      <div class="d-flex align-items-center flex-wrap" style="gap:.4rem;">
+        <span class="text-muted font-weight-bold text-uppercase mr-1" style="font-size:.7rem;">Fabricante:</span>
+        <div id="filter-manufacturer" class="d-flex flex-wrap" style="gap:.3rem;"></div>
+      </div>
+      <div class="d-flex align-items-center flex-wrap" style="gap:.4rem;">
+        <span class="text-muted font-weight-bold text-uppercase mr-1" style="font-size:.7rem;">Tecnología:</span>
+        <div id="filter-technology" class="d-flex flex-wrap" style="gap:.3rem;"></div>
       </div>
     </div>
-
-    <!-- Technology filter -->
-    <div class="flex items-center gap-2 flex-wrap">
-      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tecnología:</span>
-      <div id="filter-technology" class="flex flex-wrap gap-1.5">
-        <!-- populated by JS -->
-      </div>
-    </div>
-
   </div>
 
-  <!-- Module card grid -->
-  <div class="px-6 py-5">
+  <div class="card-body">
 
     <!-- Loading state -->
-    <div id="modules-loading" class="flex items-center justify-center py-12 text-gray-400 gap-2">
-      <svg class="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-      </svg>
-      <span class="text-sm">Cargando módulos del inventario…</span>
+    <div id="modules-loading" class="text-center py-4 text-muted">
+      <i class="fas fa-spinner fa-spin mr-1"></i> Cargando módulos del inventario…
     </div>
 
     <!-- Error state -->
-    <p id="modules-error" class="hidden text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 border border-red-200"></p>
+    <div id="modules-error" class="alert alert-danger d-none"></div>
 
     <!-- Card grid -->
-    <div id="modules-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-      <!-- cards injected by JS -->
-    </div>
+    <div id="modules-grid" class="row"></div>
 
-    <!-- Empty state (after filter) -->
-    <p id="modules-empty" class="hidden text-center text-sm text-gray-400 py-8">
+    <!-- Empty state -->
+    <p id="modules-empty" class="text-center text-muted d-none py-3">
       No hay módulos que coincidan con los filtros seleccionados.
     </p>
 
-  </div>
+    <!-- ── Selected module summary + live results -->
+    <div id="calc2-results" class="d-none mt-4 border-top pt-4">
 
-  <!-- ── Selected module summary + live results ──────────────────── -->
-  <div id="calc2-results" class="hidden border-t border-gray-100 mx-6 mb-6 pt-5">
-
-    <!-- Selected module pill -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Módulo seleccionado</span>
-        <span id="selected-module-name"
-          class="inline-flex items-center rounded-full bg-Ipteblue/10 px-3 py-0.5
-                 text-xs font-semibold text-Ipteblue">—</span>
-      </div>
-      <button type="button" id="btn-deselect-module"
-        class="text-xs text-gray-400 hover:text-red-500 transition-colors">
-        ✕ Quitar selección
-      </button>
-    </div>
-
-    <!-- Datasheet quick view -->
-    <div id="selected-module-specs"
-      class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2 text-xs
-             bg-gray-50 rounded-xl px-4 py-3 mb-5">
-      <!-- populated by JS -->
-    </div>
-
-    <!-- Live calculation results -->
-    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-      Resultados Preliminares del Arreglo
-    </p>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-
-      <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p class="text-xs text-gray-400 mb-0.5">Módulos requeridos</p>
-        <p id="res-n-modulos" class="text-2xl font-bold text-Ipteblue">—</p>
-        <p class="text-xs text-gray-400 mt-0.5">unidades</p>
+      <!-- Selected module pill -->
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center">
+          <span class="text-muted text-uppercase mr-2" style="font-size:.7rem; font-weight:600;">Módulo seleccionado</span>
+          <span id="selected-module-name" class="badge badge-primary px-2">—</span>
+        </div>
+        <button type="button" id="btn-deselect-module" class="btn btn-xs btn-default text-danger">
+          <i class="fas fa-times mr-1"></i>Quitar selección
+        </button>
       </div>
 
-      <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p class="text-xs text-gray-400 mb-0.5">Potencia arreglo STC</p>
-        <p id="res-p-arreglo-stc" class="text-2xl font-bold text-Ipteblue">—</p>
-        <p class="text-xs text-gray-400 mt-0.5">kW pico</p>
+      <!-- Datasheet quick view -->
+      <div id="selected-module-specs"
+        class="row bg-light rounded px-3 py-2 mb-4 mx-0">
+        <!-- populated by JS -->
       </div>
 
-      <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p class="text-xs text-gray-400 mb-0.5">Potencia en calor</p>
-        <p id="res-p-arreglo-calor" class="text-2xl font-bold text-orange-500">—</p>
-        <p id="res-p-calor-pct" class="text-xs text-gray-400 mt-0.5">— vs STC</p>
-      </div>
+      <!-- Live calculation results -->
+      <p class="text-muted text-uppercase mb-2" style="font-size:.7rem; font-weight:600;">
+        Resultados Preliminares del Arreglo
+      </p>
+      <div class="row">
 
-      <div class="rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <p class="text-xs text-gray-400 mb-0.5">I<sub>sc</sub> protección</p>
-        <p id="res-isc-prot" class="text-2xl font-bold text-gray-700">—</p>
-        <p class="text-xs text-gray-400 mt-0.5">A · NOM-001</p>
-      </div>
+        <div class="col-6 col-lg-3 mb-2">
+          <div class="info-box mb-0">
+            <span class="info-box-icon bg-primary"><i class="fas fa-solar-panel"></i></span>
+            <div class="info-box-content">
+              <span class="info-box-text">Módulos requeridos</span>
+              <span id="res-n-modulos" class="info-box-number">—</span>
+              <span class="info-box-text">unidades</span>
+            </div>
+          </div>
+        </div>
 
-    </div>
-  </div>
+        <div class="col-6 col-lg-3 mb-2">
+          <div class="info-box mb-0">
+            <span class="info-box-icon bg-primary"><i class="fas fa-bolt"></i></span>
+            <div class="info-box-content">
+              <span class="info-box-text">Potencia arreglo STC</span>
+              <span id="res-p-arreglo-stc" class="info-box-number">—</span>
+              <span class="info-box-text">kW pico</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3 mb-2">
+          <div class="info-box mb-0">
+            <span class="info-box-icon bg-warning"><i class="fas fa-temperature-high"></i></span>
+            <div class="info-box-content">
+              <span class="info-box-text">Potencia en calor</span>
+              <span id="res-p-arreglo-calor" class="info-box-number text-warning">—</span>
+              <span id="res-p-calor-pct" class="info-box-text">— vs STC</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3 mb-2">
+          <div class="info-box mb-0">
+            <span class="info-box-icon bg-secondary"><i class="fas fa-shield-alt"></i></span>
+            <div class="info-box-content">
+              <span class="info-box-text">I<sub>sc</sub> protección</span>
+              <span id="res-isc-prot" class="info-box-number">—</span>
+              <span class="info-box-text">A &middot; NOM-001</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.row results -->
+    </div><!-- /calc2-results -->
+
+  </div><!-- /card-body -->
 
   <!-- Continue button -->
-  <div class="px-6 pb-6" id="calc2-continue-wrap">
-    <button type="button" id="btn-bloque2-continuar" disabled
-      class="w-full rounded-xl bg-Ipteblue px-4 py-3 text-sm font-semibold
-             text-white shadow-sm transition-colors
-             enabled:hover:bg-Ipteblue/90
-             disabled:opacity-40 disabled:cursor-not-allowed
-             focus:outline-none focus:ring-2 focus:ring-Ipteblue/50">
-      Continuar al Paso 3 →
+  <div class="card-footer" id="calc2-continue-wrap">
+    <button type="button" id="btn-bloque2-continuar" disabled class="btn btn-primary btn-block">
+      Continuar al Paso 3 <i class="fas fa-arrow-right ml-1"></i>
     </button>
   </div>
 
 </div><!-- /bloque-2 -->
-
-<!-- ── Tailwind class anchor (never displayed) ──────────────────────
-     Ensures dynamically injected card/filter classes are compiled.
-──────────────────────────────────────────────────────────────────── -->
-<div class="hidden"
-  data-tw="cursor-pointer rounded-xl border border-gray-200 p-4 transition-all
-            hover:border-Ipteblue hover:shadow-sm
-            border-2 border-Ipteblue bg-Ipteblue/10 ring-2 ring-Ipteblue/30
-            rounded-full px-3 py-1 text-xs font-medium
-            bg-Ipteblue text-white bg-white text-gray-600 border-gray-200
-            text-gray-500 font-semibold text-gray-800 text-gray-700
-            bg-blue-50 text-blue-700 bg-green-50 text-green-700
-            bg-purple-50 text-purple-700 bg-yellow-50 text-yellow-700
-            text-lg font-bold text-Ipteblue text-orange-500
-            grid grid-cols-2 gap-1 mt-2">
-</div>
-

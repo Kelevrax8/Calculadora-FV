@@ -19,14 +19,6 @@
   const resultsEl  = document.getElementById('calc2-results');
   const contBtn    = document.getElementById('btn-bloque2-continuar');
 
-  // Technology badge colours
-  const techColor = {
-    'Monocrystalline': 'bg-blue-50 text-blue-700',
-    'Polycrystalline': 'bg-green-50 text-green-700',
-    'Thin Film':       'bg-purple-50 text-purple-700',
-    'Other':           'bg-yellow-50 text-yellow-700',
-  };
-
   // ── Public entry point (called by Block 1 continue btn) ──
   window.loadPVModules = async function () {
     if (loaded) return;
@@ -38,12 +30,12 @@
       loaded = true;
       buildFilters();
       applyFilters();
-      loading.classList.add('hidden');
-      grid.classList.remove('hidden');
+      loading.classList.add('d-none');
+      grid.classList.remove('d-none');
     } catch (err) {
-      loading.classList.add('hidden');
+      loading.classList.add('d-none');
       errorEl.textContent = '⚠ No se pudo cargar el inventario: ' + err.message;
-      errorEl.classList.remove('hidden');
+      errorEl.classList.remove('d-none');
     }
   };
 
@@ -72,10 +64,7 @@
   }
 
   function setFilterStyle(btn, active) {
-    btn.className = 'rounded-full px-3 py-1 text-xs font-medium transition-colors ' +
-      (active
-        ? 'bg-Ipteblue text-white'
-        : 'bg-white text-gray-600 border border-gray-200 hover:border-Ipteblue');
+    btn.className = 'btn btn-xs ' + (active ? 'btn-primary' : 'btn-default border');
   }
 
   function onFilterClick(type, val) {
@@ -100,50 +89,62 @@
     grid.innerHTML = '';
 
     if (visible.length === 0) {
-      emptyEl.classList.remove('hidden');
+      emptyEl.classList.remove('d-none');
       return;
     }
-    emptyEl.classList.add('hidden');
+    emptyEl.classList.add('d-none');
 
     visible.forEach(m => {
       const card = buildCard(m);
-      grid.appendChild(card);
+      const col  = document.createElement('div');
+      col.className = 'col-12 col-sm-6 col-xl-4 mb-3';
+      col.appendChild(card);
+      grid.appendChild(col);
     });
   }
 
+  // Technology badge colours (Bootstrap badges)
+  const techColor = {
+    'Monocrystalline': 'badge-primary',
+    'Polycrystalline':  'badge-success',
+    'Thin Film':        'badge-info',
+    'Other':            'badge-warning',
+  };
+
   function buildCard(m) {
     const isSelected = selectedModule && selectedModule.id === m.id;
-    const badge      = techColor[m.technology] || 'bg-yellow-50 text-yellow-700';
+    const badgeCls   = techColor[m.technology] || 'badge-warning';
     const area       = m.length_m * m.width_m;
-    const eta        = (m.pmax_stc / (1000 * area) * 100).toFixed(1);  // %
+    const eta        = (m.pmax_stc / (1000 * area) * 100).toFixed(1);
     const areaStr    = area.toFixed(2);
 
     const div = document.createElement('div');
     div.dataset.moduleId = m.id;
-    div.className = 'cursor-pointer rounded-xl border p-4 transition-all ' +
-      (isSelected
-        ? 'border-2 border-Ipteblue bg-Ipteblue/10'
-        : 'border-gray-200 hover:border-Ipteblue hover:shadow-sm');
+    div.className = 'card card-outline h-100 cursor-pointer ' +
+      (isSelected ? 'card-primary' : 'card-default');
+    div.style.cursor = 'pointer';
 
     div.innerHTML = `
-      <div class="flex items-start justify-between gap-2 mb-2">
-        <div>
-          <p class="text-xs font-semibold text-gray-500">${m.manufacturer}</p>
-          <p class="text-sm font-bold text-gray-800 leading-tight">${m.model}</p>
+      <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <div>
+            <p class="text-muted mb-0" style="font-size:.72rem;">${m.manufacturer}</p>
+            <p class="font-weight-bold mb-1" style="font-size:.9rem; line-height:1.2;">${m.model}</p>
+          </div>
+          <span class="badge ${badgeCls} ml-1" style="font-size:.65rem; white-space:nowrap;">${m.technology}</span>
         </div>
-        <span class="shrink-0 text-xs font-medium rounded-full px-2 py-0.5 ${badge}">
-          ${m.technology}
-        </span>
-      </div>
-      <p class="text-lg font-bold text-Ipteblue mb-2">${m.pmax_stc} <span class="text-xs font-normal text-gray-400">W pico</span></p>
-      <div class="grid grid-cols-2 gap-1 mt-2 text-xs">
-        <span class="text-gray-500">Voc</span><span class="font-semibold text-gray-800">${m.voc_stc} V</span>
-        <span class="text-gray-500">Isc</span><span class="font-semibold text-gray-800">${m.isc_stc} A</span>
-        <span class="text-gray-500">Vmpp</span><span class="font-semibold text-gray-800">${m.vmpp_stc} V</span>
-        <span class="text-gray-500">Imp</span><span class="font-semibold text-gray-800">${m.imp_stc} A</span>
-        <span class="text-gray-500">γP</span><span class="font-semibold text-gray-800">${m.temp_coeff_pmax}%/°C</span>
-        <span class="text-gray-500">Área</span><span class="font-semibold text-gray-800">${areaStr} m²</span>
-        <span class="text-gray-500">Eficiencia</span><span class="font-semibold text-green-600">${eta}%</span>
+        <p class="text-primary font-weight-bold mb-2" style="font-size:1.1rem;">
+          ${m.pmax_stc} <small class="text-muted font-weight-normal" style="font-size:.75rem;">W pico</small>
+        </p>
+        <div class="row row-cols-2 no-gutters" style="font-size:.75rem;">
+          <div class="col text-muted">Voc</div><div class="col font-weight-bold">${m.voc_stc} V</div>
+          <div class="col text-muted">Isc</div><div class="col font-weight-bold">${m.isc_stc} A</div>
+          <div class="col text-muted">Vmpp</div><div class="col font-weight-bold">${m.vmpp_stc} V</div>
+          <div class="col text-muted">Imp</div><div class="col font-weight-bold">${m.imp_stc} A</div>
+          <div class="col text-muted">γP</div><div class="col font-weight-bold">${m.temp_coeff_pmax}%/°C</div>
+          <div class="col text-muted">Área</div><div class="col font-weight-bold">${areaStr} m²</div>
+          <div class="col text-muted">Eficiencia</div><div class="col font-weight-bold text-success">${eta}%</div>
+        </div>
       </div>`;
 
     div.addEventListener('click', () => selectModule(m));
@@ -158,10 +159,10 @@
 
     // Refresh card borders
     document.querySelectorAll('[data-module-id]').forEach(card => {
-      const id = parseInt(card.dataset.moduleId);
+      const id  = parseInt(card.dataset.moduleId);
       const sel = id === m.id;
-      card.className = 'cursor-pointer rounded-xl border p-4 transition-all ' +
-        (sel ? 'border-2 border-Ipteblue bg-Ipteblue/10' : 'border-gray-200 hover:border-Ipteblue hover:shadow-sm');
+      card.className = 'card card-outline h-100 ' + (sel ? 'card-primary' : 'card-default');
+      card.style.cursor = 'pointer';
     });
 
     // Module name pill
@@ -179,15 +180,15 @@
       ['γP',          m.temp_coeff_pmax + ' %/°C'],
       ['βVoc',        m.temp_coeff_voc  + ' %/°C'],
     ].map(([label, val]) => `
-      <div>
-        <p class="text-xs text-gray-400">${label}</p>
-        <p class="text-xs font-semibold text-gray-800">${val}</p>
+      <div class="col-6 col-sm-3 col-lg-auto mr-3 mb-1">
+        <p class="text-muted mb-0" style="font-size:.7rem;">${label}</p>
+        <p class="font-weight-bold mb-0" style="font-size:.8rem;">${val}</p>
       </div>`).join('');
 
     // Compute live results
     computeResults(m);
 
-    resultsEl.classList.remove('hidden');
+    resultsEl.classList.remove('d-none');
     contBtn.disabled = false;
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -199,7 +200,7 @@
     const tmax     = parseFloat(document.getElementById('tmax').value)               || 25;
 
     const E_dia_Wh      = (consumo / 365) * 1000;
-    const P_req_W       = E_dia_Wh / (hsp * 0.80);
+    const P_req_W       = E_dia_Wh / (hsp * 0.75);  // PR = 0.75 (factor de rendimiento estándar)
     const N             = Math.ceil(P_req_W / m.pmax_stc);
     const P_stc_kW      = (N * m.pmax_stc) / 1000;
 
@@ -227,28 +228,31 @@
   // ── Reset (called by showStep when navigating back to step 1) ──
   window.resetBlock2 = function () {
     selectedModule = null;
-    resultsEl.classList.add('hidden');
+    resultsEl.classList.add('d-none');
     contBtn.disabled = true;
     document.getElementById('selected-module-name').textContent = '—';
     document.querySelectorAll('[data-module-id]').forEach(card => {
-      card.className = 'cursor-pointer rounded-xl border border-gray-200 p-4 transition-all hover:border-Ipteblue hover:shadow-sm';
+      card.className = 'card card-outline card-default h-100';
+      card.style.cursor = 'pointer';
     });
     if (window.calcState) {
       delete window.calcState.module;
       delete window.calcState.N;
       delete window.calcState.P_stc_kW;
+      delete window.calcState.monthly;
     }
   };
 
   // ── Deselect ──────────────────────────────────────────────
   document.getElementById('btn-deselect-module').addEventListener('click', function () {
     selectedModule = null;
-    resultsEl.classList.add('hidden');
+    resultsEl.classList.add('d-none');
     contBtn.disabled = true;
     document.getElementById('selected-module-name').textContent = '—';
     // Reset card styles
     document.querySelectorAll('[data-module-id]').forEach(card => {
-      card.className = 'cursor-pointer rounded-xl border border-gray-200 p-4 transition-all hover:border-Ipteblue hover:shadow-sm';
+      card.className = 'card card-outline card-default h-100';
+      card.style.cursor = 'pointer';
     });
   });
 

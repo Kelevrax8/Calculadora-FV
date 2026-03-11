@@ -5,38 +5,47 @@ include 'components/header.php';
 ?>
 
   <!-- Hero / Main section -->
-  <main class="relative flex-1 flex items-center justify-start overflow-hidden">
+  <main class="flex-fill position-relative d-flex align-items-center">
 
     <!-- Background image -->
-    <div
-      class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-      style="background-image: url('/Images/Paneles.webp');"
-    ></div>
+    <div class="position-absolute w-100 h-100"
+         style="background-image:url('/Images/Paneles.webp');
+                background-size:cover; background-position:center; top:0; left:0;">
+    </div>
 
     <!-- Gradient overlay: dark on the left, transparent on the right -->
-    <div class="absolute inset-0 bg-linear-to-r from-Ipteblue/90 via-Ipteblue/60 to-transparent"></div>
+    <div class="position-absolute w-100 h-100"
+         style="background:linear-gradient(to right,rgba(23,25,51,.9) 0%,rgba(23,25,51,.6) 50%,transparent 100%);
+                top:0; left:0;">
+    </div>
 
     <!-- Content -->
-    <div class="relative z-10 max-w-7xl mx-auto px-8 sm:px-12 lg:px-20 py-24">
-      <div class="max-w-xl">
-        <span class="inline-block text-white text-sm font-semibold tracking-widest uppercase mb-4">
-          Soluciones Tecnológicas
-        </span>
-        <h1 class="text-4xl sm:text-5xl font-bold text-white leading-tight mb-6">
-          Calculadora para<br>dimensionamiento de sistemas fotovoltaicos
-        </h1>
-        <p class="text-white/70 text-base sm:text-lg leading-relaxed mb-8">
-          Módulo web diseñado para el dimensionamiento de Sistemas Fotovoltaicos conectados
-          a la red eléctrica, proporcionando resultados precisos y confiables para optimizar el diseño y 
-          rendimiento de los sistemas solares.
-        </p>
-        <a
-          href="/pages/dashboard.php"
-          class="inline-flex items-center rounded-md bg-Ipteblue2 px-6 py-3 text-sm font-semibold text-white hover:bg-white hover:text-Ipteblue transition-colors duration-200"
-        >
-          Iniciar sesión
-        </a>
+    <div class="position-relative w-100 py-5" style="z-index:10;">
+      <div class="container-fluid px-4 px-sm-5">
+        <div style="max-width:560px;">
 
+          <span class="d-inline-block text-white text-uppercase font-weight-bold mb-3"
+                style="font-size:.75rem; letter-spacing:.15em;">
+            Soluciones Tecnológicas
+          </span>
+
+          <h1 class="display-4 font-weight-bold text-white mb-4" style="line-height:1.18;">
+            DAN<br>Calculadora solar interconectada a CFE
+          </h1>
+
+          <p class="mb-4" style="color:rgba(255,255,255,.7); font-size:1.0625rem; line-height:1.7;">
+            Módulo web diseñado para el dimensionamiento de Sistemas Fotovoltaicos conectados
+            a la red eléctrica, proporcionando resultados precisos y confiables para optimizar
+            el diseño y rendimiento de los sistemas solares.
+          </p>
+
+          <a href="/pages/dashboard.php"
+             class="btn btn-primary font-weight-bold px-4 py-2"
+             style="background-color:#0665F7; border-color:#0665F7;">
+            Iniciar sesión
+          </a>
+
+        </div>
       </div>
     </div>
 
