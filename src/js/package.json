@@ -1,0 +1,11 @@
+{
+  "name": "calculadora-fv-js-tests",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

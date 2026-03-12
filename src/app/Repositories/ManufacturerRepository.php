@@ -31,7 +31,7 @@ class ManufacturerRepository
     public function findAll(int $limit, int $offset, string $q = ''): array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT id, name, DATE_FORMAT(created_at, '%d/%m/%Y') AS created_at
+            "SELECT id, name, strftime('%d/%m/%Y', created_at) AS created_at /* SQLite-compatible */
              FROM manufacturers
              WHERE name LIKE :q
              ORDER BY name
@@ -72,7 +72,7 @@ class ManufacturerRepository
     public function findById(int $id): ?Manufacturer
     {
         $stmt = $this->pdo->prepare(
-            "SELECT id, name, DATE_FORMAT(created_at, '%d/%m/%Y') AS created_at
+            "SELECT id, name, strftime('%d/%m/%Y', created_at) AS created_at /* SQLite-compatible */
              FROM manufacturers
              WHERE id = :id"
         );

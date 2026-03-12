@@ -39,7 +39,7 @@ class InverterRepository
                     i.startup_voltage, i.max_input_current_per_mppt, i.max_short_circuit_current,
                     i.nominal_ac_power, i.ac_voltage_nominal, i.phase_type, i.efficiency_weighted,
                     i.mppt_count,
-                    DATE_FORMAT(i.created_at, '%d/%m/%Y') AS created_at
+                    strftime('%d/%m/%Y', i.created_at) AS created_at /* SQLite-compatible */
              FROM inverters i
              JOIN manufacturers mf ON i.manufacturer_id = mf.id
              WHERE i.model LIKE :q1 OR mf.name LIKE :q2
@@ -71,7 +71,7 @@ class InverterRepository
                     i.startup_voltage, i.max_input_current_per_mppt, i.max_short_circuit_current,
                     i.nominal_ac_power, i.ac_voltage_nominal, i.phase_type, i.efficiency_weighted,
                     i.mppt_count,
-                    DATE_FORMAT(i.created_at, '%d/%m/%Y') AS created_at
+                    strftime('%d/%m/%Y', i.created_at) AS created_at /* SQLite-compatible */
              FROM inverters i
              JOIN manufacturers mf ON i.manufacturer_id = mf.id
              ORDER BY mf.name, i.nominal_ac_power"
@@ -95,7 +95,7 @@ class InverterRepository
                     i.startup_voltage, i.max_input_current_per_mppt, i.max_short_circuit_current,
                     i.nominal_ac_power, i.ac_voltage_nominal, i.phase_type, i.efficiency_weighted,
                     i.mppt_count,
-                    DATE_FORMAT(i.created_at, '%d/%m/%Y') AS created_at
+                    strftime('%d/%m/%Y', i.created_at) AS created_at /* SQLite-compatible */
              FROM inverters i
              JOIN manufacturers mf ON i.manufacturer_id = mf.id
              WHERE i.id = :id"
