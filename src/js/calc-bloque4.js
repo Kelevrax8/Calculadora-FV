@@ -109,7 +109,14 @@
     // ── PV Array ───────────────────────────────────────────
     setText('s4-module-name',    `${mod.manufacturer} — ${mod.model}`);
     setText('s4-module-power',   mod.pmax_stc + ' Wp');
-    setText('s4-total-modules',  `${N} (${Ns} mód/str × ${Np} strings)`);
+    const n_rem = N % Ns;
+    if (n_rem === 0) {
+      setText('s4-total-modules', `${N} (${Ns} mód/str × ${Np} strings)`);
+    } else {
+      const n_full = Math.floor(N / Ns);
+      setText('s4-total-modules',
+        `${N} (${n_full} string${n_full > 1 ? 's' : ''} × ${Ns} mód + 1 string × ${n_rem} mód — string corto)`);
+    }
     setText('s4-array-power',    cs.P_stc_kW.toFixed(2) + ' kWp');
     setText('s4-vmpp-array',     `${Ns} × ${mod.vmpp_stc} V = ${Vmpp_nom.toFixed(1)} V`);
     setText('s4-voc-array',      `${Ns} × ${mod.voc_stc} V = ${(Ns * mod.voc_stc).toFixed(1)} V`);
@@ -488,6 +495,7 @@ hint.classList.remove('d-none');
     const Ns  = cs.Ns;
     const Np  = cs.Np;
     const N   = cs.N;
+    const n_rem = N % Ns;
 
     const tmin    = parseFloat(document.getElementById('tmin').value)              || 25;
     const tmax    = parseFloat(document.getElementById('tmax').value)              || 25;
@@ -568,7 +576,7 @@ hint.classList.remove('d-none');
     return {
       site:    { lat, lng, consumo, hsp, tmin, tmax },
       module:  { ...mod },
-      array:   { Ns, Np, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea },
+      array:   { Ns, Np, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea, n_rem },
       inverter:{ ...inv },
       checks,
       energy:  { E_year, coverage, PR, dc_ac },

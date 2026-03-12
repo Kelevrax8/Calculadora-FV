@@ -185,7 +185,11 @@
     document.getElementById('btn-ns-inc').disabled = currentNs >= Ns_max;
 
     refreshAllBadges();
-    if (selectedInverter) computeInvResults(selectedInverter);
+    if (selectedInverter) {
+      window.calcState.Ns = currentNs;
+      window.calcState.Np = Math.ceil(N_total / currentNs);
+      computeInvResults(selectedInverter);
+    }
   }
 
   document.getElementById('btn-ns-dec').addEventListener('click', function () {

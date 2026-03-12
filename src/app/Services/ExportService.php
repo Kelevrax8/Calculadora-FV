@@ -116,9 +116,17 @@ class ExportService
 
         // ── Configuración del Arreglo ─────────────────────────
         $this->addSectionHeader($s, 'CONFIGURACIÓN DEL ARREGLO');
-        $this->addDataRow($s, 'Módulos por string',               $arr['Ns']         ?? '—');
-        $this->addDataRow($s, 'Número de strings',               $arr['Np']         ?? '—');
-        $this->addDataRow($s, 'Total de módulos (N)',            $arr['N']          ?? '—');
+        $this->addDataRow($s, 'Módulos por string (string completo)', $arr['Ns'] ?? '—');
+        $this->addDataRow($s, 'Número de strings',                       $arr['Np'] ?? '—');
+        $n_rem = (int)($arr['n_rem'] ?? 0);
+        if ($n_rem > 0) {
+            $n_full    = (int)($arr['Np'] ?? 1) - 1;
+            $totalModsValue = sprintf('%d (%d string%s × %d mód + 1 string × %d mód — string corto)',
+                (int)($arr['N'] ?? 0), $n_full, $n_full > 1 ? 's' : '', (int)($arr['Ns'] ?? 0), $n_rem);
+            $this->addDataRow($s, 'Total de módulos (N)', $totalModsValue);
+        } else {
+            $this->addDataRow($s, 'Total de módulos (N)', $arr['N'] ?? '—');
+        }
         $this->addDataRow($s, 'Potencia total STC',              number_format((float)($arr['P_stc_kW'] ?? 0), 2), 'kWp');
         $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  number_format((float)($arr['Voc_cold']  ?? 0), 1), 'V');
         $this->addDataRow($s, 'Vmpp del arreglo en calor (Tmax)',number_format((float)($arr['Vmpp_hot']  ?? 0), 1), 'V');
