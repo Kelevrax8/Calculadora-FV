@@ -130,7 +130,7 @@
           + '<span class="block mt-1">' + line2 + '</span>';
         mpptNote.className = 'mt-2 small font-weight-bold '
           + (!rem_mppt_ok               ? 'text-danger'
-             : !rem_startup_ok          ? 'text-warning'
+             : !rem_startup_ok          ? 'text-danger'
              :                            'text-success');
         mpptNote.classList.remove('d-none');
       } else {
