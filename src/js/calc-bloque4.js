@@ -536,7 +536,7 @@ hint.classList.remove('d-none');
       { label: 'Vmpp en calor ≥ Tensión de arranque',       detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.startup_voltage} V`,                                                    pass: startupPass,  hard: false },
       { label: 'Vmpp en frío ≤ Límite superior MPPT',       detail: `${Vmpp_cold.toFixed(1)} V ≤ ${inv.mppt_voltage_max} V`,                                                  pass: vmppColdPass, hard: false },
       { label: 'Corriente por MPPT ≤ Imáx entrada (Imp × 1.25)',          detail: `${I_per_mppt.toFixed(2)} A ≤ ${inv.max_input_current_per_mppt} A`,                                                            pass: iMpptPass,    hard: true  },
-      { label: 'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)', detail: `${I_total.toFixed(2)} A = ${mod.isc_stc} A × 1.25 ≤ ${inv.max_short_circuit_current} A`,                     pass: iTotalPass,   hard: true  },
+      { label: 'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)', detail: `${I_total.toFixed(2)} A ≤ ${inv.max_short_circuit_current} A`,                     pass: iTotalPass,   hard: true  },
       { label: 'P arreglo en frío ≤ Entrada DC máx.',       detail: `${(P_cold_total/1000).toFixed(2)} kW (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`,    pass: pDcPass,      hard: true  },
     ];
 
