@@ -79,7 +79,7 @@ class InventarioApiController
             $this->manufacturers->delete($id);
             return ['ok' => true];
         } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
+            return ['error' => $this->friendlyDeleteError('fabricante', $e)];
         }
     }
 
@@ -161,7 +161,7 @@ class InventarioApiController
             $this->modules->delete($id);
             return ['ok' => true];
         } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
+            return ['error' => $this->friendlyDeleteError('módulo', $e)];
         }
     }
 
@@ -232,7 +232,23 @@ class InventarioApiController
             $this->inverters->delete($id);
             return ['ok' => true];
         } catch (PDOException $e) {
-            return ['error' => $e->getMessage()];
+            return ['error' => $this->friendlyDeleteError('inversor', $e)];
         }
+    }
+
+    private function friendlyDeleteError(string $entity, PDOException $e): string
+    {
+        $code = (string)$e->getCode();
+        $msg  = strtolower($e->getMessage());
+
+        // FK constraint: this record is still referenced by other tables.
+        if ($code === '23000' || str_contains($msg, 'foreign key') || str_contains($msg, 'constraint')) {
+            return sprintf(
+                'No se puede eliminar este %s porque está siendo utilizado por otros registros.',
+                $entity
+            );
+        }
+
+        return sprintf('No se pudo eliminar el %s. Intenta nuevamente.', $entity);
     }
 }
