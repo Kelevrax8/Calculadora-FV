@@ -599,7 +599,45 @@ hint.classList.remove('d-none');
     const btn      = document.getElementById('btn-excel-export');
     const origHTML = btn.innerHTML;
     btn.disabled   = true;
-    btn.innerHTML  = '<svg class="w-3.5 h-3.5 animate-spin inline mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Generando…';
+
+    // Create spinner via DOM APIs. Insert small keyframes if missing.
+    if (!document.getElementById('calc-block4-spinner-style')) {
+      const style = document.createElement('style');
+      style.id = 'calc-block4-spinner-style';
+      style.textContent = '@keyframes calcBlock4Spin{100%{transform:rotate(360deg)}}';
+      document.head.appendChild(style);
+    }
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const spinner = document.createElementNS(svgNS, 'svg');
+    spinner.setAttribute('viewBox', '0 0 24 24');
+    spinner.setAttribute('width', '14');
+    spinner.setAttribute('height', '14');
+    spinner.setAttribute('aria-hidden', 'true');
+    spinner.style.verticalAlign = 'middle';
+    spinner.style.marginRight = '6px';
+    spinner.style.animation = 'calcBlock4Spin 1s linear infinite';
+
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', '12');
+    circle.setAttribute('cy', '12');
+    circle.setAttribute('r', '10');
+    circle.setAttribute('stroke', 'currentColor');
+    circle.setAttribute('stroke-width', '4');
+    circle.setAttribute('fill', 'none');
+    circle.setAttribute('opacity', '0.25');
+    spinner.appendChild(circle);
+
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', 'M4 12a8 8 0 018-8v8H4z');
+    path.setAttribute('fill', 'currentColor');
+    path.setAttribute('opacity', '0.75');
+    spinner.appendChild(path);
+
+    // Clear button content and append spinner + text node
+    btn.textContent = '';
+    btn.appendChild(spinner);
+    btn.appendChild(document.createTextNode(' Generando…'));
 
     try {
       const payload = buildExportPayload();
