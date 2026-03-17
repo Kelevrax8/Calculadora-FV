@@ -95,23 +95,23 @@ class ExportService
         $this->addSectionHeader($s, 'UBICACIÓN Y DISEÑO');
         $this->addDataRow($s, 'Latitud',             $site['lat']     ?? '—', '°');
         $this->addDataRow($s, 'Longitud',            $site['lng']     ?? '—', '°');
-        $this->addDataRow($s, 'Consumo anual',       number_format((float)($site['consumo'] ?? 0), 0, '.', ','), 'kWh/año');
-        $this->addDataRow($s, 'Horas Solar Pico (HSP)', number_format((float)($site['hsp'] ?? 0), 2), 'h/día');
-        $this->addDataRow($s, 'Temperatura mínima', number_format((float)($site['tmin'] ?? 0), 1), '°C');
-        $this->addDataRow($s, 'Temperatura máxima', number_format((float)($site['tmax'] ?? 0), 1), '°C');
+        $this->addDataRow($s, 'Consumo anual',       (float)($site['consumo'] ?? 0), 'kWh/año');
+        $this->addDataRow($s, 'Horas Solar Pico (HSP)', (float)($site['hsp'] ?? 0), 'h/día', 2);
+        $this->addDataRow($s, 'Temperatura mínima', (float)($site['tmin'] ?? 0), '°C', 1);
+        $this->addDataRow($s, 'Temperatura máxima', (float)($site['tmax'] ?? 0), '°C', 1);
         $this->row++;
 
         // ── Módulo FV ─────────────────────────────────────────
         $this->addSectionHeader($s, 'MÓDULO FV');
         $this->addDataRow($s, 'Fabricante',                   $mod['manufacturer']    ?? '—');
         $this->addDataRow($s, 'Modelo',                       $mod['model']           ?? '—');
-        $this->addDataRow($s, 'Potencia (Pmax STC)',          $mod['pmax_stc']        ?? '—', 'Wp');
+        $this->addDataRow($s, 'Potencia (Pmax STC)',          $mod['pmax_stc']       ?? '—', 'Wp');
         $this->addDataRow($s, 'Tensión en vacío (Voc STC)',   $mod['voc_stc']         ?? '—', 'V');
         $this->addDataRow($s, 'Tensión en Pmpp (Vmpp STC)',   $mod['vmpp_stc']        ?? '—', 'V');
-        $this->addDataRow($s, 'Corriente de cortocircuito (Isc STC)', $mod['isc_stc'] ?? '—', 'A');
-        $this->addDataRow($s, 'Corriente en Pmpp (Imp STC)',  $mod['imp_stc']         ?? '—', 'A');
-        $this->addDataRow($s, 'Coef. temperatura Voc (β)',    $mod['temp_coeff_voc']  ?? '—', '%/°C');
-        $this->addDataRow($s, 'Coef. temperatura Pmax (γ)',   $mod['temp_coeff_pmax'] ?? '—', '%/°C');
+        $this->addDataRow($s, 'Corriente de cortocircuito (Isc STC)', (float)($mod['isc_stc'] ?? 0), 'A', 2);
+        $this->addDataRow($s, 'Corriente en Pmpp (Imp STC)',  (float)($mod['imp_stc'] ?? 0), 'A', 2);
+        $this->addDataRow($s, 'Coef. temperatura Voc (β)',    (float)($mod['temp_coeff_voc'] ?? 0), '%/°C', 2);
+        $this->addDataRow($s, 'Coef. temperatura Pmax (γ)',   (float)($mod['temp_coeff_pmax'] ?? 0), '%/°C', 2);
         $this->row++;
 
         // ── Configuración del Arreglo ─────────────────────────
@@ -127,18 +127,18 @@ class ExportService
         } else {
             $this->addDataRow($s, 'Total de módulos (N)', $arr['N'] ?? '—');
         }
-        $this->addDataRow($s, 'Potencia total STC',              number_format((float)($arr['P_stc_kW'] ?? 0), 2), 'kWp');
-        $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  number_format((float)($arr['Voc_cold']  ?? 0), 1), 'V');
-        $this->addDataRow($s, 'Vmpp del arreglo en calor (Tmax)',number_format((float)($arr['Vmpp_hot']  ?? 0), 1), 'V');
-        $this->addDataRow($s, 'Vmpp del arreglo en frío (Tmin)', number_format((float)($arr['Vmpp_cold'] ?? 0), 1), 'V');
-        $this->addDataRow($s, 'Área del arreglo',                 number_format((float)($arr['arrArea'] ?? 0), 2), 'm²');
+        $this->addDataRow($s, 'Potencia total STC',              (float)($arr['P_stc_kW'] ?? 0), 'kWp', 2);
+        $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  (float)($arr['Voc_cold']  ?? 0), 'V', 1);
+        $this->addDataRow($s, 'Vmpp del arreglo en calor (Tmax)',(float)($arr['Vmpp_hot']  ?? 0), 'V', 1);
+        $this->addDataRow($s, 'Vmpp del arreglo en frío (Tmin)', (float)($arr['Vmpp_cold'] ?? 0), 'V', 1);
+        $this->addDataRow($s, 'Área del arreglo',                 (float)($arr['arrArea'] ?? 0), 'm²', 2);
         $this->row++;
 
         // ── Inversor ──────────────────────────────────────────
         $this->addSectionHeader($s, 'INVERSOR');
         $this->addDataRow($s, 'Fabricante',                  $inv['manufacturer']             ?? '—');
         $this->addDataRow($s, 'Modelo',                      $inv['model']                    ?? '—');
-        $this->addDataRow($s, 'Potencia AC nominal',         number_format((float)($inv['nominal_ac_power'] ?? 0), 0, '.', ','), 'W');
+        $this->addDataRow($s, 'Potencia AC nominal',        (float)($inv['nominal_ac_power'] ?? 0), 'W');
         $this->addDataRow($s, 'Tipo de fase',                $inv['phase_type']               ?? '—');
         $this->addDataRow($s, 'Tensión AC nominal',          $inv['ac_voltage_nominal']       ?? '—', 'V');
         $this->addDataRow($s, 'Rango de tensión MPPT',       ($inv['mppt_voltage_min'] ?? '—') . ' – ' . ($inv['mppt_voltage_max'] ?? '—'), 'V');
@@ -158,10 +158,10 @@ class ExportService
 
         // ── Estimación Energética ─────────────────────────────
         $this->addSectionHeader($s, 'ESTIMACIÓN ENERGÉTICA');
-        $this->addDataRow($s, 'Producción anual estimada', number_format((float)($nrg['E_year'] ?? 0), 0, '.', ','), 'kWh/año');
-        $this->addDataRow($s, 'Autosuficiencia estimada',  number_format((float)($nrg['coverage'] ?? 0), 1), '%');
+        $this->addDataRow($s, 'Producción anual estimada', (float)($nrg['E_year'] ?? 0), 'kWh/año');
+        $this->addDataRow($s, 'Autosuficiencia estimada',  (float)($nrg['coverage'] ?? 0), '%', 1);
         $this->addDataRow($s, 'Factor de rendimiento (PR)',(int)(($nrg['PR'] ?? 0) * 100), '%');
-        $this->addDataRow($s, 'Relación DC/CA',            number_format((float)($nrg['dc_ac'] ?? 0), 2));
+        $this->addDataRow($s, 'Relación DC/CA',            (float)($nrg['dc_ac'] ?? 0), '', 2);
         $this->row++;
 
         // ── Protecciones Eléctricas ───────────────────────────
@@ -173,14 +173,15 @@ class ExportService
         $ac            = $prot['ac']              ?? [];
 
         $this->addSubHeader($s, 'Circuito DC — String → Inversor');
-        $this->addDataRow($s, 'Isc del módulo',                       number_format((float)($dc['isc_module'] ?? 0), 2), 'A');
-        $this->addDataRow($s, 'Corriente de diseño DC (Isc × 1.56)',  number_format((float)($dc['I_design']  ?? 0), 2), 'A');
+        $this->addDataRow($s, 'Isc del módulo',                       (float)($dc['isc_module'] ?? 0), 'A', 2);
+        $this->addDataRow($s, 'Corriente de diseño DC (Isc × 1.56)',  (float)($dc['I_design']  ?? 0), 'A', 2);
         if ($deratingOn) {
             $this->addDataRow(
                 $s,
                 sprintf('Corriente requerida en tabla DC (÷ %.2f)', (float)$deratingFactor),
-                number_format((float)($dc['I_required'] ?? 0), 2),
-                'A'
+                (float)($dc['I_required'] ?? 0),
+                'A',
+                2
             );
         }
         $this->addDataRow($s, 'Protección recomendada (OCPD DC)',      $dc['OCPD'] ?? '—');
@@ -189,14 +190,15 @@ class ExportService
 
         $this->addSubHeader($s, 'Circuito AC — Inversor → Tablero');
         $this->addDataRow($s, 'Tipo de fase',                         $ac['phase_type'] ?? '—');
-        $this->addDataRow($s, 'Corriente base AC (P ÷ V)',            number_format((float)($ac['I_base']   ?? 0), 2), 'A');
-        $this->addDataRow($s, 'Corriente de diseño AC (× 1.25)',      number_format((float)($ac['I_design']  ?? 0), 2), 'A');
+        $this->addDataRow($s, 'Corriente base AC (P ÷ V)',            (float)($ac['I_base']   ?? 0), 'A', 2);
+        $this->addDataRow($s, 'Corriente de diseño AC (× 1.25)',      (float)($ac['I_design']  ?? 0), 'A', 2);
         if ($deratingOn) {
             $this->addDataRow(
                 $s,
                 sprintf('Corriente requerida en tabla AC (÷ %.2f)', (float)$deratingFactor),
-                number_format((float)($ac['I_required'] ?? 0), 2),
-                'A'
+                (float)($ac['I_required'] ?? 0),
+                'A',
+                2
             );
         }
         $this->addDataRow($s, 'Protección recomendada (OCPD AC)',      $ac['OCPD'] ?? '—');
@@ -274,7 +276,8 @@ class ExportService
             $totalProd += $prod;
 
             $s->setCellValue("A{$r}", $monthNames[$i] ?? '—');
-            $s->setCellValue("B{$r}", number_format((float)($m['ghi'] ?? 0), 2));
+            $s->setCellValue("B{$r}", (float)($m['ghi'] ?? 0));
+            $s->getStyle("B{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
             $s->setCellValue("C{$r}", $monthDays[$i]);
             $s->setCellValue("D{$r}", (int)round($prod));
 
@@ -443,12 +446,33 @@ class ExportService
         $this->row++;
     }
 
-    private function addDataRow(Worksheet $s, string $label, mixed $value, string $unit = ''): void
+    private function addDataRow(Worksheet $s, string $label, mixed $value, string $unit = '', ?int $decimals = null): void
     {
         $bg = ($this->row % 2 === 0) ? 'FFFFFFFF' : self::C_ODD_BG;
 
         $s->setCellValue("A{$this->row}", $label);
-        $s->setCellValue("B{$this->row}", $value);
+
+        // If the incoming value is numeric, write it as a number and apply
+        // a number format so Excel recognizes it. Use the provided $decimals
+        // when present; otherwise pick a sensible default.
+        if (is_numeric($value)) {
+            $numeric = (float) $value;
+            $s->setCellValue("B{$this->row}", $numeric);
+
+            if ($decimals !== null) {
+                $format = '#,##0';
+                if ($decimals > 0) {
+                    $format .= '.' . str_repeat('0', $decimals);
+                }
+            } else {
+                $format = (floor($numeric) != $numeric) ? '#,##0.00' : '#,##0';
+            }
+
+            $s->getStyle("B{$this->row}")->getNumberFormat()->setFormatCode($format);
+        } else {
+            $s->setCellValue("B{$this->row}", $value);
+        }
+
         if ($unit !== '') {
             $s->setCellValue("C{$this->row}", $unit);
         }
@@ -461,6 +485,7 @@ class ExportService
         $s->getStyle("B{$this->row}")->applyFromArray([
             'font'      => ['bold' => true, 'size' => 9, 'color' => ['argb' => self::C_SECTION_FG]],
             'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
         ]);
         if ($unit !== '') {
             $s->getStyle("C{$this->row}")->applyFromArray([
