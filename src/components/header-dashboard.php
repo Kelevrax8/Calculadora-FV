@@ -62,9 +62,8 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
   <!-- ── Sidebar ──────────────────────────────────────────── -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <a href="/pages/dashboard.php" class="brand-link">
-      <img src="/Images/Logo-IPTE.png" alt="IPTE" class="brand-image img-fluid"
-           style="opacity:.9; filter:brightness(0) invert(1); max-height:33px;">
-      <span class="brand-text font-weight-bold">Calculadora</span>
+      <img src="/Images/Ipte-logo-negativo.png" alt="Logo IPTE" class="brand-image img-fluid">
+      <span class="brand-text font-weight-bold">IPTE Soluciones</span>
     </a>
 
     <div class="sidebar">
