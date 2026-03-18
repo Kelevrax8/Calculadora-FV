@@ -6,7 +6,7 @@
 <div id="bloque-2" class="card card-primary card-outline mb-3 d-none">
 
   <!-- Block header -->
-  <div class="card-header">
+  <div class="card-header d-flex align-items-center justify-content-between">
     <h3 class="card-title">
       <span class="badge badge-primary mr-2" style="font-size:.85rem;width:1.6rem;height:1.6rem;line-height:1.6rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;">2</span>
       Módulo Fotovoltaico
