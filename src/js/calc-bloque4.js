@@ -25,13 +25,17 @@
 
   // Temperature derating factors for 75 °C conductors (NOM Tabla 310.15(B)(2)(a))
   const DERATING_TABLE = [
+    { maxTemp: 10, factor: 1.20 },
+    { maxTemp: 15, factor: 1.15 },
+    { maxTemp: 20, factor: 1.11 },
+    { maxTemp: 25, factor: 1.05 },
     { maxTemp: 30, factor: 1.00 },
     { maxTemp: 35, factor: 0.94 },
-    { maxTemp: 40, factor: 0.91 },
-    { maxTemp: 45, factor: 0.87 },
-    { maxTemp: 50, factor: 0.82 },
-    { maxTemp: 55, factor: 0.75 },
-    { maxTemp: 60, factor: 0.67 },
+    { maxTemp: 40, factor: 0.88 },
+    { maxTemp: 45, factor: 0.82 },
+    { maxTemp: 50, factor: 0.75 },
+    { maxTemp: 55, factor: 0.67 },
+    { maxTemp: 60, factor: 0.58 },
   ];
 
   // Performance ratio — typical value for preliminary design (wiring + inverter + temp + soiling losses)
