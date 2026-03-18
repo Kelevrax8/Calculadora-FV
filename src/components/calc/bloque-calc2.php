@@ -8,11 +8,11 @@
   <!-- Block header -->
   <div class="card-header">
     <h3 class="card-title">
-      <span class="badge badge-primary mr-2">2</span>
+      <span class="badge badge-primary mr-2" style="font-size:.85rem;width:1.6rem;height:1.6rem;line-height:1.6rem;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;">2</span>
       Módulo Fotovoltaico
     </h3>
     <div class="card-tools">
-      <button type="button" id="btn-bloque2-volver" class="btn btn-xs btn-default">
+      <button type="button" id="btn-bloque2-volver" class="btn btn-link btn-sm text-muted p-0">
         <i class="fas fa-chevron-left mr-1"></i>Volver al Paso 1
       </button>
     </div>
@@ -59,7 +59,7 @@
           <span class="text-muted text-uppercase mr-2" style="font-size:.7rem; font-weight:600;">Módulo seleccionado</span>
           <span id="selected-module-name" class="badge badge-primary px-2">—</span>
         </div>
-        <button type="button" id="btn-deselect-module" class="btn btn-xs btn-default text-danger">
+        <button type="button" id="btn-deselect-module" class="btn btn-link btn-sm text-muted p-0">
           <i class="fas fa-times mr-1"></i>Quitar selección
         </button>
       </div>

@@ -47,16 +47,6 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
         </a>
       </li>
     </ul>
-    <ul class="navbar-nav ml-auto">
-      <li class="nav-item d-none d-sm-flex align-items-center">
-        <span class="nav-link text-white-50 py-0">usuario@ipte.com</span>
-      </li>
-      <li class="nav-item d-flex align-items-center pl-2">
-        <span class="d-inline-flex align-items-center justify-content-center rounded-circle
-                     text-white font-weight-bold"
-              style="width:32px;height:32px;background-color:#0665F7;font-size:.75rem;">U</span>
-      </li>
-    </ul>
   </nav>
 
   <!-- ── Sidebar ──────────────────────────────────────────── -->
