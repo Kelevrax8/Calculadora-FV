@@ -198,7 +198,7 @@
     const consumo  = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
     const hsp      = parseFloat(document.getElementById('hsp').value)               || 0;
     const tmax     = parseFloat(document.getElementById('tmax').value)               || 25;
-    const PR = 0.75; //Standard perdormance ratio
+    const PR = 0.75; //Standard performance ratio
 
     const E_dia_Wh      = (consumo / 365) * 1000;
     const P_req_W       = E_dia_Wh / (hsp * PR); 
