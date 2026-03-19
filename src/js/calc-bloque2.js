@@ -198,9 +198,10 @@
     const consumo  = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
     const hsp      = parseFloat(document.getElementById('hsp').value)               || 0;
     const tmax     = parseFloat(document.getElementById('tmax').value)               || 25;
+    const PR = 0.75; //Standard perdormance ratio
 
     const E_dia_Wh      = (consumo / 365) * 1000;
-    const P_req_W       = E_dia_Wh / (hsp * 0.75);  // PR = 0.75 (factor de rendimiento estándar)
+    const P_req_W       = E_dia_Wh / (hsp * PR); 
     const N             = Math.ceil(P_req_W / m.pmax_stc);
     const P_stc_kW      = (N * m.pmax_stc) / 1000;
 
