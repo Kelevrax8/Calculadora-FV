@@ -307,11 +307,11 @@
             </div>
             <!-- Range legend -->
             <div class="mt-2 border-top pt-2 small">
-              <div class="d-flex justify-content-between"><span class="text-danger">&lt; 0.80</span><span class="text-muted">Arreglo insuficiente</span></div>
-              <div class="d-flex justify-content-between"><span class="text-warning">0.80 &ndash; 1.00</span><span class="text-muted">Subóptimo</span></div>
-              <div class="d-flex justify-content-between"><span class="text-success">1.00 &ndash; 1.25</span><span class="text-muted">Conservador</span></div>
-              <div class="d-flex justify-content-between"><span class="text-success font-weight-bold">1.25 &ndash; 1.50</span><span class="text-muted">Óptimo</span></div>
-              <div class="d-flex justify-content-between"><span class="text-danger">&gt; 1.50</span><span class="text-muted">Sobredimensionado</span></div>
+              <div class="d-flex justify-content-between"><span class="text-danger">&lt; 0.80</span><span class="text-muted">Arreglo FV insuficiente</span></div>
+              <div class="d-flex justify-content-between"><span class="text-warning">0.80 &ndash; 1.00</span><span class="text-muted">Arreglo FV Subóptimo</span></div>
+              <div class="d-flex justify-content-between"><span class="text-success">1.00 &ndash; 1.25</span><span class="text-muted">Arreglo FV Conservador</span></div>
+              <div class="d-flex justify-content-between"><span class="text-success font-weight-bold">1.25 &ndash; 1.50</span><span class="text-muted">Arreglo FV Óptimo</span></div>
+              <div class="d-flex justify-content-between"><span class="text-danger">&gt; 1.50</span><span class="text-muted">Arreglo FV Sobredimensionado</span></div>
             </div>
           </div>
         </div>

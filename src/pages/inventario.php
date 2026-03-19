@@ -20,6 +20,11 @@ include '../components/header-dashboard.php';
           <li class="breadcrumb-item active">Inventario</li>
         </ol>
       </div>
+      <div class="col-12 mt-2">
+        <div class="alert alert-info mb-0" role="alert">
+          <i class="fas fa-info-circle mr-1"></i>En esta sección puedes gestionar el inventario de fabricantes, módulos fotovoltaicos e inversores. Se pueden agregar nuevos elementos, editar los existentes o eliminarlos. La información almacenada aquí se utiliza para el diseño de sistemas fotovoltaicos en el módulo de calculadora.
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -32,7 +37,7 @@ include '../components/header-dashboard.php';
       <li class="nav-item">
         <a id="tab-manufacturadores" class="nav-link active" href="#"
            onclick="switchTab('manufacturadores'); return false;">
-          <i class="fas fa-industry mr-1"></i>Manufacturadores
+          <i class="fas fa-industry mr-1"></i>Fabricantes
         </a>
       </li>
       <li class="nav-item">

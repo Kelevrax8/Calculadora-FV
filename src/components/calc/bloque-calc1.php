@@ -48,17 +48,17 @@
             <div class="col-6">
               <div class="form-group mb-2">
                 <label for="latitud" class="mb-1">Latitud</label>
-                <input type="text" id="latitud" name="latitud" readonly
+                <input type="text" id="latitud" name="latitud" 
                   placeholder="Haz clic en el mapa"
-                  class="form-control form-control-sm bg-light">
+                  class="form-control form-control-sm">
               </div>
             </div>
             <div class="col-6">
               <div class="form-group mb-2">
                 <label for="longitud" class="mb-1">Longitud</label>
-                <input type="text" id="longitud" name="longitud" readonly
+                <input type="text" id="longitud" name="longitud" 
                   placeholder="Haz clic en el mapa"
-                  class="form-control form-control-sm bg-light">
+                  class="form-control form-control-sm">
               </div>
             </div>
           </div>
@@ -84,7 +84,7 @@
             <legend class="font-weight-bold text-muted text-uppercase mb-0" style="font-size:.7rem;">
               Datos Solares
             </legend>
-            <button type="button" id="btn-nasa-api" disabled
+            <button type="button" id="btn-nasa-api" 
               title="Selecciona primero una ubicación en el mapa"
               class="btn btn-xs btn-default border">
               <i class="fas fa-sun mr-1"></i>Obtener de NASA POWER
@@ -98,11 +98,11 @@
           <div class="form-group mb-2">
             <div class="d-flex align-items-center justify-content-between mb-1">
               <label for="hsp" class="mb-0">
-                Horas Solar Pico – HSP <small class="text-muted">(kWh/m²/día)</small>
+                Irradiación Mensual <small class="text-muted">(kWh/m²/día)</small>
               </label>
               <div id="hsp-mode-toggle" class="btn-group btn-group-xs d-none">
-                <button type="button" data-mode="avg" class="hsp-mode-btn btn btn-primary btn-xs">Promedio anual</button>
-                <button type="button" data-mode="min" class="hsp-mode-btn btn btn-default btn-xs">Peor mes</button>
+                <button type="button" data-mode="avg" class="hsp-mode-btn btn btn-primary btn-xs">Promedio</button>
+                <button type="button" data-mode="min" class="hsp-mode-btn btn btn-default btn-xs">Mínimo</button>
               </div>
             </div>
             <input type="number" id="hsp" name="hsp_kwh_m2_dia"

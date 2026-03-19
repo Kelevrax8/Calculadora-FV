@@ -36,8 +36,8 @@ include '../components/header-dashboard.php';
             </div>
             <div class="card-body d-flex flex-column">
               <p class="card-text text-muted">
-                Dimensionamiento de sistemas fotovoltaicos conectados a la red eléctrica.
-                Obtén resultados precisos para optimizar el diseño y rendimiento del sistema.
+                Dimensionamiento de sistemas fotovoltaicos interconectados a la red eléctrica.
+                Obtén un planeamiento preliminar de sistemas fotovoltaicos basado en la ubicación geográfica, consumo eléctrico y preferencias de diseño.
               </p>
               <div class="mt-auto pt-3">
                 <span class="btn btn-primary btn-sm">
