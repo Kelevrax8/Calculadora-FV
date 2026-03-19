@@ -122,8 +122,8 @@
       btn.classList.toggle('btn-default', !active);
     });
     hspModeHint.textContent = mode === 'min'
-      ? 'Usando el mes con menor radiación'
-      : 'Usando el promedio anual de radiación';
+      ? 'Usando el mes con menor irradiación promedio'
+      : 'Usando el promedio anual de irradiación';
   }
 
   hspModeBtns.forEach(btn => btn.addEventListener('click', () => applyHSPMode(btn.dataset.mode)));
