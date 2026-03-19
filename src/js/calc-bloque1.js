@@ -238,7 +238,7 @@
     const errors = [];
 
     if (!latInput.value || !lngInput.value)
-      errors.push('Selecciona una ubicación en el mapa.');
+      errors.push('Selecciona una ubicación en el mapa o ingresa coordenadas.');
     if (!document.getElementById('consumo_anual_kwh').value || +document.getElementById('consumo_anual_kwh').value <= 0)
       errors.push('Ingresa el consumo anual mayor a 0.');
     if (!hspInput.value || +hspInput.value <= 0)
