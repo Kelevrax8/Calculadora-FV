@@ -13,4 +13,4 @@ define('BASE_URL', '');
 define('DB_HOST',     'db');
 define('DB_NAME',     'app_db');
 define('DB_USER',     'app_user');
-define('DB_PASSWORD', 'secret'); // ← replace with your new password after changing it
+define('DB_PASSWORD', 'secret');
