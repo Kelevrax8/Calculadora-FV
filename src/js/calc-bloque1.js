@@ -143,7 +143,7 @@
       const body = new FormData();
       body.append('lat', lat);
       body.append('lng', lng);
-      const res  = await fetch('/api/calculadora.php?action=get_climate_data', { method: 'POST', body });
+      const res  = await fetch(`${BASE_URL}/api/calculadora.php?action=get_climate_data`, { method: 'POST', body });
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || 'Error desconocido');
 

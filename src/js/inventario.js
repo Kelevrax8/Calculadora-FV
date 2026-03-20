@@ -22,7 +22,7 @@ async function loadTable(tab, page = 1) {
   state[tab].page = page;
   const q   = document.getElementById('search-' + tab)?.value ?? '';
   const map = { manufacturadores:'list_manufacturers', modulos:'list_modules', inversores:'list_inverters' };
-  const res = await fetch(`/api/inventario.php?action=${map[tab]}&page=${page}&q=${encodeURIComponent(q)}`);
+  const res = await fetch(`${BASE_URL}/api/inventario.php?action=${map[tab]}&page=${page}&q=${encodeURIComponent(q)}`);
   const json = await res.json();
   state[tab].total = json.total;
   state[tab].loaded = true;
@@ -190,7 +190,7 @@ async function openModal(tab, row = null) {
 }
 
 async function populateManufacturers(selectId, selectedId = null) {
-  const res  = await fetch('/api/inventario.php?action=manufacturers_select');
+  const res  = await fetch(`${BASE_URL}/api/inventario.php?action=manufacturers_select`);
   const list = await res.json();
   const sel  = document.getElementById(selectId);
   sel.innerHTML = '<option value="">— Seleccionar —</option>' +
@@ -252,7 +252,7 @@ async function saveEntity() {
   const actionMap = { manufacturadores: 'save_manufacturer', modulos: 'save_module', inversores: 'save_inverter' };
   let json;
   try {
-    const res  = await fetch(`/api/inventario.php?action=${actionMap[tab]}`, {
+    const res  = await fetch(`${BASE_URL}/api/inventario.php?action=${actionMap[tab]}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -285,7 +285,7 @@ async function saveEntity() {
 async function deleteEntity(tab, id) {
   if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
   const actionMap = { manufacturadores: 'delete_manufacturer', modulos: 'delete_module', inversores: 'delete_inverter' };
-  const res  = await fetch(`/api/inventario.php?action=${actionMap[tab]}`, {
+  const res  = await fetch(`${BASE_URL}/api/inventario.php?action=${actionMap[tab]}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id }),

@@ -1,5 +1,6 @@
 <?php
 defined('APP') or die('Access denied');
+require_once __DIR__ . '/../app/Core/Config.php';
 $adminlteLayout = true;
 $currentPage    = basename($_SERVER['PHP_SELF']);
 ?>
@@ -51,8 +52,8 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
 
   <!-- ── Sidebar ──────────────────────────────────────────── -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="/pages/dashboard.php" class="brand-link">
-      <img src="/Images/Ipte-logo-negativo.png" alt="Logo IPTE" class="brand-image img-fluid">
+    <a href="<?= BASE_URL ?>/pages/dashboard.php" class="brand-link">
+      <img src="<?= BASE_URL ?>/Images/Ipte-logo-negativo.png" alt="Logo IPTE" class="brand-image img-fluid">
       <span class="brand-text font-weight-bold">IPTE Soluciones</span>
     </a>
 
@@ -62,7 +63,7 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
             data-widget="treeview" role="menu" data-accordion="false">
 
           <li class="nav-item">
-            <a href="/pages/dashboard.php"
+            <a href="<?= BASE_URL ?>/pages/dashboard.php"
                class="nav-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>">
               <i class="nav-icon fas fa-home"></i>
               <p>Inicio</p>
@@ -70,7 +71,7 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
           </li>
 
           <li class="nav-item">
-            <a href="/pages/calculadora.php"
+            <a href="<?= BASE_URL ?>/pages/calculadora.php"
                class="nav-link <?= $currentPage === 'calculadora.php' ? 'active' : '' ?>">
               <i class="nav-icon fas fa-solar-panel"></i>
               <p>Calculadora FV</p>
@@ -78,7 +79,7 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
           </li>
 
           <li class="nav-item">
-            <a href="/pages/inventario.php"
+            <a href="<?= BASE_URL ?>/pages/inventario.php"
                class="nav-link <?= $currentPage === 'inventario.php' ? 'active' : '' ?>">
               <i class="nav-icon fas fa-boxes-stacked"></i>
               <p>Inventario</p>

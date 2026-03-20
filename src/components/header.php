@@ -1,4 +1,5 @@
 <?php defined('APP') or die('Access denied'); ?>
+<?php require_once __DIR__ . '/../app/Core/Config.php'; ?>
 <!doctype html>
 <html lang="es">
 <head>
@@ -20,8 +21,8 @@
 
   <!-- Top bar -->
   <nav class="navbar" style="background:white">
-    <a class="navbar-brand py-1" href="/">
-      <img src="/Images/Logo-IPTE.png" alt="Logo IPTE"
+    <a class="navbar-brand py-1" href="<?= BASE_URL ?>/">
+      <img src="<?= BASE_URL ?>/Images/Logo-IPTE.png" alt="Logo IPTE"
            style="height:3rem; width:auto; object-fit:contain;">
     </a>
   </nav>

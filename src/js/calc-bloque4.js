@@ -645,7 +645,7 @@ hint.classList.remove('d-none');
 
     try {
       const payload = buildExportPayload();
-      const res     = await fetch('/api/export_excel.php', {
+      const res     = await fetch(`${BASE_URL}/api/export_excel.php`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),

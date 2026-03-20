@@ -16,7 +16,7 @@ include '../components/header-dashboard.php';
       </div>
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
-          <li class="breadcrumb-item"><a href="/pages/dashboard.php">Inicio</a></li>
+          <li class="breadcrumb-item"><a href="<?= BASE_URL ?>/pages/dashboard.php">Inicio</a></li>
           <li class="breadcrumb-item active">Inventario</li>
         </ol>
       </div>
@@ -416,6 +416,6 @@ include '../components/header-dashboard.php';
 </div><!-- /.modal -->
 
 <?php
-$extraScripts = '<script src="/js/inventario.js"></script>';
+$extraScripts = '<script src="' . BASE_URL . '/js/inventario.js"></script>';
 include '../components/footer.php';
 ?>

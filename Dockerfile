@@ -19,6 +19,9 @@ RUN a2enmod rewrite
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-RUN composer install
 
 WORKDIR /var/www/html
+
+# Copy source files and install dependencies
+COPY src/ .
+RUN composer install --no-interaction --optimize-autoloader

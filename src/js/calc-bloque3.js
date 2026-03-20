@@ -37,7 +37,7 @@
     if (loaded) { refreshStringUI(); applyInvFilters(); return; }
 
     try {
-      const res  = await fetch('/api/calculadora.php?action=get_inverters');
+      const res  = await fetch(`${BASE_URL}/api/calculadora.php?action=get_inverters`);
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Error desconocido');
       allInverters = data;

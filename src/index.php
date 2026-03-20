@@ -9,7 +9,7 @@ include 'components/header.php';
 
     <!-- Background image -->
     <div class="position-absolute w-100 h-100"
-         style="background-image:url('/Images/Paneles.webp');
+         style="background-image:url('<?= BASE_URL ?>/Images/Paneles.webp');
                 background-size:cover; background-position:center; top:0; left:0;">
     </div>
 
@@ -39,7 +39,7 @@ include 'components/header.php';
             el diseño y rendimiento de los sistemas solares.
           </p>
 
-          <a href="/pages/dashboard.php"
+          <a href="<?= BASE_URL ?>/pages/dashboard.php"
              class="btn btn-primary font-weight-bold px-4 py-2"
              style="background-color:#0665F7; border-color:#0665F7;">
             Iniciar sesión

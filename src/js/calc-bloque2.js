@@ -23,7 +23,7 @@
   window.loadPVModules = async function () {
     if (loaded) return;
     try {
-      const res  = await fetch('/api/calculadora.php?action=get_pv_modules');
+      const res  = await fetch(`${BASE_URL}/api/calculadora.php?action=get_pv_modules`);
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Error desconocido');
       allModules = data;

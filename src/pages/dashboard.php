@@ -27,7 +27,7 @@ include '../components/header-dashboard.php';
 
       <!-- Card: Calculadora FV -->
       <div class="col-12 col-sm-6 d-flex mb-4">
-        <a href="/pages/calculadora.php" class="text-decoration-none w-100">
+        <a href="<?= BASE_URL ?>/pages/calculadora.php" class="text-decoration-none w-100">
           <div class="card card-primary card-outline h-100">
             <div class="card-header">
               <h3 class="card-title">
@@ -51,7 +51,7 @@ include '../components/header-dashboard.php';
 
       <!-- Card: Inventario -->
       <div class="col-12 col-sm-6 d-flex mb-4">
-        <a href="/pages/inventario.php" class="text-decoration-none w-100">
+        <a href="<?= BASE_URL ?>/pages/inventario.php" class="text-decoration-none w-100">
           <div class="card card-secondary card-outline h-100">
             <div class="card-header">
               <h3 class="card-title">

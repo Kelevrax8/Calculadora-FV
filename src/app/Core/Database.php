@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/Config.php';
+
 namespace App\Core;
 
 use PDO;
@@ -21,9 +23,10 @@ class Database
         private readonly string $dbname,
         private readonly string $user,
         private readonly string $password,
+        private readonly int    $port    = 3306,
         private readonly string $charset = 'utf8mb4',
     ) {
-        $dsn = "mysql:host={$this->host};dbname={$this->dbname};charset={$this->charset}";
+        $dsn = "mysql:host={$this->host};port={$this->port};dbname={$this->dbname};charset={$this->charset}";
 
         try {
             $this->pdo = new PDO($dsn, $this->user, $this->password, [
@@ -46,10 +49,11 @@ class Database
     {
         if (static::$instance === null) {
             static::$instance = new static(
-                host:     $_ENV['DB_HOST']     ?? 'db',
-                dbname:   $_ENV['DB_NAME']     ?? 'app_db',
-                user:     $_ENV['DB_USER']     ?? 'app_user',
-                password: $_ENV['DB_PASSWORD'] ?? 'secret',
+                host:     getenv('DB_HOST')     ?: DB_HOST,
+                dbname:   getenv('DB_NAME')     ?: DB_NAME,
+                user:     getenv('DB_USER')     ?: DB_USER,
+                password: getenv('DB_PASSWORD') ?: DB_PASSWORD,
+                port:     (int)(getenv('DB_PORT') ?: DB_PORT),
             );
         }
 
