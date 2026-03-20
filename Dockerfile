@@ -30,5 +30,5 @@ COPY docker/nginx.conf /etc/nginx/sites-available/default
 
 EXPOSE 80
 
-# Start php-fpm in the background, then run nginx in the foreground
-CMD php-fpm -D && nginx -g "daemon off;"
+# Start php-fpm in background, then nginx in foreground
+CMD sh -c "php-fpm & nginx -g 'daemon off;'"
