@@ -1,7 +1,8 @@
-FROM php:8.3-apache
+FROM php:8.3-fpm
 
-# Install system dependencies and Node.js optional tools
+# Install nginx and system dependencies
 RUN apt-get update && apt-get install -y \
+    nginx \
     git \
     unzip \
     zip \
@@ -9,13 +10,11 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpng-dev \
     libonig-dev \
-    libxml2-dev
+    libxml2-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-install mysqli pdo pdo_mysql zip gd mbstring xml dom
-
-# Enable Apache mod_rewrite and ensure only one MPM is loaded
-RUN a2dismod mpm_event mpm_worker 2>/dev/null; a2enmod mpm_prefork rewrite
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -24,4 +23,12 @@ WORKDIR /var/www/html
 
 # Copy source files and install dependencies
 COPY src/ .
-RUN composer install --no-interaction --optimize-autoloader
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# Apply nginx config
+COPY docker/nginx.conf /etc/nginx/sites-available/default
+
+EXPOSE 80
+
+# Start php-fpm in the background, then run nginx in the foreground
+CMD php-fpm -D && nginx -g "daemon off;"
