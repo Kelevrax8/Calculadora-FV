@@ -26,10 +26,12 @@ WORKDIR /var/www/html
 COPY src/ .
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Apply nginx config
-COPY docker/nginx.conf /etc/nginx/sites-available/default
+# Install nginx config template and startup script
+COPY docker/nginx.conf /etc/nginx/templates/app.conf.template
+COPY docker/start.sh /start.sh
+RUN chmod +x /start.sh \
+    && rm -f /etc/nginx/sites-enabled/default
 
 EXPOSE 80
 
-# Substitute $PORT in nginx config at runtime, start php-fpm, then nginx
-CMD sh -c "php-fpm & envsubst '\$PORT' < /etc/nginx/sites-available/default > /etc/nginx/sites-enabled/default && nginx -g 'daemon off;'"
+CMD ["/start.sh"]
