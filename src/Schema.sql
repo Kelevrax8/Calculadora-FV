@@ -11,7 +11,7 @@ USE app_db;
 -- 1️⃣ MANUFACTURERS
 -- ============================================
 
-CREATE TABLE manufacturers (
+CREATE TABLE IF NOT EXISTS manufacturers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -22,7 +22,7 @@ CREATE TABLE manufacturers (
 -- 2️⃣ PV MODULES
 -- ============================================
 
-CREATE TABLE pv_modules (
+CREATE TABLE IF NOT EXISTS pv_modules (
     id INT AUTO_INCREMENT PRIMARY KEY,
     manufacturer_id INT NOT NULL,
     model VARCHAR(150) NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE pv_modules (
 -- 3️⃣ INVERTERS
 -- ============================================
 
-CREATE TABLE inverters (
+CREATE TABLE IF NOT EXISTS inverters (
     id INT AUTO_INCREMENT PRIMARY KEY,
     manufacturer_id INT NOT NULL,
     model VARCHAR(150) NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE inverters (
 -- 4️⃣ CLIMATOLOGY LOCATIONS
 -- ============================================
 
-CREATE TABLE climatology_locations (
+CREATE TABLE IF NOT EXISTS climatology_locations (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
     latitude DECIMAL(5,2) NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE climatology_locations (
 -- 5️⃣ CLIMATOLOGY MONTHLY DATA
 -- ============================================
 
-CREATE TABLE climatology_monthly (
+CREATE TABLE IF NOT EXISTS climatology_monthly (
     id INT AUTO_INCREMENT PRIMARY KEY,
     location_id INT NOT NULL,
     month TINYINT NOT NULL,
