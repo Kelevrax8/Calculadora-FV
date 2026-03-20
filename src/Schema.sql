@@ -4,9 +4,6 @@
 -- MySQL 8.4+
 -- ============================================
 
-CREATE DATABASE IF NOT EXISTS app_db;
-USE app_db;
-
 -- ============================================
 -- 1️⃣ MANUFACTURERS
 -- ============================================
@@ -28,18 +25,15 @@ CREATE TABLE IF NOT EXISTS pv_modules (
     model VARCHAR(150) NOT NULL,
     technology ENUM('Monocrystalline','Polycrystalline','Thin Film','Other') NOT NULL,
 
-    -- Electrical STC Values
     pmax_stc DECIMAL(6,2) NOT NULL,
     voc_stc DECIMAL(6,2) NOT NULL,
     isc_stc DECIMAL(6,2) NOT NULL,
     vmpp_stc DECIMAL(6,2) NOT NULL,
     imp_stc DECIMAL(6,2) NOT NULL,
 
-    -- Temperature Coefficients
     temp_coeff_voc DECIMAL(6,4) NOT NULL,
     temp_coeff_pmax DECIMAL(6,4) NOT NULL,
 
-    -- Physical Dimensions (meters)
     length_m DECIMAL(4,2) NOT NULL,
     width_m DECIMAL(4,2) NOT NULL,
 
@@ -62,7 +56,6 @@ CREATE TABLE IF NOT EXISTS inverters (
     manufacturer_id INT NOT NULL,
     model VARCHAR(150) NOT NULL,
 
-    -- DC INPUT SIDE
     pmax_dc_input DECIMAL(8,2) NOT NULL,
     max_dc_voltage DECIMAL(6,2) NOT NULL,
     mppt_voltage_min DECIMAL(6,2) NOT NULL,
@@ -71,7 +64,6 @@ CREATE TABLE IF NOT EXISTS inverters (
     max_input_current_per_mppt DECIMAL(6,2) NOT NULL,
     max_short_circuit_current DECIMAL(6,2) NOT NULL,
 
-    -- AC OUTPUT SIDE
     nominal_ac_power DECIMAL(8,2) NOT NULL,
     ac_voltage_nominal DECIMAL(6,2) NOT NULL,
     phase_type ENUM('Single Phase','Split Phase','Three Phase') NOT NULL,
