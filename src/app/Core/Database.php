@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/Config.php';
-
 namespace App\Core;
 
 use PDO;
@@ -48,12 +46,13 @@ class Database
     public static function getInstance(): static
     {
         if (static::$instance === null) {
+            require_once __DIR__ . '/Config.php';
             static::$instance = new static(
                 host:     getenv('DB_HOST')     ?: DB_HOST,
                 dbname:   getenv('DB_NAME')     ?: DB_NAME,
                 user:     getenv('DB_USER')     ?: DB_USER,
                 password: getenv('DB_PASSWORD') ?: DB_PASSWORD,
-                port:     (int)(getenv('DB_PORT') ?: DB_PORT),
+                port:     (int)(getenv('DB_PORT') ?: 3306),
             );
         }
 

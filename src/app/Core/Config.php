@@ -11,7 +11,6 @@ define('BASE_URL', '');
 // On a shared host: edit the four lines below.
 // On Docker / a server with env vars configured: leave them as-is.
 define('DB_HOST',     'db');
-define('DB_PORT',      3306);
 define('DB_NAME',     'app_db');
 define('DB_USER',     'app_user');
 define('DB_PASSWORD', 'secret'); // ← replace with your new password after changing it
