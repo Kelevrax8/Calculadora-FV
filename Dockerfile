@@ -3,6 +3,7 @@ FROM php:8.3-fpm
 # Install nginx and system dependencies
 RUN apt-get update && apt-get install -y \
     nginx \
+    gettext-base \
     git \
     unzip \
     zip \
@@ -30,5 +31,5 @@ COPY docker/nginx.conf /etc/nginx/sites-available/default
 
 EXPOSE 80
 
-# Start php-fpm in background, then nginx in foreground
-CMD sh -c "php-fpm & nginx -g 'daemon off;'"
+# Substitute $PORT in nginx config at runtime, start php-fpm, then nginx
+CMD sh -c "php-fpm & envsubst '\$PORT' < /etc/nginx/sites-available/default > /etc/nginx/sites-enabled/default && nginx -g 'daemon off;'"

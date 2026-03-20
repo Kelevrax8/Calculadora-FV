@@ -10,9 +10,7 @@ services:
       - db
     environment:
       TZ: America/Mexico_City
-    command: >-
-      sh -c "composer install --no-interaction --optimize-autoloader
-      && apache2-foreground"
+      PORT: 80
 
   db:
     image: mysql:8.4.8
