@@ -76,7 +76,7 @@
       </p>
       <div class="row">
 
-        <div class="col-6 col-lg-3 mb-2">
+        <div class="col-sm-6 col-lg-3 mb-2">
           <div class="info-box mb-0">
             <span class="info-box-icon bg-primary"><i class="fas fa-solar-panel"></i></span>
             <div class="info-box-content">
@@ -87,7 +87,7 @@
           </div>
         </div>
 
-        <div class="col-6 col-lg-3 mb-2">
+        <div class="col-sm-6 col-lg-3 mb-2">
           <div class="info-box mb-0">
             <span class="info-box-icon bg-primary"><i class="fas fa-bolt"></i></span>
             <div class="info-box-content">
@@ -98,7 +98,7 @@
           </div>
         </div>
 
-        <div class="col-6 col-lg-3 mb-2">
+        <div class="col-sm-6 col-lg-3 mb-2">
           <div class="info-box mb-0">
             <span class="info-box-icon bg-warning"><i class="fas fa-temperature-high"></i></span>
             <div class="info-box-content">
@@ -109,7 +109,7 @@
           </div>
         </div>
 
-        <div class="col-6 col-lg-3 mb-2">
+        <div class="col-sm-6 col-lg-3 mb-2">
           <div class="info-box mb-0">
             <span class="info-box-icon bg-secondary"><i class="fas fa-shield-alt"></i></span>
             <div class="info-box-content">
