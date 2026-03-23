@@ -357,8 +357,12 @@
                 <tr class="table-info">
                   <td class="small font-weight-bold">Calibre conductor</td>
                   <td id="prot-dc-awg" class="font-weight-bold text-right small">—</td>
-                </tr>
-              </tbody>
+                </tr>                <tr id="prot-dc-small-cond-row" class="d-none">
+                  <td colspan="2" class="small text-warning py-1">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Calibre aumentado por regla de conductor peque&ntilde;o (Art. 240-4(d) NOM-001-SEDE-2012)
+                  </td>
+                </tr>              </tbody>
             </table>
           </div>
         </div>
@@ -392,8 +396,12 @@
                 <tr class="table-info">
                   <td class="small font-weight-bold">Calibre conductor</td>
                   <td id="prot-ac-awg" class="font-weight-bold text-right small">—</td>
-                </tr>
-              </tbody>
+                </tr>                <tr id="prot-ac-small-cond-row" class="d-none">
+                  <td colspan="2" class="small text-warning py-1">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Calibre aumentado por regla de conductor peque&ntilde;o (Art. 240-4(d) NOM-001-SEDE-2012)
+                  </td>
+                </tr>              </tbody>
             </table>
           </div>
         </div>
