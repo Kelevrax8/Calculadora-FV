@@ -593,6 +593,8 @@ hint.classList.remove('d-none');
     const I_ac_base     = inv.nominal_ac_power / phaseDiv;
     const I_ac_design   = I_ac_base * 1.25;
     const I_ac_required = I_ac_design / factor;
+    const dcCircuit_exp = resolveCircuit(I_dc_required, I_dc_design);
+    const acCircuit_exp = resolveCircuit(I_ac_required, I_ac_design);
 
     // Monthly — include consumption + balance if the user toggled that view on
     const monthly = (cs.monthly && cs.monthly.length === 12)
@@ -626,10 +628,14 @@ hint.classList.remove('d-none');
         tmax,
         dc: { isc_module: mod.isc_stc, I_design: I_dc_design,
               I_required: I_dc_required,
-              OCPD: fmtOCPD(nextOCPD(I_dc_design)), AWG: minAWG(I_dc_required) },
+              OCPD: fmtOCPD(dcCircuit_exp.ocpd),
+              AWG:  dcCircuit_exp.awg,
+              small_conductor_upsized: dcCircuit_exp.upsized },
         ac: { phase_type: inv.phase_type, I_base: I_ac_base, I_design: I_ac_design,
               I_required: I_ac_required,
-              OCPD: fmtOCPD(nextOCPD(I_ac_design)), AWG: minAWG(I_ac_required) },
+              OCPD: fmtOCPD(acCircuit_exp.ocpd),
+              AWG:  acCircuit_exp.awg,
+              small_conductor_upsized: acCircuit_exp.upsized },
       },
       monthly,
     };

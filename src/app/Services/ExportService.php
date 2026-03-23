@@ -186,6 +186,13 @@ class ExportService
         }
         $this->addDataRow($s, 'Protección recomendada (OCPD DC)',      $dc['OCPD'] ?? '—');
         $this->addDataRow($s, 'Calibre conductor DC',                  $dc['AWG']  ?? '—');
+        if (!empty($dc['small_conductor_upsized'])) {
+            $this->addDataRow(
+                $s,
+                '⚠ Nota Art. 240-4(d) NOM-001-SEDE-2012',
+                'Calibre aumentado por regla de conductor pequeño — el OCPD seleccionado excede el límite permitido para el calibre mínimo por ampacidad'
+            );
+        }
         $this->row++;
 
         $this->addSubHeader($s, 'Circuito AC — Inversor → Tablero');
@@ -203,6 +210,13 @@ class ExportService
         }
         $this->addDataRow($s, 'Protección recomendada (OCPD AC)',      $ac['OCPD'] ?? '—');
         $this->addDataRow($s, 'Calibre conductor AC',                  $ac['AWG']  ?? '—');
+        if (!empty($ac['small_conductor_upsized'])) {
+            $this->addDataRow(
+                $s,
+                '⚠ Nota Art. 240-4(d) NOM-001-SEDE-2012',
+                'Calibre aumentado por regla de conductor pequeño — el OCPD seleccionado excede el límite permitido para el calibre mínimo por ampacidad'
+            );
+        }
         $this->row++;
 
         $deratingText = $deratingOn
