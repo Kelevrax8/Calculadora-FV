@@ -15,6 +15,15 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
   <style>
     :root { --ipte-blue: #171933; --ipte-blue2: #0665F7; }
+    /* Responsive hero title: slightly reduce size on very small viewports to avoid overflow
+       Keeps desktop display-4 unchanged while preserving visual identity. */
+    @media (max-width: 420px) {
+      .hero-title {
+        font-size: 2.3rem !important;
+        line-height: 1.02 !important;
+        word-break: break-word;
+      }
+    }
   </style>
 </head>
 <body style="background-color:#171933; min-height:100vh; display:flex; flex-direction:column;">
