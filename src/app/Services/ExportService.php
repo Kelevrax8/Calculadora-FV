@@ -52,7 +52,7 @@ class ExportService
 
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Resumen');
-        $this->setColumnWidths($sheet, ['A' => 42, 'B' => 28, 'C' => 14]);
+        $this->setColumnWidths($sheet, ['A' => 42, 'B' => 42, 'C' => 14]);
 
         $this->buildResumen($sheet, $payload);
 

@@ -23,6 +23,13 @@
     { label: '4/0 AWG', ampacity: 230 },
   ];
 
+  // NOM-001-SEDE-2012 Art. 240-4(d) — maximum OCPD for small Cu conductors in conduit
+  const SMALL_CONDUCTOR_MAX_OCPD = {
+    '14 AWG': 15,
+    '12 AWG': 20,
+    '10 AWG': 30,
+  };
+
   // Temperature derating factors for 75 °C conductors (NOM Tabla 310.15(B)(2)(a))
   const DERATING_TABLE = [
     { maxTemp: 10, factor: 1.20 },
@@ -59,6 +66,29 @@
   function minAWG(iRequired) {
     const found = AWG_TABLE.find(r => r.ampacity >= iRequired);
     return found ? found.label : 'Mayor a 4/0 AWG (consultar)';
+  }
+
+  // NOM-001-SEDE-2012 Art. 240-4(d) — "small conductor" rule.
+  // The conductor must satisfy both: (a) its ampacity ≥ I_required, and
+  // (b) the OCPD protecting it does not exceed the ceiling set by 240-4(d)
+  // for that gauge. If a candidate gauge fails (b), the next larger gauge is tried.
+  // Returns { ocpd, awg, upsized } where upsized=true means the conductor was
+  // forced larger than pure ampacity would require.
+  function resolveCircuit(I_required, I_design) {
+    const ocpd = nextOCPD(I_design);   // OCPD always sized to design current
+    let firstValid = null;             // smallest gauge that alone satisfies ampacity
+
+    for (const row of AWG_TABLE) {
+      if (row.ampacity < I_required) continue;
+      if (firstValid === null) firstValid = row.label;
+
+      const ceiling = SMALL_CONDUCTOR_MAX_OCPD[row.label];
+      // If this gauge has a 240-4(d) ceiling and the OCPD exceeds it, try next gauge
+      if (ceiling !== undefined && typeof ocpd === 'number' && ocpd > ceiling) continue;
+
+      return { ocpd, awg: row.label, upsized: row.label !== firstValid };
+    }
+    return { ocpd, awg: 'Mayor a 4/0 AWG (consultar)', upsized: false };
   }
 
   function setText(id, val) {
@@ -397,8 +427,11 @@
     setText('prot-dc-derated', deratingOn ? `${I_dc_design.toFixed(2)} A ÷ ${factor} = ${I_dc_required.toFixed(2)} A requeridos en tabla` : '—');
     const dcDeratedRow = document.getElementById('prot-dc-derated-row');
     if (dcDeratedRow) dcDeratedRow.classList.toggle('d-none', !deratingOn);
-    setText('prot-dc-ocpd', fmtOCPD(nextOCPD(I_dc_design)));
-    setText('prot-dc-awg',  minAWG(I_dc_required));
+    const dcCircuit = resolveCircuit(I_dc_required, I_dc_design);
+    setText('prot-dc-ocpd', fmtOCPD(dcCircuit.ocpd));
+    setText('prot-dc-awg',  dcCircuit.awg);
+    const dcSmallRow = document.getElementById('prot-dc-small-cond-row');
+    if (dcSmallRow) dcSmallRow.classList.toggle('d-none', !dcCircuit.upsized);
 
     // AC circuit — formula depends on phase type
     const isThreePhase  = inv.phase_type === 'Three Phase';
@@ -416,8 +449,11 @@
     setText('prot-ac-derated', deratingOn ? `${I_ac_design.toFixed(2)} A ÷ ${factor} = ${I_ac_required.toFixed(2)} A requeridos en tabla` : '—');
     const acDeratedRow = document.getElementById('prot-ac-derated-row');
     if (acDeratedRow) acDeratedRow.classList.toggle('d-none', !deratingOn);
-    setText('prot-ac-ocpd', fmtOCPD(nextOCPD(I_ac_design)));
-    setText('prot-ac-awg',  minAWG(I_ac_required));
+    const acCircuit = resolveCircuit(I_ac_required, I_ac_design);
+    setText('prot-ac-ocpd', fmtOCPD(acCircuit.ocpd));
+    setText('prot-ac-awg',  acCircuit.awg);
+    const acSmallRow = document.getElementById('prot-ac-small-cond-row');
+    if (acSmallRow) acSmallRow.classList.toggle('d-none', !acCircuit.upsized);
   }
 
   // ── Derating toggle ────────────────────────────────────────
