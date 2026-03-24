@@ -340,3 +340,26 @@ $('#modal').on('hide.bs.modal', function () {
 
 // ── Init ─────────────────────────────────────────────────────────────
 loadTable('manufacturadores');
+
+// Enable vertical-wheel → horizontal-scroll for wide tables
+(function enableWheelToHorizontalScroll() {
+  function onWheel(e) {
+    const el = e.currentTarget;
+    if (el.scrollWidth <= el.clientWidth) return; // no horizontal overflow
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // user already scrolling horizontally
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+  }
+
+  function attach() {
+    document.querySelectorAll('.table-responsive').forEach(el => {
+      el.removeEventListener('wheel', onWheel, { passive: false });
+      el.addEventListener('wheel', onWheel, { passive: false });
+    });
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') attach();
+  else document.addEventListener('DOMContentLoaded', attach);
+
+  // If tables are loaded dynamically, re-run attach() after operations that change DOM.
+})();
