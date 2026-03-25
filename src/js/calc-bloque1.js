@@ -37,10 +37,16 @@
 (function () {
 
   // ── Map ──────────────────────────────────────────────────
-  const map = L.map('map', { center: [23.6345, -102.5528], zoom: 5 });
+  const map = L.map('map', {
+    center: [23.6345, -102.5528],
+    zoom: 5,
+    maxBounds: [[-90, -180], [90, 180]],
+    maxBoundsViscosity: 1.0,
+  });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 18,
+    noWrap: true,
   }).addTo(map);
 
   const latInput = document.getElementById('latitud');
