@@ -190,7 +190,7 @@ class ExportService
             $this->addDataRow(
                 $s,
                 '⚠ Nota Art. 240-4(d) NOM-001-SEDE-2012',
-                'Calibre aumentado por regla de conductor pequeño — el OCPD seleccionado excede el límite permitido para el calibre mínimo por ampacidad'
+                'Calibre aumentado por regla de conductor pequeño.'
             );
         }
         $this->row++;
@@ -214,13 +214,13 @@ class ExportService
             $this->addDataRow(
                 $s,
                 '⚠ Nota Art. 240-4(d) NOM-001-SEDE-2012',
-                'Calibre aumentado por regla de conductor pequeño — el OCPD seleccionado excede el límite permitido para el calibre mínimo por ampacidad'
+                'Calibre aumentado por regla de conductor pequeño.'
             );
         }
         $this->row++;
 
         $deratingText = $deratingOn
-            ? sprintf('Aplicada — Tamb máx. = %.1f °C → factor %.2f (Tabla 310.15(B)(2)(a), conductores 75 °C)',
+            ? sprintf('Aplicada Tabla 310.15(B)(2)(a), conductores a 75 °C',
                 (float)($prot['tmax'] ?? 0), (float)$deratingFactor)
             : 'No aplicada (conductores a temperatura estándar)';
         $this->addDataRow($s, 'Corrección por temperatura', $deratingText);
