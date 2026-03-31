@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <?php endif; ?>
 
-<script>const BASE_URL = '<?= BASE_URL ?>';</script>
+<script>var BASE_URL = '<?= BASE_URL ?>';</script>
 <?= $extraScripts ?? '' ?>
 
 </body>
