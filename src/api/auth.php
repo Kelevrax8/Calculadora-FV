@@ -39,30 +39,12 @@ switch ($action) {
             exit;
         }
 
-        // Start session with secure cookie settings.
-        if (session_status() === PHP_SESSION_NONE) {
-            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                   || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
-            session_set_cookie_params([
-                'lifetime' => 0,
-                'path'     => '/',
-                'domain'   => '',
-                'secure'   => $secure,
-                'httponly' => true,
-                'samesite' => 'Lax',
-            ]);
-            session_start();
-        }
-
-        // Prevent session fixation.
-        session_regenerate_id(true);
-
-        // Store only what the app needs — never trust client data for permissions.
-        $_SESSION['user'] = [
+        // Start session and store the user — session fixation protection included.
+        AuthGuard::createUserSession([
             'homeAccountId' => $data['homeAccountId'],
-            'username'      => substr((string) ($data['username'] ?? ''), 0, 200),
-            'name'          => substr((string) ($data['name'] ?? ''), 0, 200),
-        ];
+            'username'      => $data['username'] ?? '',
+            'name'          => $data['name'] ?? '',
+        ]);
 
         echo json_encode(['ok' => true]);
         break;

@@ -66,4 +66,30 @@ class AuthGuard
         self::startSession();
         return $_SESSION['user'] ?? null;
     }
+
+    /**
+     * Creates (or replaces) the server-side session for the given user.
+     * Used by auth.php (production) and index.php (DEV_MODE).
+     */
+    public static function createUserSession(array $user): void
+    {
+        // Only regenerate the session ID if the browser already had one —
+        // that is the actual session-fixation scenario.
+        // For genuinely new sessions, session_start() already issues a fresh
+        // random ID, so regenerating would send a second Set-Cookie header
+        // for the same name, which confuses some browsers.
+        $hadPriorSession = !empty($_COOKIE[session_name()]);
+
+        self::startSession();
+
+        if ($hadPriorSession) {
+            session_regenerate_id(true);
+        }
+
+        $_SESSION['user'] = [
+            'homeAccountId' => (string) ($user['homeAccountId'] ?? ''),
+            'username'      => substr((string) ($user['username'] ?? ''), 0, 200),
+            'name'          => substr((string) ($user['name'] ?? ''), 0, 200),
+        ];
+    }
 }
