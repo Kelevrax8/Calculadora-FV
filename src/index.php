@@ -1,14 +1,31 @@
 <?php
 define('APP', true);
-$pageTitle = 'Calculadora FV - IPTE';
-
-// If the user already has a valid PHP session, send them straight to the app.
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/app/Core/Config.php';
+
+// ── DEV MODE ──────────────────────────────────────────────────────────────────
+// Set to true while you don't have the company Azure AD keys.
+// Flip to false (and fill msalConfig below) before production deployment.
+const DEV_MODE = true;
+
+if (DEV_MODE) {
+    // Session is created server-side — no JS round-trip, no cookie timing issues.
+    \App\Core\AuthGuard::createUserSession([
+        'homeAccountId' => 'mock-dev-id',
+        'username'      => 'dev@ipte.mx',
+        'name'          => 'Usuario de Prueba',
+    ]);
+    header('Location: ' . BASE_URL . '/pages/dashboard.php');
+    exit;
+}
+
+// If already authenticated, skip the login page.
 if (\App\Core\AuthGuard::currentUser() !== null) {
     header('Location: ' . BASE_URL . '/pages/dashboard.php');
     exit;
 }
+
+$pageTitle = 'Calculadora FV - IPTE';
 
 $extraScripts = <<<'SCRIPTS'
 <!-- MSAL.js 2.x -->
@@ -16,61 +33,43 @@ $extraScripts = <<<'SCRIPTS'
         integrity="sha384-Dx6pQHU4gKBT+lVMaVFNnCHN+UMUqT/fnEqggwAHMnlFdp3k9IiAMlIW7IIXMZL"
         crossorigin="anonymous"></script>
 <script>
-  // ── DEV MODE ───────────────────────────────────────────────────────────────
-  // Set to true while you don't have the company Azure AD keys.
-  // Flip to false (and fill the TODO values below) before production deployment.
-  const DEV_MODE = false;
-
-  // ── MSAL config – replace with company values before deploying ─────────────
+  // ── MSAL config – fill in company values before deploying ──────────────────
   const msalConfig = {
     auth: {
       clientId:    "YOUR_CLIENT_ID",   // TODO: App Registration clientId
       authority:   "https://login.microsoftonline.com/YOUR_TENANT_ID", // TODO: tenant
-      redirectUri: window.location.origin + window.location.pathname   // auto-computed
+      redirectUri: window.location.origin + window.location.pathname
     }
   };
 
-  // ── DEV MODE: inject mock account and go straight to the app ───────────────
-  if (DEV_MODE) {
-    fetch(BASE_URL + "/api/auth.php?action=login", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ homeAccountId: "mock-dev-id", username: "dev@ipte.mx", name: "Usuario de Prueba" })
-    }).then(function () {
-      window.location.replace(BASE_URL + "/pages/dashboard.php");
+  var msalInstance = new msal.PublicClientApplication(msalConfig);
+
+  window.signIn = function () {
+    msalInstance.loginRedirect({ scopes: ["user.read"] });
+  };
+
+  msalInstance.handleRedirectPromise()
+    .then(function (response) {
+      if (response) {
+        return fetch(BASE_URL + "/api/auth.php?action=login", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(response.account)
+        }).then(function (r) {
+          if (!r.ok) throw new Error("Server session error: " + r.status);
+          localStorage.setItem("cuenta", JSON.stringify(response.account));
+          window.location.replace(BASE_URL + "/pages/dashboard.php");
+        });
+      }
+    })
+    .catch(function (error) {
+      console.error("MSAL error:", error);
+      var errDiv = document.getElementById("login-error");
+      if (errDiv) {
+        errDiv.textContent = "Error al iniciar sesión: " + error.message;
+        errDiv.classList.remove("d-none");
+      }
     });
-
-  // ── PRODUCTION: real MSAL redirect flow ────────────────────────────────────
-  } else {
-    var msalInstance = new msal.PublicClientApplication(msalConfig);
-
-    window.signIn = function () {
-      msalInstance.loginRedirect({ scopes: ["user.read"] });
-    };
-
-    msalInstance.handleRedirectPromise()
-      .then(function (response) {
-        if (response) {
-          return fetch(BASE_URL + "/api/auth.php?action=login", {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify(response.account)
-          }).then(function (r) {
-            if (!r.ok) throw new Error("Server session error: " + r.status);
-            localStorage.setItem("cuenta", JSON.stringify(response.account));
-            window.location.replace(BASE_URL + "/pages/dashboard.php");
-          });
-        }
-      })
-      .catch(function (error) {
-        console.error("MSAL error:", error);
-        var errDiv = document.getElementById("login-error");
-        if (errDiv) {
-          errDiv.textContent = "Error al iniciar sesión: " + error.message;
-          errDiv.classList.remove("d-none");
-        }
-      });
-  }
 </script>
 SCRIPTS;
 

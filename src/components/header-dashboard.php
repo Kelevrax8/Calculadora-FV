@@ -41,7 +41,12 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
   <?= $extraHead ?? '' ?>
 
   <!-- Auth guard: must load before page content renders -->
-  <script>var BASE_URL = '<?= BASE_URL ?>';</script>
+  <script>
+    var BASE_URL = '<?= BASE_URL ?>';
+    // Sync the server-side session into localStorage so auth-guard.js finds it.
+    // requirePage() already confirmed this user is authenticated.
+    localStorage.setItem('cuenta', JSON.stringify(<?= json_encode(\App\Core\AuthGuard::currentUser()) ?>));
+  </script>
   <script src="<?= BASE_URL ?>/js/auth-guard.js"></script>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
