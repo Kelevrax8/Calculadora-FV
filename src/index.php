@@ -3,10 +3,24 @@ define('APP', true);
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/app/Core/Config.php';
 
+// If OAuth callback params arrive on '/', proxy them to the backend callback
+// endpoint while preserving the original code/state/error values.
+if (isset($_GET['code']) || isset($_GET['error'])) {
+  $callbackParams = ['action' => 'callback'];
+  foreach (['code', 'state', 'error', 'error_description', 'error_uri'] as $k) {
+    if (isset($_GET[$k])) {
+      $callbackParams[$k] = (string) $_GET[$k];
+    }
+  }
+  header('Location: ' . BASE_URL . '/api/auth.php?' . http_build_query($callbackParams));
+  exit;
+}
+
 // ── DEV MODE ──────────────────────────────────────────────────────────────────
 // Set to true while you don't have the company Azure AD keys.
 // Flip to false (and fill msalConfig below) before production deployment.
-const DEV_MODE = true;
+
+const DEV_MODE = false;
 
 if (DEV_MODE) {
     // Session is created server-side — no JS round-trip, no cookie timing issues.
@@ -27,51 +41,22 @@ if (\App\Core\AuthGuard::currentUser() !== null) {
 
 $pageTitle = 'Calculadora FV - IPTE';
 
-$extraScripts = <<<'SCRIPTS'
-<!-- MSAL.js 2.x -->
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"
-        integrity="sha384-Dx6pQHU4gKBT+lVMaVFNnCHN+UMUqT/fnEqggwAHMnlFdp3k9IiAMlIW7IIXMZL"
-        crossorigin="anonymous"></script>
-<script>
-  // ── MSAL config – fill in company values before deploying ──────────────────
-  const msalConfig = {
-    auth: {
-      clientId:    "YOUR_CLIENT_ID",   // TODO: App Registration clientId
-      authority:   "https://login.microsoftonline.com/YOUR_TENANT_ID", // TODO: tenant
-      redirectUri: window.location.origin + window.location.pathname
-    }
-  };
-
-  var msalInstance = new msal.PublicClientApplication(msalConfig);
-
-  window.signIn = function () {
-    msalInstance.loginRedirect({ scopes: ["user.read"] });
-  };
-
-  msalInstance.handleRedirectPromise()
-    .then(function (response) {
-      if (response) {
-        return fetch(BASE_URL + "/api/auth.php?action=login", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify(response.account)
-        }).then(function (r) {
-          if (!r.ok) throw new Error("Server session error: " + r.status);
-          localStorage.setItem("cuenta", JSON.stringify(response.account));
-          window.location.replace(BASE_URL + "/pages/dashboard.php");
-        });
-      }
-    })
-    .catch(function (error) {
-      console.error("MSAL error:", error);
-      var errDiv = document.getElementById("login-error");
-      if (errDiv) {
-        errDiv.textContent = "Error al iniciar sesión: " + error.message;
-        errDiv.classList.remove("d-none");
-      }
-    });
-</script>
-SCRIPTS;
+$authError = (string) ($_GET['auth_error'] ?? '');
+$authErrorMessage = '';
+switch ($authError) {
+    case 'config':
+        $authErrorMessage = 'La configuración de autenticación no está completa en el servidor.';
+        break;
+    case 'provider':
+        $authErrorMessage = 'Microsoft devolvió un error durante el inicio de sesión.';
+        break;
+    case 'state':
+        $authErrorMessage = 'No se pudo validar la solicitud de autenticación. Intenta nuevamente.';
+        break;
+    case 'token':
+        $authErrorMessage = 'No fue posible completar la validación del token de acceso.';
+        break;
+}
 
 include 'components/header.php';
 ?>
@@ -111,12 +96,17 @@ include 'components/header.php';
             el diseño y rendimiento de los sistemas solares.
           </p>
 
-          <button id="login-btn" onclick="signIn()"
-                  class="btn btn-primary font-weight-bold px-4 py-2 btn-block d-sm-inline-block"
-                  style="background-color:#0665F7; border-color:#0665F7;">
-            Iniciar sesión
-          </button>
-          <div id="login-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+          <?php if ($authErrorMessage !== ''): ?>
+            <div class="alert alert-danger mt-3" role="alert">
+              <?= htmlspecialchars($authErrorMessage) ?>
+            </div>
+          <?php endif; ?>
+
+          <a href="<?= BASE_URL ?>/api/auth.php?action=login"
+             class="btn btn-primary font-weight-bold px-4 py-2 btn-block d-sm-inline-block"
+             style="background-color:#0665F7; border-color:#0665F7;">
+            Iniciar sesión con Microsoft
+          </a>
 
         </div>
       </div>

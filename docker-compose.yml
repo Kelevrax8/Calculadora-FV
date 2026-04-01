@@ -11,6 +11,10 @@ services:
     environment:
       TZ: America/Mexico_City
       PORT: 80
+      AAD_TENANT_ID: ${AAD_TENANT_ID:-YOUR_TENANT_ID}
+      AAD_CLIENT_ID: ${AAD_CLIENT_ID:-YOUR_CLIENT_ID}
+      AAD_CLIENT_SECRET: ${AAD_CLIENT_SECRET:-YOUR_CLIENT_SECRET}
+      AAD_REDIRECT_URI: ${AAD_REDIRECT_URI:-http://localhost:8080/}
 
   db:
     image: mysql:8.4.8
