@@ -14,3 +14,13 @@ define('DB_HOST',     'db');
 define('DB_NAME',     'app_db');
 define('DB_USER',     'app_user');
 define('DB_PASSWORD', 'secret');
+
+// ── Microsoft Entra ID (Web platform / confidential client) ───────────────
+// Prefer environment variables in production.
+define('AAD_TENANT_ID',     getenv('AAD_TENANT_ID') ?: 'YOUR_TENANT_ID');
+define('AAD_CLIENT_ID',     getenv('AAD_CLIENT_ID') ?: 'YOUR_CLIENT_ID');
+define('AAD_CLIENT_SECRET', getenv('AAD_CLIENT_SECRET') ?: 'YOUR_CLIENT_SECRET');
+// Optional absolute URI override for OAuth callback.
+// Example: https://your-domain/ or https://your-domain/calculadora-fv/
+// If empty, the app computes it as current host + BASE_URL + '/'.
+define('AAD_REDIRECT_URI',  getenv('AAD_REDIRECT_URI') ?: '');

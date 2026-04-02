@@ -1,6 +1,11 @@
 <?php
 defined('APP') or die('Access denied');
+require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../app/Core/Config.php';
+
+use App\Core\AuthGuard;
+AuthGuard::requirePage();
+
 $adminlteLayout = true;
 $currentPage    = basename($_SERVER['PHP_SELF']);
 ?>
@@ -34,6 +39,15 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
 
   <!-- Per-page extra head tags (stylesheets, preloads, etc.) -->
   <?= $extraHead ?? '' ?>
+
+  <!-- Auth guard: must load before page content renders -->
+  <script>
+    var BASE_URL = '<?= BASE_URL ?>';
+    // Sync the server-side session into localStorage so auth-guard.js finds it.
+    // requirePage() already confirmed this user is authenticated.
+    localStorage.setItem('cuenta', JSON.stringify(<?= json_encode(\App\Core\AuthGuard::currentUser()) ?>));
+  </script>
+  <script src="<?= BASE_URL ?>/js/auth-guard.js"></script>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
@@ -48,10 +62,22 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
         </a>
       </li>
     </ul>
+
+    <!-- Right side: logged-in user + sign-out -->
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item d-flex align-items-center pr-2">
+        <span id="nav-username" class="text-white-50" style="font-size:.85rem;"></span>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" onclick="signOut(); return false;" title="Cerrar sesión">
+          <i class="fas fa-sign-out-alt"></i>
+        </a>
+      </li>
+    </ul>
   </nav>
 
   <!-- ── Sidebar ──────────────────────────────────────────── -->
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
+  <aside class="main-sidebar sidebar-dark-primary elevation-4 main-sidebar-custom">
     <a href="<?= BASE_URL ?>/pages/dashboard.php" class="brand-link">
       <img src="<?= BASE_URL ?>/Images/Ipte-logo-negativo.png" alt="Logo IPTE" class="brand-image img-fluid">
       <span class="brand-text font-weight-bold">IPTE Soluciones</span>
@@ -88,6 +114,16 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
 
         </ul>
       </nav>
+    </div>
+    <div class="sidebar-custom">
+      <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          <li class="nav-item">
+            <a href="#" class="nav-link" onclick="signOut(); return false;">
+              <i class="nav-icon fas fa-sign-out-alt"></i>
+              <p>Cerrar sesión</p>
+            </a>
+          </li>
+      </ul>
     </div>
   </aside>
 

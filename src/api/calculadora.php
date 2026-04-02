@@ -6,10 +6,13 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../app/Core/Config.php';
 
 use App\Controllers\CalculadoraApiController;
+use App\Core\AuthGuard;
 use App\Core\Database;
 use App\Repositories\InverterRepository;
 use App\Repositories\PVModuleRepository;
 use App\Services\NasaService;
+
+AuthGuard::requireApi();
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 ob_start();
