@@ -1,6 +1,63 @@
 <?php
 define('APP', true);
+require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/app/Core/Config.php';
+
+// If OAuth callback params arrive on '/', proxy them to the backend callback
+// endpoint while preserving the original code/state/error values.
+if (isset($_GET['code']) || isset($_GET['error'])) {
+  $callbackParams = ['action' => 'callback'];
+  foreach (['code', 'state', 'error', 'error_description', 'error_uri'] as $k) {
+    if (isset($_GET[$k])) {
+      $callbackParams[$k] = (string) $_GET[$k];
+    }
+  }
+  header('Location: ' . BASE_URL . '/api/auth.php?' . http_build_query($callbackParams));
+  exit;
+}
+
+// ── DEV MODE ──────────────────────────────────────────────────────────────────
+// Set to true while you don't have the company Azure AD keys.
+// Flip to false (and fill msalConfig below) before production deployment.
+
+const DEV_MODE = false;
+
+if (DEV_MODE) {
+    // Session is created server-side — no JS round-trip, no cookie timing issues.
+    \App\Core\AuthGuard::createUserSession([
+        'homeAccountId' => 'mock-dev-id',
+        'username'      => 'dev@ipte.mx',
+        'name'          => 'Usuario de Prueba',
+    ]);
+    header('Location: ' . BASE_URL . '/pages/dashboard.php');
+    exit;
+}
+
+// If already authenticated, skip the login page.
+if (\App\Core\AuthGuard::currentUser() !== null) {
+    header('Location: ' . BASE_URL . '/pages/dashboard.php');
+    exit;
+}
+
 $pageTitle = 'Calculadora FV - IPTE';
+
+$authError = (string) ($_GET['auth_error'] ?? '');
+$authErrorMessage = '';
+switch ($authError) {
+    case 'config':
+        $authErrorMessage = 'La configuración de autenticación no está completa en el servidor.';
+        break;
+    case 'provider':
+        $authErrorMessage = 'Microsoft devolvió un error durante el inicio de sesión.';
+        break;
+    case 'state':
+        $authErrorMessage = 'No se pudo validar la solicitud de autenticación. Intenta nuevamente.';
+        break;
+    case 'token':
+        $authErrorMessage = 'No fue posible completar la validación del token de acceso.';
+        break;
+}
+
 include 'components/header.php';
 ?>
 
@@ -39,10 +96,16 @@ include 'components/header.php';
             el diseño y rendimiento de los sistemas solares.
           </p>
 
-          <a href="<?= BASE_URL ?>/pages/dashboard.php"
+          <?php if ($authErrorMessage !== ''): ?>
+            <div class="alert alert-danger mt-3" role="alert">
+              <?= htmlspecialchars($authErrorMessage) ?>
+            </div>
+          <?php endif; ?>
+
+          <a href="<?= BASE_URL ?>/api/auth.php?action=login"
              class="btn btn-primary font-weight-bold px-4 py-2 btn-block d-sm-inline-block"
              style="background-color:#0665F7; border-color:#0665F7;">
-            Iniciar sesión
+            Iniciar sesión con Microsoft
           </a>
 
         </div>
