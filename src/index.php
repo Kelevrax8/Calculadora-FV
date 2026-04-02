@@ -79,7 +79,7 @@ include 'components/header.php';
     <!-- Content -->
     <div class="position-relative w-100 py-5" style="z-index:10;">
       <div class="container-fluid px-4 px-sm-5">
-        <div class="mx-auto px-3" style="max-width:560px;">
+        <div class="mx-auto px-3" style="max-width:800px;">
 
           <span class="d-inline-block text-white text-uppercase font-weight-bold mb-3"
                 style="font-size:.75rem; letter-spacing:.15em;">
@@ -103,9 +103,9 @@ include 'components/header.php';
           <?php endif; ?>
 
           <a href="<?= BASE_URL ?>/api/auth.php?action=login"
-             class="btn btn-primary font-weight-bold px-4 py-2 btn-block d-sm-inline-block"
-             style="background-color:#0665F7; border-color:#0665F7;">
-            Iniciar sesión con Microsoft
+             class="btn btn-primary font-weight-bold px-4 py-2 btn-block"
+             style="max-width:250px; background-color:#0665F7; border-color:#0665F7;">
+            Iniciar sesión
           </a>
 
         </div>
