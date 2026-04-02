@@ -77,7 +77,7 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
   </nav>
 
   <!-- ── Sidebar ──────────────────────────────────────────── -->
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
+  <aside class="main-sidebar sidebar-dark-primary elevation-4 main-sidebar-custom">
     <a href="<?= BASE_URL ?>/pages/dashboard.php" class="brand-link">
       <img src="<?= BASE_URL ?>/Images/Ipte-logo-negativo.png" alt="Logo IPTE" class="brand-image img-fluid">
       <span class="brand-text font-weight-bold">IPTE Soluciones</span>
@@ -112,15 +112,18 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
             </a>
           </li>
 
+        </ul>
+      </nav>
+    </div>
+    <div class="sidebar-custom">
+      <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
           <li class="nav-item">
             <a href="#" class="nav-link" onclick="signOut(); return false;">
               <i class="nav-icon fas fa-sign-out-alt"></i>
               <p>Cerrar sesión</p>
             </a>
           </li>
-
-        </ul>
-      </nav>
+      </ul>
     </div>
   </aside>
 
