@@ -41,9 +41,26 @@
 
       <!-- Np auto -->
       <div class="col-sm-3 mb-2">
-        <p class="text-muted small mb-1">Número de strings <strong>(Np)</strong></p>
+        <p class="text-muted small mb-1">Strings totales <strong>(Np)</strong></p>
         <p id="np-value" class="font-weight-bold h5 mb-0">—</p>
         <small id="np-mppt-hint" class="text-muted">Selecciona un inversor para verificar</small>
+      </div>
+
+      <!-- N_inv stepper -->
+      <div class="col-sm-3 mb-2">
+        <p class="text-muted small mb-1">Número de inversores <strong>(N<sub>inv</sub>)</strong></p>
+        <div class="d-flex align-items-center">
+          <button id="btn-ninv-dec" type="button" disabled
+            class="btn btn-sm btn-default" style="width:32px;height:32px;padding:0;">−</button>
+          <span id="ninv-value" class="font-weight-bold h5 mb-0 mx-2">1</span>
+          <button id="btn-ninv-inc" type="button"
+            class="btn btn-sm btn-default" style="width:32px;height:32px;padding:0;">+</button>
+          <button id="btn-ninv-auto" type="button"
+            class="btn btn-xs btn-warning ml-2" title="Calcular mínimo de inversores necesarios">
+            Auto
+          </button>
+        </div>
+        <small id="ninv-hint" class="text-muted">Selecciona inversor primero</small>
       </div>
 
       <!-- Total array area -->

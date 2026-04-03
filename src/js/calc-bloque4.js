@@ -101,11 +101,13 @@
     const cs  = window.calcState;
     if (!cs || !cs.module || !cs.inverter) return;
 
-    const mod = cs.module;
-    const inv = cs.inverter;
-    const Ns  = cs.Ns;
-    const Np  = cs.Np;
-    const N   = cs.N;
+    const mod        = cs.module;
+    const inv        = cs.inverter;
+    const Ns         = cs.Ns;
+    const Np         = cs.Np;
+    const N          = cs.N;
+    const N_inv      = cs.N_inv      || 1;
+    const Np_per_inv = cs.Np_per_inv || Np;
 
     const tmin = parseFloat(document.getElementById('tmin').value) || 25;
     const tmax = parseFloat(document.getElementById('tmax').value) || 25;
@@ -130,9 +132,10 @@
     const Isc_array    = Np * mod.isc_stc;    // display only
     const I_per_mppt   = mod.imp_stc * 1.25;          // NOM-001: Imp × 1.25, per MPPT input (1 string/MPPT)
     const I_total      = mod.isc_stc * 1.25;    // NOM-001: Isc × 1.25 per MPPT (1 string/MPPT)
-    const P_cold_total = N   * P_cold_per;    // W at Tmin
-    const P_stc_W      = cs.P_stc_kW * 1000;
-    const dc_ac        = P_stc_W / inv.nominal_ac_power;
+    const P_cold_total   = N * P_cold_per;    // W at Tmin (whole array)
+    const P_cold_per_inv = Np_per_inv * Ns * P_cold_per; // W per inverter at Tmin
+    const P_stc_W        = cs.P_stc_kW * 1000;
+    const dc_ac          = P_stc_W / (N_inv * inv.nominal_ac_power);
 
     // ── Site & Design ──────────────────────────────────────
     setText('s4-location',    `${parseFloat(lat).toFixed(2)}° N, ${parseFloat(lng).toFixed(2)}° O`);
@@ -157,29 +160,37 @@
     setText('s4-module-area',    `${N} × ${(modArea).toFixed(2)} m² = ${(N * modArea).toFixed(2)} m²`);
 
     // ── Inverter ───────────────────────────────────────────
-    setText('s4-inverter-name',  `${inv.manufacturer} — ${inv.model}`);
-    setText('s4-inverter-power', inv.nominal_ac_power + ' W');
-    setText('s4-mppt-range',     `${inv.mppt_voltage_min} – ${inv.mppt_voltage_max} V`);
-    setText('s4-inverter-imax',  inv.max_short_circuit_current + ' A');
-    setText('s4-startup-voltage',inv.startup_voltage + ' V');
-    setText('s4-ac-voltage',     inv.ac_voltage_nominal + ' V');
+    setText('s4-inverter-name',
+      N_inv > 1
+        ? `${N_inv} × ${inv.manufacturer} — ${inv.model} (${(N_inv * inv.nominal_ac_power / 1000).toFixed(2)} kW AC total)`
+        : `${inv.manufacturer} — ${inv.model}`);
+    setText('s4-inverter-power',
+      N_inv > 1
+        ? `${N_inv} × ${inv.nominal_ac_power} W = ${N_inv * inv.nominal_ac_power} W`
+        : inv.nominal_ac_power + ' W');
+    setText('s4-mppt-range',      `${inv.mppt_voltage_min} – ${inv.mppt_voltage_max} V`);
+    setText('s4-inverter-imax',   inv.max_short_circuit_current + ' A');
+    setText('s4-startup-voltage', inv.startup_voltage + ' V');
+    setText('s4-ac-voltage',      inv.ac_voltage_nominal + ' V');
 
     // ── Compatibility checks ───────────────────────────────
-    const npPass       = Np           <= inv.mppt_count;
+    const npPass       = Np_per_inv   <= inv.mppt_count;
     const vocPass      = Voc_cold     <= inv.max_dc_voltage;
     const vmppHotPass  = Vmpp_hot     >= inv.mppt_voltage_min;
     const startupPass  = Vmpp_hot     >= inv.startup_voltage;
     const vmppColdPass = Vmpp_cold    <= inv.mppt_voltage_max;
     const iMpptPass    = I_per_mppt   <= inv.max_input_current_per_mppt;
     const iTotalPass   = I_total      <= inv.max_short_circuit_current;
-    const pDcPass      = P_cold_total <= inv.pmax_dc_input;
+    const pDcPass      = P_cold_per_inv <= inv.pmax_dc_input;
 
     // hard = blocks continue in block 3; soft = warning only
     const checks = [
       {
-        label:  'Núm. strings ≤ Entradas MPPT del inversor',
-        detail: `${Np} string(s) ≤ ${inv.mppt_count} MPPT`,
-        pass:   npPass,  hard: true,
+        label: N_inv > 1
+          ? `Strings/inv (${Np_per_inv}) ≤ Entradas MPPT (${Np} totales ÷ ${N_inv} inv)`
+          : 'Núm. strings ≤ Entradas MPPT del inversor',
+        detail: `${Np_per_inv} string(s)/inv ≤ ${inv.mppt_count} MPPT`,
+        pass:   npPass, hard: true,
       },
       {
         label:  'Voc en frío ≤ Tensión máx. DC',
@@ -212,8 +223,10 @@
         pass:   iTotalPass, hard: true,
       },
       {
-        label:  'P arreglo en frío ≤ Entrada DC máx.',
-        detail: `${(P_cold_total/1000).toFixed(2)} kW (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`,
+        label:  N_inv > 1
+          ? `P por inversor en frío ≤ Entrada DC máx. (${(P_cold_total/1000).toFixed(2)} kW total ÷ ${N_inv})`
+          : 'P arreglo en frío ≤ Entrada DC máx.',
+        detail: `${(P_cold_per_inv/1000).toFixed(2)} kW/inv (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`,
         pass:   pDcPass, hard: true,
       },
     ];
@@ -535,6 +548,8 @@ hint.classList.remove('d-none');
     const Ns  = cs.Ns;
     const Np  = cs.Np;
     const N   = cs.N;
+    const N_inv      = cs.N_inv      || 1;
+    const Np_per_inv = cs.Np_per_inv || Np;
     const n_rem = N % Ns;
 
     const tmin    = parseFloat(document.getElementById('tmin').value)              || 25;
@@ -557,27 +572,34 @@ hint.classList.remove('d-none');
     const I_per_mppt    = mod.imp_stc * 1.25;          // per MPPT input (1 string/MPPT)
     const I_total       = mod.isc_stc * 1.25;    // total array Isc × 1.25
     const P_cold_total  = N * P_cold_per;
-    const dc_ac         = (cs.P_stc_kW * 1000) / inv.nominal_ac_power;
+    const P_cold_per_inv = Np_per_inv * Ns * P_cold_per;
+    const dc_ac         = (cs.P_stc_kW * 1000) / (N_inv * inv.nominal_ac_power);
 
     // Checks
-    const npPass       = Np           <= inv.mppt_count;
+    const npPass       = Np_per_inv   <= inv.mppt_count;
     const vocPass      = Voc_cold     <= inv.max_dc_voltage;
     const vmppHotPass  = Vmpp_hot     >= inv.mppt_voltage_min;
     const startupPass  = Vmpp_hot     >= inv.startup_voltage;
     const vmppColdPass = Vmpp_cold    <= inv.mppt_voltage_max;
     const iMpptPass    = I_per_mppt   <= inv.max_input_current_per_mppt;
     const iTotalPass   = I_total      <= inv.max_short_circuit_current;
-    const pDcPass      = P_cold_total <= inv.pmax_dc_input;
+    const pDcPass      = P_cold_per_inv <= inv.pmax_dc_input;
 
     const checks = [
-      { label: 'Núm. strings ≤ Entradas MPPT del inversor',  detail: `${Np} string(s) ≤ ${inv.mppt_count} MPPT`,                                                               pass: npPass,       hard: true  },
+      { label: N_inv > 1
+          ? `Strings/inv (${Np_per_inv}) ≤ Entradas MPPT (${Np} totales ÷ ${N_inv} inv)`
+          : 'Núm. strings ≤ Entradas MPPT del inversor',
+        detail: `${Np_per_inv} string(s)/inv ≤ ${inv.mppt_count} MPPT`,                                     pass: npPass,       hard: true  },
       { label: 'Voc en frío ≤ Tensión máx. DC',             detail: `${Voc_cold.toFixed(1)} V ≤ ${inv.max_dc_voltage} V`,                                                     pass: vocPass,      hard: true  },
       { label: 'Vmpp en calor ≥ Límite inferior MPPT',      detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.mppt_voltage_min} V`,                                                   pass: vmppHotPass,  hard: false },
       { label: 'Vmpp en calor ≥ Tensión de arranque',       detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.startup_voltage} V`,                                                    pass: startupPass,  hard: false },
       { label: 'Vmpp en frío ≤ Límite superior MPPT',       detail: `${Vmpp_cold.toFixed(1)} V ≤ ${inv.mppt_voltage_max} V`,                                                  pass: vmppColdPass, hard: false },
       { label: 'Corriente por MPPT ≤ Imáx entrada (Imp × 1.25)',          detail: `${I_per_mppt.toFixed(2)} A ≤ ${inv.max_input_current_per_mppt} A`,                                                            pass: iMpptPass,    hard: true  },
       { label: 'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)', detail: `${I_total.toFixed(2)} A ≤ ${inv.max_short_circuit_current} A`,                     pass: iTotalPass,   hard: true  },
-      { label: 'P arreglo en frío ≤ Entrada DC máx.',       detail: `${(P_cold_total/1000).toFixed(2)} kW (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`,    pass: pDcPass,      hard: true  },
+      { label: N_inv > 1
+          ? `P por inversor en frío ≤ Entrada DC máx. (${(P_cold_total/1000).toFixed(2)} kW total ÷ ${N_inv})`
+          : 'P arreglo en frío ≤ Entrada DC máx.',
+        detail: `${(P_cold_per_inv/1000).toFixed(2)} kW/inv (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`, pass: pDcPass,      hard: true  },
     ];
 
     // Energy
@@ -618,7 +640,7 @@ hint.classList.remove('d-none');
     return {
       site:    { lat, lng, consumo, hsp, tmin, tmax },
       module:  { ...mod },
-      array:   { Ns, Np, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea, n_rem },
+      array:   { Ns, Np, N_inv, Np_per_inv, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea, n_rem },
       inverter:{ ...inv },
       checks,
       energy:  { E_year, coverage, PR, dc_ac },

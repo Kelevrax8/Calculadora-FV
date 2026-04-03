@@ -6,8 +6,7 @@
   // ── State ─────────────────────────────────────────────────
   let allInverters = [], loaded = false;
   let selectedInverter = null;
-  let currentNs = 1;
-  let activeManuf = 'all', activePhase = 'all';
+  let currentNs = 1;  let currentNInv = 1;  let activeManuf = 'all', activePhase = 'all';
 
   // Per-module values computed on init
   let mod, N_total, betaVoc, Voc_cold_per, Vmpp_hot_per, Vmpp_cold_per, P_cold_per;
@@ -83,20 +82,25 @@
     const I_total = mod.isc_stc * NOM_FACTOR;
     const P_cold_total = N_total * P_cold_per;
 
-    const npPass = Np <= inv.mppt_count;
+    // Multi-inverter: distribute strings and DC power across all inverters
+    const Np_per_inv     = Math.ceil(Np / currentNInv);
+    const P_cold_per_inv = Np_per_inv * currentNs * P_cold_per;
+
+    const npPass = Np_per_inv <= inv.mppt_count;
     const vocPass = Voc_cold <= inv.max_dc_voltage;
     const vmppHotPass = Vmpp_hot >= inv.mppt_voltage_min;
     const startupPass = Vmpp_hot >= inv.startup_voltage;
     const vmppColdPass = Vmpp_cold <= inv.mppt_voltage_max;
     const iMpptPass = I_per_mppt <= inv.max_input_current_per_mppt;
     const iTotalPass = I_total <= inv.max_short_circuit_current;
-    const pDcPass = P_cold_total <= inv.pmax_dc_input;
+    const pDcPass = P_cold_per_inv <= inv.pmax_dc_input;
 
     const hardFail = !npPass || !vocPass || !iMpptPass || !iTotalPass || !pDcPass;
     const warn = !vmppHotPass || !startupPass || !vmppColdPass;
 
     return {
       Np,
+      Np_per_inv,
       Voc_cold,
       Vmpp_hot,
       Vmpp_cold,
@@ -277,11 +281,29 @@
     document.getElementById('str-area-total').textContent =
       (N_total * mod.length_m * mod.width_m).toFixed(1) + ' m²';
 
-    // 5. Np vs MPPT hint
+    // 5. N_inv stepper
+    const Np_total = Math.ceil(N_total / currentNs);
+    const nInvMin  = selectedInverter ? Math.ceil(Np_total / selectedInverter.mppt_count) : 1;
+    currentNInv    = Math.max(nInvMin, currentNInv);
+    const nInvEl   = document.getElementById('ninv-value');
+    if (nInvEl) nInvEl.textContent = currentNInv;
+    const nInvHintEl = document.getElementById('ninv-hint');
+    if (nInvHintEl) {
+      nInvHintEl.textContent = selectedInverter
+        ? 'Mínimo: ' + nInvMin + ' inversor' + (nInvMin > 1 ? 'es' : '')
+        : 'Selecciona inversor primero';
+    }
+    document.getElementById('btn-ninv-dec').disabled = currentNInv <= Math.max(1, nInvMin);
+    document.getElementById('btn-ninv-inc').disabled = false;
+
+    // 5b. Np per inverter hint
+    const Np_per_inv_display = Math.ceil(Np_total / currentNInv);
     const hintEl = document.getElementById('np-mppt-hint');
     if (selectedInverter) {
-      const ok = Np <= selectedInverter.mppt_count;
-      hintEl.textContent = (ok ? '✓ ' : '✗ ') + Np + ' / ' + selectedInverter.mppt_count + ' entradas MPPT';
+      const ok = Np_per_inv_display <= selectedInverter.mppt_count;
+      hintEl.textContent = (ok ? '✓ ' : '✗ ') + Np_per_inv_display + ' / ' + selectedInverter.mppt_count
+        + ' entradas MPPT por inversor'
+        + (currentNInv > 1 ? ' (' + Np_total + ' strings totales ÷ ' + currentNInv + ' inv)' : '');
       hintEl.className   = 'small font-weight-bold ' + (ok ? 'text-success' : 'text-danger');
     } else {
       hintEl.textContent = 'Selecciona un inversor para verificar';
@@ -310,6 +332,21 @@
   });
   document.getElementById('btn-ns-inc').addEventListener('click', function () {
     if (!this.disabled) { currentNs++; refreshStringUI(); }
+  });
+
+  document.getElementById('btn-ninv-dec').addEventListener('click', function () {
+    if (!this.disabled) { currentNInv--; refreshStringUI(); if (selectedInverter) computeInvResults(selectedInverter); }
+  });
+  document.getElementById('btn-ninv-inc').addEventListener('click', function () {
+    currentNInv++; refreshStringUI(); if (selectedInverter) computeInvResults(selectedInverter);
+  });
+
+  document.getElementById('btn-ninv-auto').addEventListener('click', function () {
+    if (!selectedInverter) return;
+    const Np_total = Math.ceil(N_total / currentNs);
+    currentNInv = Math.max(1, Math.ceil(Np_total / selectedInverter.mppt_count));
+    refreshStringUI();
+    computeInvResults(selectedInverter);
   });
 
   // Delegated listener for remainder-banner Ns suggestion buttons
@@ -464,16 +501,19 @@
     results3.classList.remove('d-none');
     results3.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    window.calcState          = window.calcState || {};
-    window.calcState.inverter = inv;
-    window.calcState.Ns       = currentNs;
-    window.calcState.Np       = Math.ceil(N_total / currentNs);
+    window.calcState              = window.calcState || {};
+    window.calcState.inverter     = inv;
+    window.calcState.Ns           = currentNs;
+    window.calcState.Np           = Math.ceil(N_total / currentNs);
+    window.calcState.N_inv        = currentNInv;
+    window.calcState.Np_per_inv   = Math.ceil(Math.ceil(N_total / currentNs) / currentNInv);
   }
 
   // ── Electrical result cards ────────────────────────────────
   function computeInvResults(inv) {
     const compat = evaluateCompatibility(inv);
-    const Np = compat.Np;
+    const Np         = compat.Np;
+    const Np_per_inv = compat.Np_per_inv;
     const Voc_cold = compat.Voc_cold;
     const Vmpp_hot = compat.Vmpp_hot;
     const Vmpp_cold = compat.Vmpp_cold;
@@ -481,7 +521,7 @@
     const I_total = compat.I_total;
     const P_cold_total = compat.P_cold_total;
     const P_stc_W      = window.calcState.P_stc_kW * 1000;
-    const dc_ac        = P_stc_W / inv.nominal_ac_power;
+    const dc_ac        = P_stc_W / (currentNInv * inv.nominal_ac_power);
 
     const npPass = compat.npPass;
     const vocPass = compat.vocPass;
@@ -493,8 +533,8 @@
     const pDcPass = compat.pDcPass;
 
     setCheck('chk-np-mppt',
-      Np + ' strings',
-      '≤ ' + inv.mppt_count + ' entradas MPPT',
+      Np_per_inv + ' strings/inv' + (currentNInv > 1 ? ' (' + Np + ' totales ÷ ' + currentNInv + ')' : ''),
+      '≤ ' + inv.mppt_count + ' entradas MPPT por inversor',
       npPass, true);
 
     setCheck('chk-voc',
@@ -527,10 +567,12 @@
       '≤ ' + inv.max_short_circuit_current + ' A',
       iTotalPass, true);
 
+    const P_cold_per_inv = Np_per_inv * currentNs * (P_cold_total / N_total);
     setCheck('chk-p-dc',
-      (P_cold_total / 1000).toFixed(2) + ' kW (T_min = ' +
-        (parseFloat(document.getElementById('tmin').value) || 25) + '°C)',
-      '≤ ' + (inv.pmax_dc_input / 1000).toFixed(2) + ' kW',
+      (P_cold_per_inv / 1000).toFixed(2) + ' kW/inv' +
+        (currentNInv > 1 ? ' (' + (P_cold_total / 1000).toFixed(2) + ' kW total ÷ ' + currentNInv + ')' : '') +
+        ' (T_min = ' + (parseFloat(document.getElementById('tmin').value) || 25) + '°C)',
+      '≤ ' + (inv.pmax_dc_input / 1000).toFixed(2) + ' kW por inversor',
       pDcPass, true);
 
     const dcacEl  = document.getElementById('res-dcac');
@@ -543,26 +585,36 @@
     dcacHint.textContent = dcac.label;
     dcacHint.className = 'small font-weight-bold ' + dcac.cssClass;
     document.getElementById('res-dcac-pstc').textContent = (P_stc_W / 1000).toFixed(2) + ' kW';
-    document.getElementById('res-dcac-pac').textContent  = (inv.nominal_ac_power / 1000).toFixed(2) + ' kW';
+    document.getElementById('res-dcac-pac').textContent  =
+      (currentNInv > 1 ? currentNInv + ' × ' : '') +
+      (inv.nominal_ac_power / 1000).toFixed(2) + ' kW' +
+      (currentNInv > 1 ? ' = ' + (currentNInv * inv.nominal_ac_power / 1000).toFixed(2) + ' kW total' : '');
 
     // Block continue only on hard electrical fails — DC/AC ratio is a design warning, not a hard limit
     const anyHardFail = compat.hardFail;
     contBtn3.disabled = anyHardFail;
     if (anyHardFail) {
       const reasons = [];
-      if (!npPass)     reasons.push('Núm. strings (' + Np + ') supera entradas MPPT (' + inv.mppt_count + ')');
-      if (!vocPass)    reasons.push('Voc en frío supera Vdc máx');
-      if (!iMpptPass)  reasons.push('I por MPPT supera el límite');
-      if (!iTotalPass) reasons.push('Isc total supera el límite');
-      if (!pDcPass)    reasons.push('P arreglo en frío supera entrada DC máx');
+    if (!npPass)     reasons.push('Strings/inv (' + Np_per_inv + ') supera entradas MPPT (' + inv.mppt_count + '). Aumenta el nº de inversores.');
+    if (!vocPass)    reasons.push('Voc en frío supera Vdc máx');
+    if (!iMpptPass)  reasons.push('I por MPPT supera el límite');
+    if (!iTotalPass) reasons.push('Isc total supera el límite');
+    if (!pDcPass)    reasons.push('P por inversor en frío supera entrada DC máx');
       contBtn3.title = reasons.join(' • ');
     } else {
       contBtn3.title = '';
     }
 
+    const Np_pi = Math.ceil(Np / currentNInv);
     document.getElementById('selected-string-config').textContent =
-      `Configuración: ${currentNs} mód/string × ${Np} strings = ` +
-      `${currentNs * Np} módulos (requeridos: ${N_total})`;
+      `Configuración: ${currentNs} mód/string × ${Np} strings` +
+      (currentNInv > 1
+        ? ` ÷ ${currentNInv} inversores = ${Np_pi} strings/inv`
+        : '') +
+      ` = ${currentNs * Np} módulos (requeridos: ${N_total})`;
+    // Keep calcState in sync after every computation
+    window.calcState.N_inv      = currentNInv;
+    window.calcState.Np_per_inv = Np_pi;
   }
 
   function setCheck(id, actual, limit, pass, isHard) {
