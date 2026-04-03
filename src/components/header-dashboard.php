@@ -88,6 +88,13 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
         <ul class="nav nav-pills nav-sidebar flex-column"
             data-widget="treeview" role="menu" data-accordion="false">
 
+            <li class="nav-item">
+              <a href="/pages/firmas.php" class="nav-link">
+                <i class="nav-icon fas fa-edit"></i>
+                <p>Firmas</p>
+              </a>
+            </li>
+
           <li class="nav-item">
             <a href="<?= BASE_URL ?>/pages/dashboard.php"
                class="nav-link <?= $currentPage === 'dashboard.php' ? 'active' : '' ?>">
@@ -112,6 +119,33 @@ $currentPage    = basename($_SERVER['PHP_SELF']);
             </a>
           </li>
 
+          <li class="nav-header">Herramientas</li>
+          <li class="nav-item">
+            <a href="/solar/login.html" class="nav-link">
+              <i class="nav-icon fas fa-sun"></i>
+              <p>Calculadora Aislada</p>
+            </a>
+          </li>
+
+          <li class="nav-header">Grupos</li>
+          <li class="nav-item">
+            <a href="https://teams.microsoft.com/l/team/19%3Aea96ea5e62894ffa8ee8a9c3d9c871fd%40thread.tacv2/conversations?groupId=89781700-ea3d-42be-a2e2-daefb226de2d&amp;tenantId=641dfc1b-79a5-4f78-8365-73af7c2d0126" class="nav-link">
+                <i class="nav-icon fas fa-th"></i>
+                <p>Ingeniería</p>
+              </a>
+          </li>
+          <li class="nav-item">
+              <a href="https://teams.microsoft.com/l/team/19%3ApUFQCRZF-Ywg21dH-llkZgfrk8WilG_1iRXGSqSlMUg1%40thread.tacv2/conversations?groupId=4ea39ea6-2d68-4acb-9557-fb077e08f226&amp;tenantId=641dfc1b-79a5-4f78-8365-73af7c2d0126" class="nav-link">
+                <i class="nav-icon fas fa-th"></i>
+                <p>Soporte Técnico</p>
+              </a>
+            </li>
+          <li class="nav-item">
+              <a href="https://teams.microsoft.com/l/team/19%3AFQfeXmEqu9H2Yi1w4b5pvcP1ViKNuzHqTaJFlm7kmcA1%40thread.tacv2/conversations?groupId=277b6079-120d-4514-bbf2-a3c31b212941&amp;tenantId=641dfc1b-79a5-4f78-8365-73af7c2d0126" class="nav-link">
+                <i class="nav-icon fas fa-th"></i>
+                <p>Implementación</p>
+              </a>
+          </li>
         </ul>
       </nav>
     </div>
