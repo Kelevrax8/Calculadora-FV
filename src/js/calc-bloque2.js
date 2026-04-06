@@ -212,14 +212,11 @@
     const P_calor_kW    = (N * P_mod_calor) / 1000;
     const pct_calor     = ((P_calor_kW / P_stc_kW) - 1) * 100;
 
-    const Isc_prot      = m.isc_stc * 1.56;
-
     document.getElementById('res-n-modulos').textContent      = N;
     document.getElementById('res-p-arreglo-stc').textContent  = P_stc_kW.toFixed(2);
     document.getElementById('res-p-arreglo-calor').textContent = P_calor_kW.toFixed(2) + ' kW';
     document.getElementById('res-p-calor-pct').textContent    =
       (pct_calor >= 0 ? '+' : '') + pct_calor.toFixed(1) + '% vs STC';
-    document.getElementById('res-isc-prot').textContent       = Isc_prot.toFixed(2);
 
     // Share with Block 3
     window.calcState          = window.calcState || {};
