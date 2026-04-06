@@ -20,7 +20,7 @@ if (isset($_GET['code']) || isset($_GET['error'])) {
 // Set to true while you don't have the company Azure AD keys.
 // Flip to false (and fill msalConfig below) before production deployment.
 
-const DEV_MODE = false;
+const DEV_MODE = true;
 
 if (DEV_MODE) {
     // Session is created server-side — no JS round-trip, no cookie timing issues.

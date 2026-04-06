@@ -121,11 +121,7 @@
     </div>
   </div>
 
-  <!-- ── Assumption note ──────────────────────────────────────────── -->
-  <div class="alert alert-info mx-3 mt-3 mb-0 small">
-    <i class="fas fa-info-circle mr-1"></i>
-    <strong>Supuesto de diseño:</strong> Este sistema asume <strong>1 string por entrada MPPT</strong> para evitar la necesidad de caja combinadora. Np = número de strings = número de entradas MPPT utilizadas. Si Np supera las entradas disponibles del inversor, se debe <strong>aumentar Ns</strong> (strings más largas &rarr; menos strings en paralelo).
-  </div>
+
 
   <!-- ── Filters ──────────────────────────────────────────────────── -->
   <div class="card-body border-bottom py-2">
@@ -255,7 +251,7 @@
         <div id="chk-i-mppt" class="card card-outline card-default h-100">
           <div class="card-body p-3">
             <div class="d-flex align-items-start justify-content-between mb-1">
-              <small class="text-muted">Corriente por MPPT <span class="text-muted">(1 string)</span></small>
+              <small class="text-muted">Corriente por MPPT</small>
               <span data-badge class="badge badge-secondary">—</span>
             </div>
             <p data-actual class="h5 font-weight-bold mb-1">—</p>

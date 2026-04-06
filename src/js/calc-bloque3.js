@@ -23,6 +23,30 @@
   const STC_TEMP = 25;
   const NOM_FACTOR = 1.25;
 
+  // ── MPPT-group helpers ────────────────────────────────────
+  /** Total string capacity for one inverter: Σ(mpptCount × maxStringsPerMppt) across all groups. */
+  function totalCapacityPerInv(inv) {
+    const groups = inv.mppt_groups || [];
+    if (groups.length === 0) return inv.mppt_count || 1;
+    return groups.reduce((s, g) => s + g.mppt_count * g.max_strings_per_mppt, 0);
+  }
+
+  /**
+   * Greedy distribution of Np_per_inv strings across groups in declaration order.
+   * @returns {{ group, stringsAssigned, stringsPerMppt }[]}
+   */
+  function distributeStrings(Np_per_inv, groups) {
+    if (!groups || groups.length === 0) return [];
+    let remaining = Np_per_inv;
+    return groups.map(g => {
+      const capacity       = g.mppt_count * g.max_strings_per_mppt;
+      const assigned       = Math.min(capacity, remaining);
+      remaining           -= assigned;
+      const stringsPerMppt = assigned > 0 ? Math.ceil(assigned / g.mppt_count) : 0;
+      return { group: g, stringsAssigned: assigned, stringsPerMppt };
+    });
+  }
+
   // ── Shared helpers ────────────────────────────────────────
   function mapPhaseLabel(phaseType) {
     return phaseType === 'Single Phase' ? 'Monofásico'
@@ -78,24 +102,30 @@
 
   function evaluateCompatibility(inv) {
     const { Np, Voc_cold, Vmpp_hot, Vmpp_cold } = getStringMetrics(currentNs);
-    const I_per_mppt = mod.imp_stc * NOM_FACTOR;
-    const I_total = mod.isc_stc * NOM_FACTOR;
     const P_cold_total = N_total * P_cold_per;
 
     // Multi-inverter: distribute strings and DC power across all inverters
     const Np_per_inv     = Math.ceil(Np / currentNInv);
     const P_cold_per_inv = Np_per_inv * currentNs * P_cold_per;
 
-    const npPass = Np_per_inv <= inv.mppt_count;
-    const vocPass = Voc_cold <= inv.max_dc_voltage;
-    const vmppHotPass = Vmpp_hot >= inv.mppt_voltage_min;
-    const startupPass = Vmpp_hot >= inv.startup_voltage;
+    const vocPass      = Voc_cold <= inv.max_dc_voltage;
+    const vmppHotPass  = Vmpp_hot >= inv.mppt_voltage_min;
+    const startupPass  = Vmpp_hot >= inv.startup_voltage;
     const vmppColdPass = Vmpp_cold <= inv.mppt_voltage_max;
-    const iMpptPass = I_per_mppt <= inv.max_input_current_per_mppt;
-    const iTotalPass = I_total <= inv.max_short_circuit_current;
-    const pDcPass = P_cold_per_inv <= inv.pmax_dc_input;
+    const pDcPass      = P_cold_per_inv <= inv.pmax_dc_input;
 
-    const hardFail = !npPass || !vocPass || !iMpptPass || !iTotalPass || !pDcPass;
+    // Per-group capacity and current checks
+    const totalCapacity = totalCapacityPerInv(inv);
+    const capacityPass  = Np_per_inv <= totalCapacity;
+    const groupLoads    = distributeStrings(Np_per_inv, inv.mppt_groups || []);
+    const allGroupIMpptPass = groupLoads.every(
+      gl => gl.stringsPerMppt === 0 || gl.stringsPerMppt * mod.imp_stc * NOM_FACTOR <= gl.group.max_input_current
+    );
+    const allGroupIScPass = groupLoads.every(
+      gl => gl.stringsPerMppt === 0 || gl.stringsPerMppt * mod.isc_stc * NOM_FACTOR <= gl.group.max_short_circuit_current
+    );
+
+    const hardFail = !capacityPass || !vocPass || !allGroupIMpptPass || !allGroupIScPass || !pDcPass;
     const warn = !vmppHotPass || !startupPass || !vmppColdPass;
 
     return {
@@ -104,16 +134,16 @@
       Voc_cold,
       Vmpp_hot,
       Vmpp_cold,
-      I_per_mppt,
-      I_total,
       P_cold_total,
-      npPass,
+      totalCapacity,
+      capacityPass,
+      groupLoads,
+      allGroupIMpptPass,
+      allGroupIScPass,
       vocPass,
       vmppHotPass,
       startupPass,
       vmppColdPass,
-      iMpptPass,
-      iTotalPass,
       pDcPass,
       hardFail,
       warn,
@@ -243,11 +273,20 @@
           + remV + ' V'
           + (rem_startup_ok ? ' — el string corto la supera.' : ' — el string corto podría no arrancar el inversor.');
 
+        // Parallel-string mismatch warning
+        const selGroups4Rem = selectedInverter.mppt_groups || [];
+        const hasParallel   = selGroups4Rem.some(g => g.max_strings_per_mppt > 1);
+        const line3 = hasParallel
+          ? '⚠ El inversor admite strings en paralelo: conecta el string corto en una entrada MPPT dedicada (sin compartirla con un string completo) para evitar pérdidas por desajuste de corriente.'
+          : '';
+
         mpptNote.innerHTML = '<span class="block">' + line1 + '</span>'
-          + '<span class="block mt-1">' + line2 + '</span>';
+          + '<span class="block mt-1">' + line2 + '</span>'
+          + (line3 ? '<span class="block mt-1">' + line3 + '</span>' : '');
         mpptNote.className = 'mt-2 small font-weight-bold '
           + (!rem_mppt_ok               ? 'text-danger'
              : !rem_startup_ok          ? 'text-danger'
+             : hasParallel              ? 'text-warning'
              :                            'text-success');
         mpptNote.classList.remove('d-none');
       } else {
@@ -282,8 +321,9 @@
       (N_total * mod.length_m * mod.width_m).toFixed(1) + ' m²';
 
     // 5. N_inv stepper
-    const Np_total = Math.ceil(N_total / currentNs);
-    const nInvMin  = selectedInverter ? Math.ceil(Np_total / selectedInverter.mppt_count) : 1;
+    const Np_total  = Math.ceil(N_total / currentNs);
+    const capPerInv = selectedInverter ? totalCapacityPerInv(selectedInverter) : 0;
+    const nInvMin   = selectedInverter ? Math.ceil(Np_total / capPerInv) : 1;
     currentNInv    = Math.max(nInvMin, currentNInv);
     const nInvEl   = document.getElementById('ninv-value');
     if (nInvEl) nInvEl.textContent = currentNInv;
@@ -300,9 +340,9 @@
     const Np_per_inv_display = Math.ceil(Np_total / currentNInv);
     const hintEl = document.getElementById('np-mppt-hint');
     if (selectedInverter) {
-      const ok = Np_per_inv_display <= selectedInverter.mppt_count;
-      hintEl.textContent = (ok ? '✓ ' : '✗ ') + Np_per_inv_display + ' / ' + selectedInverter.mppt_count
-        + ' entradas MPPT por inversor'
+      const ok = Np_per_inv_display <= capPerInv;
+      hintEl.textContent = (ok ? '✓ ' : '✗ ') + Np_per_inv_display + ' / ' + capPerInv
+        + ' strings/inv (capacidad total)'
         + (currentNInv > 1 ? ' (' + Np_total + ' strings totales ÷ ' + currentNInv + ' inv)' : '');
       hintEl.className   = 'small font-weight-bold ' + (ok ? 'text-success' : 'text-danger');
     } else {
@@ -430,6 +470,15 @@
     div.className = 'card h-100 cursor-pointer ' +
       (isSelected ? 'card-outline card-primary' : 'card-outline card-default');
 
+    const invGroups   = inv.mppt_groups || [];
+    const invTotalCap = totalCapacityPerInv(inv);
+    const invImpRow   = invGroups.length > 1
+      ? invGroups.map(g => g.group_label + ': ' + g.max_input_current + ' A').join(' / ')
+      : inv.max_input_current_per_mppt + ' A';
+    const invIScRow   = invGroups.length > 1
+      ? invGroups.map(g => g.max_short_circuit_current + ' A').join(' / ')
+      : inv.max_short_circuit_current + ' A';
+
     div.innerHTML = `
       <div class="card-body p-3">
         <div class="d-flex align-items-start justify-content-between mb-2">
@@ -448,10 +497,10 @@
             <tr><td class="text-muted border-0 py-1">Vdc máx</td><td class="font-weight-bold border-0 py-1">${inv.max_dc_voltage} V</td></tr>
             <tr><td class="text-muted border-0 py-1">MPPT</td><td class="font-weight-bold border-0 py-1">${inv.mppt_voltage_min}–${inv.mppt_voltage_max} V</td></tr>
             <tr><td class="text-muted border-0 py-1">V arranque</td><td class="font-weight-bold border-0 py-1">${inv.startup_voltage} V</td></tr>
-            <tr><td class="text-muted border-0 py-1">I MPPT máx</td><td class="font-weight-bold border-0 py-1">${inv.max_input_current_per_mppt} A</td></tr>
-            <tr><td class="text-muted border-0 py-1">I<sub>sc</sub> máx</td><td class="font-weight-bold border-0 py-1">${inv.max_short_circuit_current} A</td></tr>
+            <tr><td class="text-muted border-0 py-1">I MPPT máx</td><td class="font-weight-bold border-0 py-1">${invImpRow}</td></tr>
+            <tr><td class="text-muted border-0 py-1">I<sub>sc</sub> máx</td><td class="font-weight-bold border-0 py-1">${invIScRow}</td></tr>
             <tr><td class="text-muted border-0 py-1">Eficiencia</td><td class="font-weight-bold text-success border-0 py-1">${inv.efficiency_weighted}%</td></tr>
-            <tr><td class="text-muted border-0 py-1"># MPPT</td><td class="font-weight-bold border-0 py-1">${inv.mppt_count}</td></tr>
+            <tr><td class="text-muted border-0 py-1"># MPPT / Cap.</td><td class="font-weight-bold border-0 py-1">${inv.mppt_count} ent. / ${invTotalCap} str</td></tr>
           </tbody>
         </table>
         <span data-compat-badge class="badge ${compatBadge.cssClass}">${compatBadge.text}</span>
@@ -484,18 +533,23 @@
     document.getElementById('selected-inverter-name').textContent =
       inv.manufacturer + ' – ' + inv.model;
 
+    const selGroups   = inv.mppt_groups || [];
+    const selTotalCap = totalCapacityPerInv(inv);
+    const groupSpecHtml = selGroups.map(g =>
+      `<div class="col-12 col-sm-6 col-lg-4 mb-1"><small class="text-muted d-block">Grupo ${g.group_label} (${g.mppt_count} MPPT, ≤${g.max_strings_per_mppt} str/MPPT)</small><span class="font-weight-bold small">I: ${g.max_input_current} A · Isc: ${g.max_short_circuit_current} A</span></div>`
+    ).join('');
+
     document.getElementById('selected-inverter-specs').innerHTML = [
-      ['P AC nom',    (inv.nominal_ac_power / 1000).toFixed(1) + ' kW'],
-      ['Fase',        mapPhaseLabel(inv.phase_type)],
-      ['Vdc máx',    inv.max_dc_voltage + ' V'],
-      ['MPPT',       inv.mppt_voltage_min + '–' + inv.mppt_voltage_max + ' V'],
-      ['V arranque', inv.startup_voltage + ' V'],
-      ['I MPPT máx', inv.max_input_current_per_mppt + ' A'],
-      ['η ponderada', inv.efficiency_weighted + '%'],
-      ['# MPPT',     inv.mppt_count],
+      ['P AC nom',      (inv.nominal_ac_power / 1000).toFixed(1) + ' kW'],
+      ['Fase',          mapPhaseLabel(inv.phase_type)],
+      ['Vdc máx',       inv.max_dc_voltage + ' V'],
+      ['MPPT',          inv.mppt_voltage_min + '–' + inv.mppt_voltage_max + ' V'],
+      ['V arranque',    inv.startup_voltage + ' V'],
+      ['Cap. strings',  selTotalCap + ' str. totales'],
+      ['η ponderada',   inv.efficiency_weighted + '%'],
     ].map(([l, v]) =>
       `<div class="col-6 col-sm-4 col-lg-3 mb-1"><small class="text-muted d-block">${l}</small><span class="font-weight-bold small">${v}</span></div>`
-    ).join('');
+    ).join('') + groupSpecHtml;
 
     computeInvResults(inv);
     results3.classList.remove('d-none');
@@ -517,25 +571,24 @@
     const Voc_cold = compat.Voc_cold;
     const Vmpp_hot = compat.Vmpp_hot;
     const Vmpp_cold = compat.Vmpp_cold;
-    const I_per_mppt = compat.I_per_mppt;
-    const I_total = compat.I_total;
     const P_cold_total = compat.P_cold_total;
     const P_stc_W      = window.calcState.P_stc_kW * 1000;
     const dc_ac        = P_stc_W / (currentNInv * inv.nominal_ac_power);
 
-    const npPass = compat.npPass;
-    const vocPass = compat.vocPass;
-    const vmppHotPass = compat.vmppHotPass;
-    const startupPass = compat.startupPass;
+    const capacityPass      = compat.capacityPass;
+    const groupLoads        = compat.groupLoads;
+    const allGroupIMpptPass = compat.allGroupIMpptPass;
+    const allGroupIScPass   = compat.allGroupIScPass;
+    const vocPass      = compat.vocPass;
+    const vmppHotPass  = compat.vmppHotPass;
+    const startupPass  = compat.startupPass;
     const vmppColdPass = compat.vmppColdPass;
-    const iMpptPass = compat.iMpptPass;
-    const iTotalPass = compat.iTotalPass;
-    const pDcPass = compat.pDcPass;
+    const pDcPass      = compat.pDcPass;
 
     setCheck('chk-np-mppt',
       Np_per_inv + ' strings/inv' + (currentNInv > 1 ? ' (' + Np + ' totales ÷ ' + currentNInv + ')' : ''),
-      '≤ ' + inv.mppt_count + ' entradas MPPT por inversor',
-      npPass, true);
+      '≤ ' + compat.totalCapacity + ' cap. total (MPPT × str máx)',
+      capacityPass, true);
 
     setCheck('chk-voc',
       Voc_cold.toFixed(1) + ' V',
@@ -557,15 +610,8 @@
       '≤ ' + inv.mppt_voltage_max + ' V',
       vmppColdPass, false);
 
-    setCheck('chk-i-mppt',
-      I_per_mppt.toFixed(2) + ' A (Imp ×1.25, 1 str/MPPT)',
-      '≤ ' + inv.max_input_current_per_mppt + ' A',
-      iMpptPass, true);
-
-    setCheck('chk-i-total',
-      I_total.toFixed(2) + ' A (Isc×1.25, 1 str/MPPT)',
-      '≤ ' + inv.max_short_circuit_current + ' A',
-      iTotalPass, true);
+    renderCurrentCheck('chk-i-mppt',  groupLoads, 'imp');
+    renderCurrentCheck('chk-i-total', groupLoads, 'isc');
 
     const P_cold_per_inv = Np_per_inv * currentNs * (P_cold_total / N_total);
     setCheck('chk-p-dc',
@@ -595,11 +641,11 @@
     contBtn3.disabled = anyHardFail;
     if (anyHardFail) {
       const reasons = [];
-    if (!npPass)     reasons.push('Strings/inv (' + Np_per_inv + ') supera entradas MPPT (' + inv.mppt_count + '). Aumenta el nº de inversores.');
-    if (!vocPass)    reasons.push('Voc en frío supera Vdc máx');
-    if (!iMpptPass)  reasons.push('I por MPPT supera el límite');
-    if (!iTotalPass) reasons.push('Isc total supera el límite');
-    if (!pDcPass)    reasons.push('P por inversor en frío supera entrada DC máx');
+      if (!capacityPass)      reasons.push('Strings/inv (' + Np_per_inv + ') supera capacidad (' + compat.totalCapacity + '). Aumenta el nº de inversores.');
+      if (!vocPass)           reasons.push('Voc en frío supera Vdc máx');
+      if (!allGroupIMpptPass) reasons.push('Corriente por MPPT supera el límite en algún grupo');
+      if (!allGroupIScPass)   reasons.push('Isc por MPPT supera el límite en algún grupo');
+      if (!pDcPass)           reasons.push('P por inversor en frío supera entrada DC máx');
       contBtn3.title = reasons.join(' • ');
     } else {
       contBtn3.title = '';
@@ -631,6 +677,54 @@
     badge.textContent                              = pass ? '✓ OK' : isHard ? '✗ Falla' : '⚠ Revisar';
     card.querySelector('[data-actual]').textContent = actual;
     card.querySelector('[data-limit]').textContent  = limit;
+  }
+
+  /**
+   * Renders per-group current check cards (chk-i-mppt / chk-i-total).
+   * type = 'imp' → operating current  (Imp × NOM_FACTOR ≤ max_input_current)
+   * type = 'isc' → short-circuit current (Isc × NOM_FACTOR ≤ max_short_circuit_current)
+   */
+  function renderCurrentCheck(cardId, groupLoads, type) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const baseI     = type === 'imp' ? mod.imp_stc : mod.isc_stc;
+    const limitKey  = type === 'imp' ? 'max_input_current' : 'max_short_circuit_current';
+    const typeLabel = type === 'imp' ? 'Imp' : 'Isc';
+
+    const active  = groupLoads.filter(gl => gl.stringsAssigned > 0);
+    const allPass = active.every(gl => gl.stringsPerMppt * baseI * NOM_FACTOR <= gl.group[limitKey]);
+
+    const badge = card.querySelector('[data-badge]');
+    card.className = 'card card-outline h-100 ' + (allPass ? 'card-success' : 'card-danger');
+    badge.className = 'badge ' + (allPass ? 'badge-success' : 'badge-danger');
+    badge.textContent = allPass ? '✓ OK' : '✗ Falla';
+
+    const actualEl = card.querySelector('[data-actual]');
+    const limitEl  = card.querySelector('[data-limit]');
+
+    if (active.length <= 1) {
+      const gl  = active[0];
+      const I   = gl ? gl.stringsPerMppt * baseI * NOM_FACTOR : baseI * NOM_FACTOR;
+      const lim = gl ? gl.group[limitKey] : 0;
+      actualEl.textContent = I.toFixed(2) + ' A'
+        + (gl && gl.stringsPerMppt > 1
+            ? ' (' + gl.stringsPerMppt + ' str × ' + typeLabel + ' ×1.25)'
+            : ' (' + typeLabel + ' ×1.25, 1 str)');
+      limitEl.textContent = '≤ ' + lim + ' A';
+    } else {
+      // Multi-group: one line per active group
+      actualEl.innerHTML = active.map(gl => {
+        const I   = (gl.stringsPerMppt * baseI * NOM_FACTOR).toFixed(2);
+        const lim = gl.group[limitKey];
+        const ok  = parseFloat(I) <= lim;
+        return '<span style="display:block' + (ok ? '' : ';color:var(--danger,#dc3545);font-weight:700') + '">'
+          + gl.group.group_label + ': ' + gl.stringsPerMppt + ' str ×1.25 = ' + I + ' A / ' + lim + ' A'
+          + '</span>';
+      }).join('');
+      limitEl.textContent = type === 'imp'
+        ? 'I máx por entrada MPPT (por grupo)'
+        : 'Isc máx por entrada MPPT (por grupo)';
+    }
   }
 
   // ── Reset (called by showStep when navigating back to step ≤ 2) ──

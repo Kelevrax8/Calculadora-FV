@@ -158,13 +158,11 @@ include '../components/header-dashboard.php';
                     <th class="text-right">V DC máx (V)</th>
                     <th class="text-right">Rango VMPP (V)</th>
                     <th class="text-right">V arranque (V)</th>
-                    <th class="text-right">I/MPPT máx (A)</th>
-                    <th class="text-right">Isc máx (A)</th>
+                    <th>Grupos MPPT</th>
                     <th class="text-right">P AC nom (W)</th>
                     <th class="text-right">V AC nom (V)</th>
                     <th>Fase</th>
                     <th class="text-right">EE pond. (%)</th>
-                    <th class="text-right">MPPT</th>
                     <th class="text-center" style="width:100px;">Acciones</th>
                   </tr>
                 </thead>
@@ -354,17 +352,18 @@ include '../components/header-dashboard.php';
                 <input type="number" step="0.01" id="inv-startup_voltage" required class="form-control">
               </div>
             </div>
-            <div class="col-sm-6">
-              <div class="form-group">
-                <label>I entrada máx por MPPT (A) <span class="text-danger">*</span></label>
-                <input type="number" step="0.01" id="inv-max_input_current_per_mppt" required class="form-control">
+            <div class="col-12 mt-2 mb-1">
+              <label class="font-weight-bold">Grupos MPPT <span class="text-danger">*</span>
+                <small class="text-muted font-weight-normal ml-2">(cada grupo reúne entradas con iguales especificaciones)</small>
+              </label>
+              <div class="alert alert-info py-1 px-2 small mb-2" role="alert">
+                <i class="fas fa-info-circle mr-1"></i>Agrupa entradas MPPT que comparten los mismos límites de corriente y strings en paralelo. Usa un grupo por cada conjunto distinto.
               </div>
-            </div>
-            <div class="col-sm-6">
-              <div class="form-group">
-                <label>Isc máxima (A) <span class="text-danger">*</span></label>
-                <input type="number" step="0.01" id="inv-max_short_circuit_current" required class="form-control">
-              </div>
+              <div id="inv-mppt-groups"></div>
+              <button type="button" class="btn btn-xs btn-default border mt-1"
+                onclick="addMpptGroup()">
+                <i class="fas fa-plus mr-1"></i>Agregar grupo
+              </button>
             </div>
             <div class="col-sm-6">
               <div class="form-group">
@@ -393,12 +392,6 @@ include '../components/header-dashboard.php';
               <div class="form-group">
                 <label>Eficiencia ponderada (%) <span class="text-danger">*</span></label>
                 <input type="number" step="0.01" id="inv-efficiency_weighted" required class="form-control">
-              </div>
-            </div>
-            <div class="col-sm-6">
-              <div class="form-group">
-                <label>Cantidad MPPT <span class="text-danger">*</span></label>
-                <input type="number" step="1" min="1" id="inv-mppt_count" required class="form-control">
               </div>
             </div>
           </div>

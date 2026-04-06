@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\Inverter;
+use App\Models\MpptGroup;
 use App\Models\PVModule;
 use App\Repositories\InverterRepository;
 use App\Repositories\ManufacturerRepository;
@@ -193,24 +194,63 @@ class InventarioApiController
     public function saveInverter(array $body): array
     {
         try {
+            // ── Build MPPT groups ────────────────────────────────────────────
+            // Accept the new structured format (mppt_groups array) OR fall back
+            // to the backward-compatible flat fields sent by the existing UI
+            // (max_input_current_per_mppt, max_short_circuit_current, mppt_count).
+            // This keeps the inventory form working until Phase 5 updates it.
+            if (!empty($body['mppt_groups']) && is_array($body['mppt_groups'])) {
+                $groups = [];
+                foreach ($body['mppt_groups'] as $g) {
+                    $label = trim((string)($g['group_label'] ?? ''));
+                    if ($label === '') {
+                        return ['error' => 'Cada grupo MPPT debe tener una etiqueta.'];
+                    }
+                    $groups[] = new MpptGroup(
+                        id:                     0,
+                        inverterId:             0,
+                        label:                  $label,
+                        mpptCount:              max(1, (int)($g['mppt_count']           ?? 1)),
+                        maxStringsPerMppt:      max(1, (int)($g['max_strings_per_mppt'] ?? 1)),
+                        maxInputCurrent:        (float)($g['max_input_current']         ?? 0),
+                        maxShortCircuitCurrent: (float)($g['max_short_circuit_current'] ?? 0),
+                    );
+                }
+            } else {
+                // Backward-compatible: synthesise a single group from flat fields.
+                $groups = [
+                    new MpptGroup(
+                        id:                     0,
+                        inverterId:             0,
+                        label:                  'MPP1',
+                        mpptCount:              max(1, (int)($body['mppt_count']                   ?? 1)),
+                        maxStringsPerMppt:      1,
+                        maxInputCurrent:        (float)($body['max_input_current_per_mppt']        ?? 0),
+                        maxShortCircuitCurrent: (float)($body['max_short_circuit_current']         ?? 0),
+                    ),
+                ];
+            }
+
+            if (empty($groups)) {
+                return ['error' => 'El inversor debe tener al menos un grupo MPPT.'];
+            }
+
             $inverter = new Inverter(
-                id:                     (int)($body['id']                           ?? 0),
-                manufacturerId:         (int)($body['manufacturer_id']              ?? 0),
-                manufacturer:           '',
-                model:                  trim($body['model']                         ?? ''),
-                pmaxDcInput:            (float)($body['pmax_dc_input']              ?? 0),
-                maxDcVoltage:           (float)($body['max_dc_voltage']             ?? 0),
-                mpptVoltageMin:         (float)($body['mppt_voltage_min']           ?? 0),
-                mpptVoltageMax:         (float)($body['mppt_voltage_max']           ?? 0),
-                startupVoltage:         (float)($body['startup_voltage']            ?? 0),
-                maxInputCurrentPerMppt: (float)($body['max_input_current_per_mppt'] ?? 0),
-                maxShortCircuitCurrent: (float)($body['max_short_circuit_current']  ?? 0),
-                nominalAcPower:         (float)($body['nominal_ac_power']           ?? 0),
-                acVoltageNominal:       (float)($body['ac_voltage_nominal']         ?? 0),
-                phaseType:              $body['phase_type']                         ?? '',
-                efficiencyWeighted:     (float)($body['efficiency_weighted']        ?? 0),
-                mpptCount:              (int)($body['mppt_count']                   ?? 0),
-                createdAt:              '',
+                id:                 (int)($body['id']                  ?? 0),
+                manufacturerId:     (int)($body['manufacturer_id']     ?? 0),
+                manufacturer:       '',
+                model:              trim($body['model']                 ?? ''),
+                pmaxDcInput:        (float)($body['pmax_dc_input']     ?? 0),
+                maxDcVoltage:       (float)($body['max_dc_voltage']    ?? 0),
+                mpptVoltageMin:     (float)($body['mppt_voltage_min']  ?? 0),
+                mpptVoltageMax:     (float)($body['mppt_voltage_max']  ?? 0),
+                startupVoltage:     (float)($body['startup_voltage']   ?? 0),
+                nominalAcPower:     (float)($body['nominal_ac_power']  ?? 0),
+                acVoltageNominal:   (float)($body['ac_voltage_nominal']?? 0),
+                phaseType:          $body['phase_type']                ?? '',
+                efficiencyWeighted: (float)($body['efficiency_weighted']?? 0),
+                createdAt:          '',
+                mpptGroups:         $groups,
             );
 
             $this->inverters->save($inverter);

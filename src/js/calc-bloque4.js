@@ -49,6 +49,19 @@
   // Must match the PR used in block 2 for module sizing (calc-bloque2.js)
   const PR = 0.75;
 
+  // ── MPPT-group helper (mirrors bloque3; both live in separate IIFEs) ────────
+  function distributeStrings(Np_per_inv, groups) {
+    if (!groups || groups.length === 0) return [];
+    let remaining = Np_per_inv;
+    return groups.map(g => {
+      const capacity       = g.mppt_count * g.max_strings_per_mppt;
+      const assigned       = Math.min(capacity, remaining);
+      remaining           -= assigned;
+      const stringsPerMppt = assigned > 0 ? Math.ceil(assigned / g.mppt_count) : 0;
+      return { group: g, stringsAssigned: assigned, stringsPerMppt };
+    });
+  }
+
   // ── State ─────────────────────────────────────────────────
   let deratingOn = false;
 
@@ -130,8 +143,6 @@
     const Vmpp_cold    = Ns * Vmpp_cold_per;
     const Vmpp_nom     = Ns * mod.vmpp_stc;   // STC — display only
     const Isc_array    = Np * mod.isc_stc;    // display only
-    const I_per_mppt   = mod.imp_stc * 1.25;          // NOM-001: Imp × 1.25, per MPPT input (1 string/MPPT)
-    const I_total      = mod.isc_stc * 1.25;    // NOM-001: Isc × 1.25 per MPPT (1 string/MPPT)
     const P_cold_total   = N * P_cold_per;    // W at Tmin (whole array)
     const P_cold_per_inv = Np_per_inv * Ns * P_cold_per; // W per inverter at Tmin
     const P_stc_W        = cs.P_stc_kW * 1000;
@@ -169,28 +180,64 @@
         ? `${N_inv} × ${inv.nominal_ac_power} W = ${N_inv * inv.nominal_ac_power} W`
         : inv.nominal_ac_power + ' W');
     setText('s4-mppt-range',      `${inv.mppt_voltage_min} – ${inv.mppt_voltage_max} V`);
-    setText('s4-inverter-imax',   inv.max_short_circuit_current + ' A');
+    const invGroups4 = inv.mppt_groups || [];
+    setText('s4-inverter-imax',
+      invGroups4.length > 1
+        ? invGroups4.map(g => g.group_label + ': ' + g.max_short_circuit_current + ' A').join(' / ')
+        : inv.max_short_circuit_current + ' A');
     setText('s4-startup-voltage', inv.startup_voltage + ' V');
     setText('s4-ac-voltage',      inv.ac_voltage_nominal + ' V');
 
     // ── Compatibility checks ───────────────────────────────
-    const npPass       = Np_per_inv   <= inv.mppt_count;
     const vocPass      = Voc_cold     <= inv.max_dc_voltage;
     const vmppHotPass  = Vmpp_hot     >= inv.mppt_voltage_min;
     const startupPass  = Vmpp_hot     >= inv.startup_voltage;
     const vmppColdPass = Vmpp_cold    <= inv.mppt_voltage_max;
-    const iMpptPass    = I_per_mppt   <= inv.max_input_current_per_mppt;
-    const iTotalPass   = I_total      <= inv.max_short_circuit_current;
     const pDcPass      = P_cold_per_inv <= inv.pmax_dc_input;
 
+    // Per-group capacity and current checks
+    const groups4       = inv.mppt_groups || [];
+    const totalCapacity = groups4.length > 0
+      ? groups4.reduce((s, g) => s + g.mppt_count * g.max_strings_per_mppt, 0)
+      : inv.mppt_count;
+    const capacityPass = Np_per_inv <= totalCapacity;
+    const groupLoads   = distributeStrings(Np_per_inv, groups4);
+    const allGroupIMpptPass = groupLoads.every(
+      gl => gl.stringsPerMppt === 0 || gl.stringsPerMppt * mod.imp_stc * 1.25 <= gl.group.max_input_current
+    );
+    const allGroupIScPass = groupLoads.every(
+      gl => gl.stringsPerMppt === 0 || gl.stringsPerMppt * mod.isc_stc * 1.25 <= gl.group.max_short_circuit_current
+    );
+
     // hard = blocks continue in block 3; soft = warning only
+    const groupCurrentChecks = groupLoads
+      .filter(gl => gl.stringsAssigned > 0)
+      .flatMap(gl => {
+        const I_mp = (gl.stringsPerMppt * mod.imp_stc * 1.25).toFixed(2);
+        const I_sc = (gl.stringsPerMppt * mod.isc_stc * 1.25).toFixed(2);
+        const lim_mp = gl.group.max_input_current;
+        const lim_sc = gl.group.max_short_circuit_current;
+        return [
+          {
+            label:  `Grupo ${gl.group.group_label}: I MPPT ≤ Imáx (${gl.stringsPerMppt} str × Imp ×1.25)`,
+            detail: `${I_mp} A ≤ ${lim_mp} A`,
+            pass:   parseFloat(I_mp) <= lim_mp, hard: true,
+          },
+          {
+            label:  `Grupo ${gl.group.group_label}: Isc MPPT ≤ Iscmáx (${gl.stringsPerMppt} str × Isc ×1.25)`,
+            detail: `${I_sc} A ≤ ${lim_sc} A`,
+            pass:   parseFloat(I_sc) <= lim_sc, hard: true,
+          },
+        ];
+      });
+
     const checks = [
       {
         label: N_inv > 1
-          ? `Strings/inv (${Np_per_inv}) ≤ Entradas MPPT (${Np} totales ÷ ${N_inv} inv)`
-          : 'Núm. strings ≤ Entradas MPPT del inversor',
-        detail: `${Np_per_inv} string(s)/inv ≤ ${inv.mppt_count} MPPT`,
-        pass:   npPass, hard: true,
+          ? `Strings/inv (${Np_per_inv}) ≤ Capacidad total (${Np} totales ÷ ${N_inv} inv)`
+          : 'Strings ≤ Capacidad total del inversor',
+        detail: `${Np_per_inv} strings/inv ≤ ${totalCapacity} (MPPT × str máx/MPPT)`,
+        pass:   capacityPass, hard: true,
       },
       {
         label:  'Voc en frío ≤ Tensión máx. DC',
@@ -212,16 +259,7 @@
         detail: `${Vmpp_cold.toFixed(1)} V ≤ ${inv.mppt_voltage_max} V`,
         pass:   vmppColdPass, hard: false,
       },
-      {
-        label:  'Corriente por MPPT ≤ Imáx entrada (Imp × 1.25)',
-        detail: `${I_per_mppt.toFixed(2)} A ≤ ${inv.max_input_current_per_mppt} A`,
-        pass:   iMpptPass, hard: true,
-      },
-      {
-        label:  'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)',
-        detail: `${I_total.toFixed(2)} A ≤ ${inv.max_short_circuit_current} A`,
-        pass:   iTotalPass, hard: true,
-      },
+      ...groupCurrentChecks,
       {
         label:  N_inv > 1
           ? `P por inversor en frío ≤ Entrada DC máx. (${(P_cold_total/1000).toFixed(2)} kW total ÷ ${N_inv})`
@@ -231,7 +269,7 @@
       },
     ];
 
-    const anyHardFail = !npPass || !vocPass || !iMpptPass || !iTotalPass || !pDcPass;
+    const anyHardFail = !capacityPass || !vocPass || !allGroupIMpptPass || !allGroupIScPass || !pDcPass;
     const anySoftFail = !vmppHotPass || !startupPass || !vmppColdPass;
 
     renderVerdictBanner(anyHardFail, anySoftFail);
@@ -569,37 +607,58 @@ hint.classList.remove('d-none');
     const Vmpp_cold     = Ns * mod.vmpp_stc * (1 + betaVoc   * (tmin - 25));
     const P_cold_per    = mod.pmax_stc * (1 + gammaPmax * (tmin - 25));
     const Isc_array     = Np * mod.isc_stc;
-    const I_per_mppt    = mod.imp_stc * 1.25;          // per MPPT input (1 string/MPPT)
-    const I_total       = mod.isc_stc * 1.25;    // total array Isc × 1.25
     const P_cold_total  = N * P_cold_per;
     const P_cold_per_inv = Np_per_inv * Ns * P_cold_per;
     const dc_ac         = (cs.P_stc_kW * 1000) / (N_inv * inv.nominal_ac_power);
 
-    // Checks
-    const npPass       = Np_per_inv   <= inv.mppt_count;
-    const vocPass      = Voc_cold     <= inv.max_dc_voltage;
-    const vmppHotPass  = Vmpp_hot     >= inv.mppt_voltage_min;
-    const startupPass  = Vmpp_hot     >= inv.startup_voltage;
-    const vmppColdPass = Vmpp_cold    <= inv.mppt_voltage_max;
-    const iMpptPass    = I_per_mppt   <= inv.max_input_current_per_mppt;
-    const iTotalPass   = I_total      <= inv.max_short_circuit_current;
+    // Checks (per-group, mirrors populateBlock4)
+    const expGroups      = inv.mppt_groups || [];
+    const expTotalCap    = expGroups.length > 0
+      ? expGroups.reduce((s, g) => s + g.mppt_count * g.max_strings_per_mppt, 0)
+      : inv.mppt_count;
+    const expCapacityPass = Np_per_inv <= expTotalCap;
+    const expGroupLoads   = distributeStrings(Np_per_inv, expGroups);
+    const expGroupCurrentChecks = expGroupLoads
+      .filter(gl => gl.stringsAssigned > 0)
+      .flatMap(gl => {
+        const I_mp = (gl.stringsPerMppt * mod.imp_stc * 1.25).toFixed(2);
+        const I_sc = (gl.stringsPerMppt * mod.isc_stc * 1.25).toFixed(2);
+        const lim_mp = gl.group.max_input_current;
+        const lim_sc = gl.group.max_short_circuit_current;
+        return [
+          {
+            label:  `Grupo ${gl.group.group_label}: I MPPT ≤ Imáx (${gl.stringsPerMppt} str × Imp ×1.25)`,
+            detail: `${I_mp} A ≤ ${lim_mp} A`,
+            pass:   parseFloat(I_mp) <= lim_mp, hard: true,
+          },
+          {
+            label:  `Grupo ${gl.group.group_label}: Isc MPPT ≤ Iscmáx (${gl.stringsPerMppt} str × Isc ×1.25)`,
+            detail: `${I_sc} A ≤ ${lim_sc} A`,
+            pass:   parseFloat(I_sc) <= lim_sc, hard: true,
+          },
+        ];
+      });
+
+    const vocPass      = Voc_cold  <= inv.max_dc_voltage;
+    const vmppHotPass  = Vmpp_hot  >= inv.mppt_voltage_min;
+    const startupPass  = Vmpp_hot  >= inv.startup_voltage;
+    const vmppColdPass = Vmpp_cold <= inv.mppt_voltage_max;
     const pDcPass      = P_cold_per_inv <= inv.pmax_dc_input;
 
     const checks = [
       { label: N_inv > 1
-          ? `Strings/inv (${Np_per_inv}) ≤ Entradas MPPT (${Np} totales ÷ ${N_inv} inv)`
-          : 'Núm. strings ≤ Entradas MPPT del inversor',
-        detail: `${Np_per_inv} string(s)/inv ≤ ${inv.mppt_count} MPPT`,                                     pass: npPass,       hard: true  },
-      { label: 'Voc en frío ≤ Tensión máx. DC',             detail: `${Voc_cold.toFixed(1)} V ≤ ${inv.max_dc_voltage} V`,                                                     pass: vocPass,      hard: true  },
-      { label: 'Vmpp en calor ≥ Límite inferior MPPT',      detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.mppt_voltage_min} V`,                                                   pass: vmppHotPass,  hard: false },
-      { label: 'Vmpp en calor ≥ Tensión de arranque',       detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.startup_voltage} V`,                                                    pass: startupPass,  hard: false },
-      { label: 'Vmpp en frío ≤ Límite superior MPPT',       detail: `${Vmpp_cold.toFixed(1)} V ≤ ${inv.mppt_voltage_max} V`,                                                  pass: vmppColdPass, hard: false },
-      { label: 'Corriente por MPPT ≤ Imáx entrada (Imp × 1.25)',          detail: `${I_per_mppt.toFixed(2)} A ≤ ${inv.max_input_current_per_mppt} A`,                                                            pass: iMpptPass,    hard: true  },
-      { label: 'Corriente de CC por MPPT ≤ Isc max entrada (Isc × 1.25)', detail: `${I_total.toFixed(2)} A ≤ ${inv.max_short_circuit_current} A`,                     pass: iTotalPass,   hard: true  },
+          ? `Strings/inv (${Np_per_inv}) ≤ Capacidad total (${Np} totales ÷ ${N_inv} inv)`
+          : 'Strings ≤ Capacidad total del inversor',
+        detail: `${Np_per_inv} strings/inv ≤ ${expTotalCap} (MPPT × str máx/MPPT)`, pass: expCapacityPass, hard: true  },
+      { label: 'Voc en frío ≤ Tensión máx. DC',             detail: `${Voc_cold.toFixed(1)} V ≤ ${inv.max_dc_voltage} V`,                                                     pass: vocPass,           hard: true  },
+      { label: 'Vmpp en calor ≥ Límite inferior MPPT',      detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.mppt_voltage_min} V`,                                                   pass: vmppHotPass,       hard: false },
+      { label: 'Vmpp en calor ≥ Tensión de arranque',       detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.startup_voltage} V`,                                                    pass: startupPass,       hard: false },
+      { label: 'Vmpp en frío ≤ Límite superior MPPT',       detail: `${Vmpp_cold.toFixed(1)} V ≤ ${inv.mppt_voltage_max} V`,                                                  pass: vmppColdPass,      hard: false },
+      ...expGroupCurrentChecks,
       { label: N_inv > 1
           ? `P por inversor en frío ≤ Entrada DC máx. (${(P_cold_total/1000).toFixed(2)} kW total ÷ ${N_inv})`
           : 'P arreglo en frío ≤ Entrada DC máx.',
-        detail: `${(P_cold_per_inv/1000).toFixed(2)} kW/inv (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`, pass: pDcPass,      hard: true  },
+        detail: `${(P_cold_per_inv/1000).toFixed(2)} kW/inv (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`, pass: pDcPass,           hard: true  },
     ];
 
     // Energy
