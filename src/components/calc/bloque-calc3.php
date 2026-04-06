@@ -337,7 +337,25 @@
       Configuración: —
     </div>
 
-  </div>
+    <!-- Electrical protections -->
+    <p class="text-muted text-uppercase font-weight-bold small mb-2">
+      Protecciones Eléctricas (Lado DC)
+    </p>
+    <div id="prot-electricas" class="row mb-1">
+      <!-- populated by JS -->
+    </div>
+    <small class="text-muted d-block mb-3" style="font-size:.75rem;">
+      NOM-001-SEDE / NEC 690.8 &mdash;
+      <strong>Fusible de cadena (gPV)</strong> requerido únicamente cuando hay &ge; 2 strings en paralelo por entrada MPPT
+      (protege contra corriente inversa).
+      Calibre gPV: I<sub>sc</sub> &times; 1.56 redondeado al tamaño estándar superior.
+      <strong>Conductores Cu 75&nbsp;°C</strong> (Tabla 310.15(B)(16)):
+      cadena = I<sub>sc</sub> &times; 1.25; entrada MPPT combinada = N<sub>str</sub> &times; I<sub>sc</sub> &times; 1.25.
+      OCPD (interruptor/fusible CC): mismo criterio pero con factor 1.56.
+      Verificar derating por temperatura en el Paso 4.
+    </small>
+
+  </div><!-- /calc3-results -->
 
   <!-- Continue button -->
   <div class="card-footer">

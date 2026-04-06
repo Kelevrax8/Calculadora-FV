@@ -23,6 +23,54 @@
   const STC_TEMP = 25;
   const NOM_FACTOR = 1.25;
 
+  // ── Protection lookup tables (mirrors bloque4; each IIFE is self-contained) ──
+  const OCPD_SIZES = [15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 125, 150, 175, 200];
+  const GPV_FUSE_SIZES = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 16, 20, 25, 30, 32, 35, 40, 50, 63, 80, 100];
+
+  // Ampacity for 75 °C Cu conductors in conduit (NOM Tabla 310.15(B)(16), columna 75 °C)
+  const AWG_TABLE = [
+    { label: '14 AWG',  ampacity: 20  },
+    { label: '12 AWG',  ampacity: 25  },
+    { label: '10 AWG',  ampacity: 35  },
+    { label: '8 AWG',   ampacity: 50  },
+    { label: '6 AWG',   ampacity: 65  },
+    { label: '4 AWG',   ampacity: 85  },
+    { label: '3 AWG',   ampacity: 100 },
+    { label: '2 AWG',   ampacity: 115 },
+    { label: '1 AWG',   ampacity: 130 },
+    { label: '1/0 AWG', ampacity: 150 },
+    { label: '2/0 AWG', ampacity: 175 },
+    { label: '3/0 AWG', ampacity: 200 },
+    { label: '4/0 AWG', ampacity: 230 },
+  ];
+
+  // NOM-001-SEDE-2012 Art. 240-4(d) — maximum OCPD for small Cu conductors
+  const SMALL_CONDUCTOR_MAX_OCPD = { '14 AWG': 15, '12 AWG': 20, '10 AWG': 30 };
+
+  function nextGpvFuse(current) {
+    return GPV_FUSE_SIZES.find(s => s >= current) || Math.ceil(current);
+  }
+
+  function nextOCPD(iDesign) {
+    const found = OCPD_SIZES.find(s => s >= iDesign);
+    return found ?? `>${OCPD_SIZES[OCPD_SIZES.length - 1]} A (consultar)`;
+  }
+
+  // Identical logic to bloque4 resolveCircuit — OCPD on design current,
+  // conductor on required current, small-conductor rule (240-4(d)) applied.
+  function resolveCircuit(I_required, I_design) {
+    const ocpd = nextOCPD(I_design);
+    let firstValid = null;
+    for (const row of AWG_TABLE) {
+      if (row.ampacity < I_required) continue;
+      if (firstValid === null) firstValid = row.label;
+      const ceiling = SMALL_CONDUCTOR_MAX_OCPD[row.label];
+      if (ceiling !== undefined && typeof ocpd === 'number' && ocpd > ceiling) continue;
+      return { ocpd, awg: row.label, upsized: row.label !== firstValid };
+    }
+    return { ocpd, awg: 'Mayor a 4/0 AWG (consultar)', upsized: false };
+  }
+
   // ── MPPT-group helpers ────────────────────────────────────
   /** Total string capacity for one inverter: Σ(mpptCount × maxStringsPerMppt) across all groups. */
   function totalCapacityPerInv(inv) {
@@ -612,6 +660,7 @@
 
     renderCurrentCheck('chk-i-mppt',  groupLoads, 'imp');
     renderCurrentCheck('chk-i-total', groupLoads, 'isc');
+    renderElectricalProtections(groupLoads);
 
     const P_cold_per_inv = Np_per_inv * currentNs * (P_cold_total / N_total);
     setCheck('chk-p-dc',
@@ -725,6 +774,171 @@
         ? 'I máx por entrada MPPT (por grupo)'
         : 'Isc máx por entrada MPPT (por grupo)';
     }
+  }
+
+  // ── Electrical protections ────────────────────────────────
+  /**
+   * Breaks down groupLoads into distinct per-MPPT scenarios by strings-per-MPPT count.
+   * A group with uneven distribution (e.g. 5 strings across 3 MPPTs → 2,2,1) produces
+   * two entries so each is sized independently.
+   *
+   * For each scenario, derives:
+   *   strCircuit  — conductor + OCPD for a single string (Isc×1.25 / Isc×1.56)
+   *   mpptCircuit — conductor + OCPD for the combined MPPT input (N×Isc×1.25 / N×Isc×1.56)
+   *   fuseStdA    — gPV string fuse size when parallel strings are present (Isc×1.56 rounded up)
+   */
+  function getProtectionScenarios(groupLoads) {
+    const map = new Map(); // strPerMppt → { mpptCount, labels }
+
+    groupLoads.forEach(gl => {
+      if (gl.stringsAssigned === 0) return;
+
+      const total = gl.group.mppt_count;
+      const rem   = gl.stringsAssigned % total;
+      const floor = Math.floor(gl.stringsAssigned / total);
+      const ceil  = gl.stringsPerMppt;
+
+      function add(strCount, count, suffix) {
+        if (strCount <= 0 || count <= 0) return;
+        if (!map.has(strCount)) map.set(strCount, { mpptCount: 0, labels: [] });
+        const entry = map.get(strCount);
+        entry.mpptCount += count;
+        entry.labels.push(gl.group.group_label + (suffix ? ' ' + suffix : ''));
+      }
+
+      if (rem === 0) {
+        add(ceil, total, '');
+      } else {
+        add(ceil,  rem,         total > 1 ? `(${rem}/${total} MPPT)` : '');
+        add(floor, total - rem, total > 1 ? `(${total - rem}/${total} MPPT)` : '');
+      }
+    });
+
+    const Isc = mod.isc_stc;
+    return Array.from(map.entries())
+      .sort((a, b) => b[0] - a[0])   // descending: parallel-heavy scenarios first
+      .map(([strPerMppt, { mpptCount, labels }]) => {
+        const needsFuse = strPerMppt >= 2;
+
+        // Individual string circuit: Isc×1.25 required, Isc×1.56 design (NEC 690.8)
+        const strCircuit  = resolveCircuit(Isc * 1.25, Isc * 1.56);
+
+        // Combined MPPT input circuit: N×Isc×1.25 required, N×Isc×1.56 design
+        const mpptCircuit = resolveCircuit(strPerMppt * Isc * 1.25, strPerMppt * Isc * 1.56);
+
+        // Per-string gPV fuse (protects each string against reverse current from parallel strings)
+        const fuseMinA = Isc * 1.56;
+        const fuseStdA = needsFuse ? nextGpvFuse(fuseMinA) : null;
+
+        return { strPerMppt, mpptCount, labels, needsFuse, fuseMinA, fuseStdA, strCircuit, mpptCircuit, Isc };
+      });
+  }
+
+  /** Renders the Protecciones Eléctricas section inside #prot-electricas. */
+  function renderElectricalProtections(groupLoads) {
+    const container = document.getElementById('prot-electricas');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const scenarios = getProtectionScenarios(groupLoads);
+
+    if (scenarios.length === 0) {
+      container.innerHTML =
+        '<div class="col-12"><p class="text-muted small mb-2">Sin strings asignados.</p></div>';
+      return;
+    }
+
+    const fmtOCPD = val => typeof val === 'number' ? val + ' A' : val;
+
+    // Helper: one key-value row inside a card
+    const row = (label, value, upsized) => `
+      <div class="d-flex justify-content-between small mb-1">
+        <span class="text-muted">${label}</span>
+        <strong${upsized ? ' class="text-warning"' : ''}>${value}</strong>
+      </div>`;
+
+    scenarios.forEach(sc => {
+      const cardColor  = sc.needsFuse ? 'card-warning' : 'card-success';
+      const badgeColor = sc.needsFuse ? 'badge-warning' : 'badge-success';
+      const badgeText  = sc.needsFuse ? 'Fusible requerido' : 'Sin fusible de cadena';
+      const mpptLine   = sc.mpptCount + ' entrada' + (sc.mpptCount > 1 ? 's' : '') + ' MPPT';
+      const groupLine  = sc.labels.join(', ');
+
+      let bodyHtml = '';
+
+      if (sc.needsFuse) {
+        // ── Parallel strings: string fuse + two conductor circuits ──
+        bodyHtml += row(
+          `Fusible cadena gPV <small class="text-muted">(I<sub>sc</sub> ×1.56 = ${sc.fuseMinA.toFixed(1)} A)</small>:`,
+          sc.fuseStdA + ' A',
+          false
+        );
+        bodyHtml += row(
+          `Cable cadena Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.25 = ${(sc.Isc * 1.25).toFixed(1)} A)</small>:`,
+          sc.strCircuit.awg,
+          sc.strCircuit.upsized
+        );
+        bodyHtml += row(
+          `Cable entrada MPPT <small class="text-muted">(${sc.strPerMppt}×I<sub>sc</sub> ×1.25 = ${(sc.strPerMppt * sc.Isc * 1.25).toFixed(1)} A)</small>:`,
+          sc.mpptCircuit.awg,
+          sc.mpptCircuit.upsized
+        );
+        bodyHtml += row(
+          `Protección entrada MPPT <small class="text-muted">(${sc.strPerMppt}×I<sub>sc</sub> ×1.56 = ${(sc.strPerMppt * sc.Isc * 1.56).toFixed(1)} A)</small>:`,
+          fmtOCPD(sc.mpptCircuit.ocpd),
+          false
+        );
+        if (sc.strCircuit.upsized) {
+          bodyHtml += `<small class="text-warning d-block mt-1">
+            <i class="fas fa-exclamation-triangle mr-1"></i>Cable cadena aumentado por Art. 240-4(d)
+          </small>`;
+        }
+        if (sc.mpptCircuit.upsized) {
+          bodyHtml += `<small class="text-warning d-block mt-1">
+            <i class="fas fa-exclamation-triangle mr-1"></i>Cable entrada MPPT aumentado por Art. 240-4(d)
+          </small>`;
+        }
+      } else {
+        // ── Single string: one conductor circuit, no fuse ──
+        bodyHtml += `<div class="small mb-2 text-success">
+          <i class="fas fa-check-circle mr-1"></i>String único &mdash; sin corriente inversa posible
+        </div>`;
+        bodyHtml += row(
+          `Cable DC Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.25 = ${(sc.Isc * 1.25).toFixed(1)} A)</small>:`,
+          sc.strCircuit.awg,
+          sc.strCircuit.upsized
+        );
+        bodyHtml += row(
+          `Protección CC <small class="text-muted">(I<sub>sc</sub> ×1.56 = ${(sc.Isc * 1.56).toFixed(1)} A)</small>:`,
+          fmtOCPD(sc.strCircuit.ocpd),
+          false
+        );
+        if (sc.strCircuit.upsized) {
+          bodyHtml += `<small class="text-warning d-block mt-1">
+            <i class="fas fa-exclamation-triangle mr-1"></i>Conductor aumentado por Art. 240-4(d)
+          </small>`;
+        }
+      }
+
+      const col = document.createElement('div');
+      col.className = 'col-sm-6 col-lg-4 mb-2';
+      col.innerHTML = `
+        <div class="card card-outline ${cardColor} h-100">
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <p class="font-weight-bold mb-0 small">
+                  ${sc.strPerMppt} string${sc.strPerMppt > 1 ? 's' : ''} por MPPT
+                </p>
+                <small class="text-muted">${mpptLine}${groupLine ? ' &mdash; ' + groupLine : ''}</small>
+              </div>
+              <span class="badge ${badgeColor} ml-1" style="white-space:nowrap;">${badgeText}</span>
+            </div>
+            ${bodyHtml}
+          </div>
+        </div>`;
+      container.appendChild(col);
+    });
   }
 
   // ── Reset (called by showStep when navigating back to step ≤ 2) ──
