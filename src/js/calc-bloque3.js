@@ -286,7 +286,7 @@
         mpptNote.className = 'mt-2 small font-weight-bold '
           + (!rem_mppt_ok               ? 'text-danger'
              : !rem_startup_ok          ? 'text-danger'
-             : hasParallel              ? 'text-warning'
+             : hasParallel              ? 'text-success'
              :                            'text-success');
         mpptNote.classList.remove('d-none');
       } else {
