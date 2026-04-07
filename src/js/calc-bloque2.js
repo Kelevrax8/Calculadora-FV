@@ -195,12 +195,13 @@
 
   // ── Live calculations ─────────────────────────────────────
   function computeResults(m) {
-    const consumo  = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
-    const hsp      = parseFloat(document.getElementById('hsp').value)               || 0;
-    const tmax     = parseFloat(document.getElementById('tmax').value)               || 25;
+    const consumo    = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
+    const cobertura  = parseFloat(document.getElementById('cobertura_pct').value)    || 100;
+    const hsp        = parseFloat(document.getElementById('hsp').value)               || 0;
+    const tmax       = parseFloat(document.getElementById('tmax').value)               || 25;
     const PR = 0.75; //Standard performance ratio
 
-    const E_dia_Wh      = (consumo / 365) * 1000;
+    const E_dia_Wh      = (consumo * (cobertura / 100) / 365) * 1000;
     const P_req_W       = E_dia_Wh / (hsp * PR); 
     const N             = Math.ceil(P_req_W / m.pmax_stc);
     const P_stc_kW      = (N * m.pmax_stc) / 1000;
@@ -211,14 +212,11 @@
     const P_calor_kW    = (N * P_mod_calor) / 1000;
     const pct_calor     = ((P_calor_kW / P_stc_kW) - 1) * 100;
 
-    const Isc_prot      = m.isc_stc * 1.56;
-
     document.getElementById('res-n-modulos').textContent      = N;
     document.getElementById('res-p-arreglo-stc').textContent  = P_stc_kW.toFixed(2);
     document.getElementById('res-p-arreglo-calor').textContent = P_calor_kW.toFixed(2) + ' kW';
     document.getElementById('res-p-calor-pct').textContent    =
       (pct_calor >= 0 ? '+' : '') + pct_calor.toFixed(1) + '% vs STC';
-    document.getElementById('res-isc-prot').textContent       = Isc_prot.toFixed(2);
 
     // Share with Block 3
     window.calcState          = window.calcState || {};

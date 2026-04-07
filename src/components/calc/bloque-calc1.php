@@ -69,13 +69,31 @@
           <legend class="font-weight-bold text-muted text-uppercase mb-2" style="font-size:.7rem;">
             Consumo Energético
           </legend>
-          <div class="form-group mb-1">
+          <div class="form-group mb-2">
             <label for="consumo_anual_kwh">Consumo Anual <small class="text-muted">(kWh/año)</small></label>
             <input type="number" id="consumo_anual_kwh" name="consumo_anual_kwh"
               min="0" step="1" placeholder="Ej. 3650"
               class="form-control form-control-sm">
+            <small class="text-muted">Puedes encontrarlo en tu recibo de CFE anual (suma de los consumos mensuales)</small>
           </div>
-          <small class="text-muted">Puedes encontrarlo en tu recibo de CFE anual (suma de los consumos mensuales)</small>
+          <div class="form-group mb-1">
+            <label for="cobertura_pct">
+              Cobertura Solar
+              <small class="text-muted">(% del consumo)</small>
+            </label>
+            <div class="input-group input-group-sm">
+              <input type="number" id="cobertura_pct" name="cobertura_pct"
+                min="1" max="100" step="1" value="100"
+                class="form-control form-control-sm">
+              <div class="input-group-append">
+                <span class="input-group-text">%</span>
+              </div>
+            </div>
+            <small class="text-muted">
+              Porcentaje del consumo que el sistema FV cubrirá. 100% = autoabastecimiento total;
+              valores menores permiten dimensionar con menor inversión inicial.
+            </small>
+          </div>
         </fieldset>
 
         <!-- Section: Solar Data -->

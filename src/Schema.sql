@@ -58,18 +58,15 @@ CREATE TABLE IF NOT EXISTS inverters (
 
     pmax_dc_input DECIMAL(8,2) NOT NULL,
     max_dc_voltage DECIMAL(6,2) NOT NULL,
+    -- Shared MPPT voltage window — all MPPT inputs use the same voltage range
     mppt_voltage_min DECIMAL(6,2) NOT NULL,
     mppt_voltage_max DECIMAL(6,2) NOT NULL,
     startup_voltage DECIMAL(6,2) NOT NULL,
-    max_input_current_per_mppt DECIMAL(6,2) NOT NULL,
-    max_short_circuit_current DECIMAL(6,2) NOT NULL,
 
     nominal_ac_power DECIMAL(8,2) NOT NULL,
     ac_voltage_nominal DECIMAL(6,2) NOT NULL,
     phase_type ENUM('Single Phase','Split Phase','Three Phase') NOT NULL,
     efficiency_weighted DECIMAL(5,2) NOT NULL,
-
-    mppt_count INT NOT NULL,
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
@@ -78,6 +75,37 @@ CREATE TABLE IF NOT EXISTS inverters (
         REFERENCES manufacturers(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ============================================
+-- 3b INVERTER MPPT GROUPS
+-- ============================================
+-- Per-group current ratings and parallel-string capacity.
+-- Simple inverters (all MPPTs identical) have one row here.
+-- High-power inverters with heterogeneous MPPT inputs have one row per group.
+-- Voltage range is shared across all groups (stored on the inverters table).
+
+CREATE TABLE IF NOT EXISTS inverter_mppt_groups (
+    id                        INT AUTO_INCREMENT PRIMARY KEY,
+    inverter_id               INT NOT NULL,
+    group_label               VARCHAR(30) NOT NULL,
+    -- Number of physical MPPT inputs that share identical current ratings in this group
+    mppt_count                TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    -- Maximum parallel strings the inverter hardware allows per single MPPT input
+    max_strings_per_mppt      TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    -- Per-MPPT-input current limits (independent of number of parallel strings)
+    max_input_current         DECIMAL(6,2) NOT NULL,
+    max_short_circuit_current DECIMAL(6,2) NOT NULL,
+
+    CONSTRAINT fk_mppt_group_inverter
+        FOREIGN KEY (inverter_id)
+        REFERENCES inverters(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT uq_mppt_group_label
+        UNIQUE (inverter_id, group_label)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

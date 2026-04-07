@@ -198,6 +198,7 @@
     tminInput.value = '';
     tmaxInput.value = '';
     document.getElementById('consumo_anual_kwh').value = '';
+    document.getElementById('cobertura_pct').value     = '100';
 
     [hspInput, tminInput, tmaxInput].forEach(el => {
       el.classList.remove('border-primary');
@@ -243,10 +244,14 @@
   document.getElementById('btn-bloque1-continuar').addEventListener('click', function () {
     const errors = [];
 
+    const coberturaPct = +document.getElementById('cobertura_pct').value;
+
     if (!latInput.value || !lngInput.value)
       errors.push('Selecciona una ubicación en el mapa o ingresa coordenadas.');
     if (!document.getElementById('consumo_anual_kwh').value || +document.getElementById('consumo_anual_kwh').value <= 0)
       errors.push('Ingresa el consumo anual mayor a 0.');
+    if (!coberturaPct || coberturaPct < 1 || coberturaPct > 100)
+      errors.push('La cobertura solar debe estar entre 1% y 100%.');
     if (!hspInput.value || +hspInput.value <= 0)
       errors.push('Ingresa o consulta las Horas Solar Pico (HSP).');
     if (!tminInput.value)

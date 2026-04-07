@@ -327,48 +327,21 @@
       <!-- populated by JS -->
     </p>
 
+    <!-- DC protection scenarios (one card per unique strings-per-MPPT scenario, populated by JS) -->
+    <div id="prot-dc-scenarios" class="row mb-1">
+      <!-- populated by JS -->
+    </div>
+    <small class="text-muted d-block mb-3" style="font-size:.75rem;">
+      NOM-001-SEDE / NEC 690.8 &mdash;
+      <strong>Fusible de cadena (gPV)</strong> requerido cuando hay &ge; 2 strings por entrada MPPT
+      (protege contra corriente inversa). Calibre gPV: I<sub>sc</sub> &times; 1.56 redondeado al tamaño estándar superior.
+      <strong>Conductores Cu 75&nbsp;°C</strong>: cadena = I<sub>sc</sub> &times; 1.25; entrada MPPT = N<sub>str</sub> &times; I<sub>sc</sub> &times; 1.25
+      (÷ factor de corrección por temperatura si aplica).
+      OCPD: mismo factor pero con 1.56. Verificar regla Art. 240-4(d).
+    </small>
+
+    <!-- AC Output circuit -->
     <div class="row">
-
-      <!-- DC String circuit -->
-      <div class="col-sm-6 mb-3">
-        <div class="card card-outline card-default h-100">
-          <div class="card-header py-2">
-            <p class="mb-0 font-weight-bold small">Circuito DC &mdash; String &rarr; Inversor</p>
-          </div>
-          <div class="card-body p-0">
-            <table class="table table-sm mb-0">
-              <tbody>
-                <tr>
-                  <td class="text-muted small">Isc módulo</td>
-                  <td id="prot-isc-module" class="font-weight-bold text-right small">—</td>
-                </tr>
-                <tr>
-                  <td class="text-muted small">Corriente de diseño (&times; 1.56)</td>
-                  <td id="prot-dc-idesign" class="font-weight-bold text-right small">—</td>
-                </tr>
-                <tr id="prot-dc-derated-row" class="d-none">
-                  <td class="text-muted small">Corriente requerida en tabla (corr. temp.)</td>
-                  <td id="prot-dc-derated" class="font-weight-bold text-right small">—</td>
-                </tr>
-                <tr class="table-info">
-                  <td class="small font-weight-bold">Protección recomendada</td>
-                  <td id="prot-dc-ocpd" class="font-weight-bold text-right small">—</td>
-                </tr>
-                <tr class="table-info">
-                  <td class="small font-weight-bold">Calibre conductor</td>
-                  <td id="prot-dc-awg" class="font-weight-bold text-right small">—</td>
-                </tr>                <tr id="prot-dc-small-cond-row" class="d-none">
-                  <td colspan="2" class="small text-warning py-1">
-                    <i class="fas fa-exclamation-triangle mr-1"></i>
-                    Calibre aumentado por regla de conductor peque&ntilde;o (Art. 240-4(d) NOM-001-SEDE-2012)
-                  </td>
-                </tr>              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- AC Output circuit -->
       <div class="col-sm-6 mb-3">
         <div class="card card-outline card-default h-100">
           <div class="card-header py-2">

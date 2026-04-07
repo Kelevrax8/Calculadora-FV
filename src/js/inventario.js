@@ -85,23 +85,26 @@ function renderRows(tab, data) {
         <td class="text-center">${actions}</td>
       </tr>`;
 
-    if (tab === 'inversores') return `
+    if (tab === 'inversores') {
+      const groupsSummary = (r.mppt_groups || []).map(g =>
+        `<span class="d-block text-nowrap">${esc(g.group_label)}: ${g.mppt_count}\u00d7${g.max_strings_per_mppt} &mdash; ${g.max_input_current}\u00a0A/\u00a0${g.max_short_circuit_current}\u00a0A</span>`
+      ).join('');
+      return `
       <tr>
         <td class="font-weight-bold">${esc(r.manufacturer)}</td>
         <td>${esc(r.model)}</td>
         <td class="text-right">${r.pmax_dc_input}</td>
         <td class="text-right">${r.max_dc_voltage}</td>
-        <td class="text-right">${r.mppt_voltage_min} – ${r.mppt_voltage_max}</td>
+        <td class="text-right">${r.mppt_voltage_min} \u2013 ${r.mppt_voltage_max}</td>
         <td class="text-right">${r.startup_voltage}</td>
-        <td class="text-right">${r.max_input_current_per_mppt}</td>
-        <td class="text-right">${r.max_short_circuit_current}</td>
+        <td class="small">${groupsSummary || '\u2014'}</td>
         <td class="text-right">${r.nominal_ac_power}</td>
         <td class="text-right">${r.ac_voltage_nominal}</td>
         <td>${esc(PHASE_ES[r.phase_type] ?? r.phase_type)}</td>
         <td class="text-right">${r.efficiency_weighted}</td>
-        <td class="text-right">${r.mppt_count}</td>
         <td class="text-center">${actions}</td>
       </tr>`;
+    }
   }).join('');
 }
 
@@ -122,6 +125,61 @@ function renderPagination(tab, total, page) {
         <a class="page-link" href="#" onclick="loadTable('${tab}', ${page + 1}); return false;">&raquo;</a>
       </li>
     </ul>`;
+}
+
+// ── MPPT Group management ─────────────────────────────────────────────
+function addMpptGroup(data = {}) {
+  const container = document.getElementById('inv-mppt-groups');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'inv-mppt-group-row border rounded p-2 mb-2';
+  row.innerHTML = `
+    <div class="row align-items-end">
+      <div class="col-6 col-sm-2">
+        <label class="small mb-1">Etiqueta <span class="text-danger">*</span></label>
+        <input type="text" class="form-control form-control-sm grp-label"
+          placeholder="ej. MPP1" maxlength="20" required
+          value="${esc(data.group_label || '')}">
+      </div>
+      <div class="col-6 col-sm-2">
+        <label class="small mb-1"># MPPT <span class="text-danger">*</span></label>
+        <input type="number" min="1" step="1" class="form-control form-control-sm grp-mppt-count" required
+          value="${data.mppt_count || 1}">
+      </div>
+      <div class="col-6 col-sm-2">
+        <label class="small mb-1">Str p&#225;ral./MPPT <span class="text-danger">*</span></label>
+        <input type="number" min="1" step="1" class="form-control form-control-sm grp-max-strings" required
+          value="${data.max_strings_per_mppt || 1}">
+      </div>
+      <div class="col-6 col-sm-2">
+        <label class="small mb-1">I MPPT m&#225;x (A) <span class="text-danger">*</span></label>
+        <input type="number" step="0.01" min="0" class="form-control form-control-sm grp-imax" required
+          value="${data.max_input_current ?? ''}">
+      </div>
+      <div class="col-6 col-sm-2">
+        <label class="small mb-1">Isc m&#225;x (A) <span class="text-danger">*</span></label>
+        <input type="number" step="0.01" min="0" class="form-control form-control-sm grp-isc" required
+          value="${data.max_short_circuit_current ?? ''}">
+      </div>
+      <div class="col-6 col-sm-2 d-flex justify-content-end align-items-end">
+        <button type="button" class="btn btn-sm btn-danger grp-remove" title="Eliminar grupo">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>`;
+  row.querySelector('.grp-remove').addEventListener('click', function () {
+    row.remove();
+    updateGroupRemoveButtons();
+  });
+  container.appendChild(row);
+  updateGroupRemoveButtons();
+}
+
+function updateGroupRemoveButtons() {
+  const rows = document.querySelectorAll('#inv-mppt-groups .inv-mppt-group-row');
+  rows.forEach(r => {
+    r.querySelector('.grp-remove').disabled = rows.length <= 1;
+  });
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────
@@ -170,20 +228,26 @@ async function openModal(tab, row = null) {
     document.getElementById('mod-width_m').value       = row?.width_m        ?? '';
   }
   if (tab === 'inversores') {
-    document.getElementById('inv-id').value                          = row?.id                           ?? '';
-    document.getElementById('inv-model').value                       = row?.model                        ?? '';
-    document.getElementById('inv-pmax_dc_input').value               = row?.pmax_dc_input                ?? '';
-    document.getElementById('inv-max_dc_voltage').value              = row?.max_dc_voltage               ?? '';
-    document.getElementById('inv-mppt_voltage_min').value            = row?.mppt_voltage_min             ?? '';
-    document.getElementById('inv-mppt_voltage_max').value            = row?.mppt_voltage_max             ?? '';
-    document.getElementById('inv-startup_voltage').value             = row?.startup_voltage              ?? '';
-    document.getElementById('inv-max_input_current_per_mppt').value  = row?.max_input_current_per_mppt  ?? '';
-    document.getElementById('inv-max_short_circuit_current').value   = row?.max_short_circuit_current   ?? '';
-    document.getElementById('inv-nominal_ac_power').value            = row?.nominal_ac_power             ?? '';
-    document.getElementById('inv-ac_voltage_nominal').value          = row?.ac_voltage_nominal           ?? '';
-    document.getElementById('inv-phase_type').value                  = row?.phase_type                   ?? '';
-    document.getElementById('inv-efficiency_weighted').value         = row?.efficiency_weighted          ?? '';
-    document.getElementById('inv-mppt_count').value                  = row?.mppt_count                   ?? '';
+    document.getElementById('inv-id').value                 = row?.id                  ?? '';
+    document.getElementById('inv-model').value              = row?.model               ?? '';
+    document.getElementById('inv-pmax_dc_input').value      = row?.pmax_dc_input       ?? '';
+    document.getElementById('inv-max_dc_voltage').value     = row?.max_dc_voltage      ?? '';
+    document.getElementById('inv-mppt_voltage_min').value   = row?.mppt_voltage_min    ?? '';
+    document.getElementById('inv-mppt_voltage_max').value   = row?.mppt_voltage_max    ?? '';
+    document.getElementById('inv-startup_voltage').value    = row?.startup_voltage     ?? '';
+    document.getElementById('inv-nominal_ac_power').value   = row?.nominal_ac_power    ?? '';
+    document.getElementById('inv-ac_voltage_nominal').value = row?.ac_voltage_nominal  ?? '';
+    document.getElementById('inv-phase_type').value         = row?.phase_type          ?? '';
+    document.getElementById('inv-efficiency_weighted').value = row?.efficiency_weighted ?? '';
+    // Populate MPPT groups
+    const groupsContainer = document.getElementById('inv-mppt-groups');
+    groupsContainer.innerHTML = '';
+    const groups = row?.mppt_groups;
+    if (groups && groups.length > 0) {
+      groups.forEach(g => addMpptGroup(g));
+    } else {
+      addMpptGroup(); // default empty group for new inverter
+    }
   }
 
   $('#modal').modal('show');
@@ -230,22 +294,32 @@ async function saveEntity() {
     };
   }
   if (tab === 'inversores') {
+    const groupRows = document.querySelectorAll('#inv-mppt-groups .inv-mppt-group-row');
+    if (groupRows.length === 0) {
+      showModalError('El inversor debe tener al menos un grupo MPPT.');
+      return;
+    }
+    const mppt_groups = Array.from(groupRows).map(r => ({
+      group_label:               r.querySelector('.grp-label').value.trim(),
+      mppt_count:                parseInt(r.querySelector('.grp-mppt-count').value, 10)  || 1,
+      max_strings_per_mppt:      parseInt(r.querySelector('.grp-max-strings').value, 10) || 1,
+      max_input_current:         parseFloat(r.querySelector('.grp-imax').value)          || 0,
+      max_short_circuit_current: parseFloat(r.querySelector('.grp-isc').value)           || 0,
+    }));
     payload = {
-      id:                          document.getElementById('inv-id').value,
-      manufacturer_id:             document.getElementById('inv-manufacturer').value,
-      model:                       document.getElementById('inv-model').value,
-      pmax_dc_input:               document.getElementById('inv-pmax_dc_input').value,
-      max_dc_voltage:              document.getElementById('inv-max_dc_voltage').value,
-      mppt_voltage_min:            document.getElementById('inv-mppt_voltage_min').value,
-      mppt_voltage_max:            document.getElementById('inv-mppt_voltage_max').value,
-      startup_voltage:             document.getElementById('inv-startup_voltage').value,
-      max_input_current_per_mppt:  document.getElementById('inv-max_input_current_per_mppt').value,
-      max_short_circuit_current:   document.getElementById('inv-max_short_circuit_current').value,
-      nominal_ac_power:            document.getElementById('inv-nominal_ac_power').value,
-      ac_voltage_nominal:          document.getElementById('inv-ac_voltage_nominal').value,
-      phase_type:                  document.getElementById('inv-phase_type').value,
-      efficiency_weighted:         document.getElementById('inv-efficiency_weighted').value,
-      mppt_count:                  document.getElementById('inv-mppt_count').value,
+      id:                  document.getElementById('inv-id').value,
+      manufacturer_id:     document.getElementById('inv-manufacturer').value,
+      model:               document.getElementById('inv-model').value,
+      pmax_dc_input:       document.getElementById('inv-pmax_dc_input').value,
+      max_dc_voltage:      document.getElementById('inv-max_dc_voltage').value,
+      mppt_voltage_min:    document.getElementById('inv-mppt_voltage_min').value,
+      mppt_voltage_max:    document.getElementById('inv-mppt_voltage_max').value,
+      startup_voltage:     document.getElementById('inv-startup_voltage').value,
+      nominal_ac_power:    document.getElementById('inv-nominal_ac_power').value,
+      ac_voltage_nominal:  document.getElementById('inv-ac_voltage_nominal').value,
+      phase_type:          document.getElementById('inv-phase_type').value,
+      efficiency_weighted: document.getElementById('inv-efficiency_weighted').value,
+      mppt_groups,
     };
   }
 

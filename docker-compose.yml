@@ -28,6 +28,8 @@ services:
       TZ: America/Mexico_City
     volumes:
       - db_data:/var/lib/mysql
+      - ./src/Schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./src/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
 
   phpmyadmin:
     image: phpmyadmin:5.2
