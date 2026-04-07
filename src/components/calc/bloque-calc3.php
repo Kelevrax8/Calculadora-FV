@@ -95,11 +95,11 @@
   </div>
 
   <!-- ── Remainder string warning ──────────────────────────────────── -->
-  <div id="str-remainder-warning" class="alert alert-warning d-none mx-3 mt-3 mb-0">
+  <blockquote id="str-remainder-warning" class="quote-info d-none mx-3 mt-3 mb-0 bg-gray-light">
     <div class="d-flex">
       <span class="mr-2"><i class="fas fa-exclamation-triangle"></i></span>
       <div class="flex-fill">
-        <p class="font-weight-bold mb-1">String incompleto detectado</p>
+        <h5 id="tip" class="font-weight-bold mb-1">String incompleto detectado</h5>
         <p id="str-rem-breakdown" class="mb-2 small"></p>
         <div class="row mb-2 small">
           <div class="col-4">
@@ -119,7 +119,7 @@
         <p id="str-rem-mppt-note" class="d-none mt-2 font-weight-bold small mb-0"></p>
       </div>
     </div>
-  </div>
+  </blockquote>
 
 
 

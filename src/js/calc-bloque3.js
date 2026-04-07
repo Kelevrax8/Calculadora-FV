@@ -351,7 +351,7 @@
           'Para strings uniformes, ajusta Ns a: '
           + usefulDivisors.map(d =>
               '<button type="button" data-ns-pick="' + d + '" '
-              + 'class="btn btn-warning btn-xs mr-1">' + d + '</button>'
+              + 'class="btn btn-primary btn-xs mr-1">' + d + '</button>'
             ).join(' ') + '.';
       }
       remEl.classList.remove('d-none');
