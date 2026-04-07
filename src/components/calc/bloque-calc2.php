@@ -76,7 +76,7 @@
       </p>
       <div class="row">
 
-        <div class="col-sm-6 col-lg-3 mb-2">
+        <div class="col-sm-6 col-lg-4 mb-2">
           <div class="info-box mb-0">
             <span class="info-box-icon bg-primary"><i class="fas fa-solar-panel"></i></span>
             <div class="info-box-content">
@@ -87,7 +87,7 @@
           </div>
         </div>
 
-        <div class="col-sm-6 col-lg-3 mb-2">
+        <div class="col-sm-6 col-lg-4 mb-2">
           <div class="info-box mb-0">
             <span class="info-box-icon bg-primary"><i class="fas fa-bolt"></i></span>
             <div class="info-box-content">
@@ -98,24 +98,13 @@
           </div>
         </div>
 
-        <div class="col-sm-6 col-lg-3 mb-2">
+        <div class="col-sm-6 col-lg-4 mb-2">
           <div class="info-box mb-0">
             <span class="info-box-icon bg-warning"><i class="fas fa-temperature-high"></i></span>
             <div class="info-box-content">
               <span class="info-box-text">Potencia en calor</span>
               <span id="res-p-arreglo-calor" class="info-box-number text-warning">—</span>
               <span id="res-p-calor-pct" class="info-box-text">— vs STC</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-sm-6 col-lg-3 mb-2">
-          <div class="info-box mb-0">
-            <span class="info-box-icon bg-secondary"><i class="fas fa-shield-alt"></i></span>
-            <div class="info-box-content">
-              <span class="info-box-text">I<sub>sc</sub> protección</span>
-              <span id="res-isc-prot" class="info-box-number">—</span>
-              <span class="info-box-text">A &middot; NOM-001</span>
             </div>
           </div>
         </div>

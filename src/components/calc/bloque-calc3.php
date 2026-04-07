@@ -41,9 +41,26 @@
 
       <!-- Np auto -->
       <div class="col-sm-3 mb-2">
-        <p class="text-muted small mb-1">Número de strings <strong>(Np)</strong></p>
+        <p class="text-muted small mb-1">Strings totales <strong>(Np)</strong></p>
         <p id="np-value" class="font-weight-bold h5 mb-0">—</p>
         <small id="np-mppt-hint" class="text-muted">Selecciona un inversor para verificar</small>
+      </div>
+
+      <!-- N_inv stepper -->
+      <div class="col-sm-3 mb-2">
+        <p class="text-muted small mb-1">Número de inversores <strong>(N<sub>inv</sub>)</strong></p>
+        <div class="d-flex align-items-center">
+          <button id="btn-ninv-dec" type="button" disabled
+            class="btn btn-sm btn-default" style="width:32px;height:32px;padding:0;">−</button>
+          <span id="ninv-value" class="font-weight-bold h5 mb-0 mx-2">1</span>
+          <button id="btn-ninv-inc" type="button"
+            class="btn btn-sm btn-default" style="width:32px;height:32px;padding:0;">+</button>
+          <button id="btn-ninv-auto" type="button"
+            class="btn btn-xs btn-warning ml-2" title="Calcular mínimo de inversores necesarios">
+            Auto
+          </button>
+        </div>
+        <small id="ninv-hint" class="text-muted">Selecciona inversor primero</small>
       </div>
 
       <!-- Total array area -->
@@ -78,11 +95,11 @@
   </div>
 
   <!-- ── Remainder string warning ──────────────────────────────────── -->
-  <div id="str-remainder-warning" class="alert alert-warning d-none mx-3 mt-3 mb-0">
+  <blockquote id="str-remainder-warning" class="quote-info d-none mx-3 mt-3 mb-0 bg-gray-light">
     <div class="d-flex">
       <span class="mr-2"><i class="fas fa-exclamation-triangle"></i></span>
       <div class="flex-fill">
-        <p class="font-weight-bold mb-1">String incompleto detectado</p>
+        <h5 id="tip" class="font-weight-bold mb-1">String incompleto detectado</h5>
         <p id="str-rem-breakdown" class="mb-2 small"></p>
         <div class="row mb-2 small">
           <div class="col-4">
@@ -102,13 +119,9 @@
         <p id="str-rem-mppt-note" class="d-none mt-2 font-weight-bold small mb-0"></p>
       </div>
     </div>
-  </div>
+  </blockquote>
 
-  <!-- ── Assumption note ──────────────────────────────────────────── -->
-  <div class="alert alert-info mx-3 mt-3 mb-0 small">
-    <i class="fas fa-info-circle mr-1"></i>
-    <strong>Supuesto de diseño:</strong> Este sistema asume <strong>1 string por entrada MPPT</strong> para evitar la necesidad de caja combinadora. Np = número de strings = número de entradas MPPT utilizadas. Si Np supera las entradas disponibles del inversor, se debe <strong>aumentar Ns</strong> (strings más largas &rarr; menos strings en paralelo).
-  </div>
+
 
   <!-- ── Filters ──────────────────────────────────────────────────── -->
   <div class="card-body border-bottom py-2">
@@ -238,7 +251,7 @@
         <div id="chk-i-mppt" class="card card-outline card-default h-100">
           <div class="card-body p-3">
             <div class="d-flex align-items-start justify-content-between mb-1">
-              <small class="text-muted">Corriente por MPPT <span class="text-muted">(1 string)</span></small>
+              <small class="text-muted">Corriente por MPPT</small>
               <span data-badge class="badge badge-secondary">—</span>
             </div>
             <p data-actual class="h5 font-weight-bold mb-1">—</p>
@@ -324,7 +337,25 @@
       Configuración: —
     </div>
 
-  </div>
+    <!-- Electrical protections -->
+    <p class="text-muted text-uppercase font-weight-bold small mb-2">
+      Protecciones Eléctricas (Lado DC)
+    </p>
+    <div id="prot-electricas" class="row mb-1">
+      <!-- populated by JS -->
+    </div>
+    <small class="text-muted d-block mb-3" style="font-size:.75rem;">
+      NOM-001-SEDE / NEC 690.8 &mdash;
+      <strong>Fusible de cadena (gPV)</strong> requerido únicamente cuando hay &ge; 2 strings en paralelo por entrada MPPT
+      (protege contra corriente inversa).
+      Calibre gPV: I<sub>sc</sub> &times; 1.56 redondeado al tamaño estándar superior.
+      <strong>Conductores Cu 75&nbsp;°C</strong> (Tabla 310.15(B)(16)):
+      cadena = I<sub>sc</sub> &times; 1.25; entrada MPPT combinada = N<sub>str</sub> &times; I<sub>sc</sub> &times; 1.25.
+      OCPD (interruptor/fusible CC): mismo criterio pero con factor 1.56.
+      Verificar derating por temperatura en el Paso 4.
+    </small>
+
+  </div><!-- /calc3-results -->
 
   <!-- Continue button -->
   <div class="card-footer">

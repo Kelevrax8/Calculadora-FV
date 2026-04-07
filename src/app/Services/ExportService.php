@@ -52,7 +52,7 @@ class ExportService
 
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Resumen');
-        $this->setColumnWidths($sheet, ['A' => 42, 'B' => 42, 'C' => 14]);
+        $this->setColumnWidths($sheet, ['A' => 42, 'B' => 45, 'C' => 14]);
 
         $this->buildResumen($sheet, $payload);
 
@@ -116,28 +116,31 @@ class ExportService
 
         // ── Configuración del Arreglo ─────────────────────────
         $this->addSectionHeader($s, 'CONFIGURACIÓN DEL ARREGLO');
-        $this->addDataRow($s, 'Módulos por string (string completo)', $arr['Ns'] ?? '—');
-        $this->addDataRow($s, 'Número de strings',                       $arr['Np'] ?? '—');
         $n_rem = (int)($arr['n_rem'] ?? 0);
+        $Ns    = (int)($arr['Ns']    ?? 0);
+        $Np    = (int)($arr['Np']    ?? 0);
+        $N     = (int)($arr['N']     ?? 0);
         if ($n_rem > 0) {
-            $n_full    = (int)($arr['Np'] ?? 1) - 1;
-            $totalModsValue = sprintf('%d (%d string%s × %d mód + 1 string × %d mód — string corto)',
-                (int)($arr['N'] ?? 0), $n_full, $n_full > 1 ? 's' : '', (int)($arr['Ns'] ?? 0), $n_rem);
-            $this->addDataRow($s, 'Total de módulos (N)', $totalModsValue);
+            $n_full       = $Np - 1;
+            $stringsValue = sprintf('%d string%s × %d mód + 1 string × %d mód — string corto',
+                $n_full, $n_full > 1 ? 's' : '', $Ns, $n_rem);
         } else {
-            $this->addDataRow($s, 'Total de módulos (N)', $arr['N'] ?? '—');
+            $stringsValue = sprintf('%d string%s × %d mód', $Np, $Np > 1 ? 's' : '', $Ns);
         }
+        $this->addDataRow($s, 'Total de módulos (N)', $N ?: '—');
+        $this->addDataRow($s, 'Strings',              $stringsValue);
         $this->addDataRow($s, 'Potencia total STC',              (float)($arr['P_stc_kW'] ?? 0), 'kWp', 2);
         $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  (float)($arr['Voc_cold']  ?? 0), 'V', 1);
         $this->addDataRow($s, 'Vmpp del arreglo en calor (Tmax)',(float)($arr['Vmpp_hot']  ?? 0), 'V', 1);
         $this->addDataRow($s, 'Vmpp del arreglo en frío (Tmin)', (float)($arr['Vmpp_cold'] ?? 0), 'V', 1);
-        $this->addDataRow($s, 'Área del arreglo',                 (float)($arr['arrArea'] ?? 0), 'm²', 2);
+        $this->addDataRow($s, 'Área del arreglo neta',                 (float)($arr['arrArea'] ?? 0), 'm²', 2);
         $this->row++;
 
         // ── Inversor ──────────────────────────────────────────
         $this->addSectionHeader($s, 'INVERSOR');
         $this->addDataRow($s, 'Fabricante',                  $inv['manufacturer']             ?? '—');
         $this->addDataRow($s, 'Modelo',                      $inv['model']                    ?? '—');
+        $this->addDataRow($s, 'Número de inversores',        (int)($arr['N_inv']              ?? 1));
         $this->addDataRow($s, 'Potencia AC nominal',        (float)($inv['nominal_ac_power'] ?? 0), 'W');
         $this->addDataRow($s, 'Tipo de fase',                $inv['phase_type']               ?? '—');
         $this->addDataRow($s, 'Tensión AC nominal',          $inv['ac_voltage_nominal']       ?? '—', 'V');
@@ -169,29 +172,53 @@ class ExportService
 
         $deratingOn    = $prot['derating_on']     ?? false;
         $deratingFactor= $prot['derating_factor'] ?? 1.0;
-        $dc            = $prot['dc']              ?? [];
+        $dcScenarios   = $prot['dc_scenarios']    ?? [];
         $ac            = $prot['ac']              ?? [];
 
         $this->addSubHeader($s, 'Circuito DC — String → Inversor');
-        $this->addDataRow($s, 'Isc del módulo',                       (float)($dc['isc_module'] ?? 0), 'A', 2);
-        $this->addDataRow($s, 'Corriente de diseño DC (Isc × 1.56)',  (float)($dc['I_design']  ?? 0), 'A', 2);
         if ($deratingOn) {
             $this->addDataRow(
                 $s,
-                sprintf('Corriente requerida en tabla DC (÷ %.2f)', (float)$deratingFactor),
-                (float)($dc['I_required'] ?? 0),
-                'A',
-                2
+                sprintf('Corrección por temperatura (÷ %.2f)', (float)$deratingFactor),
+                sprintf('Tabla 310.15(B)(2)(a), conductores Cu 75 °C — Tamb máx = %s °C', $prot['tmax'] ?? '—')
             );
         }
-        $this->addDataRow($s, 'Protección recomendada (OCPD DC)',      $dc['OCPD'] ?? '—');
-        $this->addDataRow($s, 'Calibre conductor DC',                  $dc['AWG']  ?? '—');
-        if (!empty($dc['small_conductor_upsized'])) {
-            $this->addDataRow(
-                $s,
-                '⚠ Nota Art. 240-4(d) NOM-001-SEDE-2012',
-                'Calibre aumentado por regla de conductor pequeño.'
-            );
+
+        if (empty($dcScenarios)) {
+            $this->addDataRow($s, 'Escenarios DC', 'Sin datos');
+        } else {
+            foreach ($dcScenarios as $sc) {
+                $strPerMppt  = (int)($sc['strPerMppt']  ?? 1);
+                $mpptCount   = (int)($sc['mpptCount']   ?? 1);
+                $needsFuse   = (bool)($sc['needsFuse']  ?? false);
+                $fuseStdA    = $sc['fuseStdA']           ?? null;
+                $strCircuit  = $sc['strCircuit']         ?? [];
+                $mpptCircuit = $sc['mpptCircuit']        ?? [];
+
+                $scHeader = sprintf(
+                    '%d string%s/MPPT — %d entrada%s MPPT',
+                    $strPerMppt, $strPerMppt > 1 ? 's' : '',
+                    $mpptCount,  $mpptCount  > 1 ? 's' : ''
+                );
+                $this->addSubHeader($s, $scHeader);
+
+                if ($needsFuse) {
+                    $this->addDataRow($s, 'Fusible de cadena gPV', $fuseStdA !== null ? $fuseStdA . ' A' : '—');
+                    $this->addDataRow($s, 'Cable cadena Cu 75°C',  $strCircuit['AWG']  ?? '—');
+                    $this->addDataRow($s, 'Cable entrada MPPT',    $mpptCircuit['AWG'] ?? '—');
+                    $this->addDataRow($s, 'Protección MPPT (OCPD DC)', $mpptCircuit['OCPD'] ?? '—');
+                    if (!empty($strCircuit['upsized']) || !empty($mpptCircuit['upsized'])) {
+                        $this->addDataRow($s, '⚠ Art. 240-4(d) NOM-001-SEDE-2012', 'Conductor aumentado por regla de conductor pequeño.');
+                    }
+                } else {
+                    $this->addDataRow($s, 'Configuración', 'String único — sin corriente inversa posible');
+                    $this->addDataRow($s, 'Cable DC Cu 75°C',    $strCircuit['AWG']  ?? '—');
+                    $this->addDataRow($s, 'Protección CC (OCPD DC)', $strCircuit['OCPD'] ?? '—');
+                    if (!empty($strCircuit['upsized'])) {
+                        $this->addDataRow($s, '⚠ Art. 240-4(d) NOM-001-SEDE-2012', 'Conductor aumentado por regla de conductor pequeño.');
+                    }
+                }
+            }
         }
         $this->row++;
 
@@ -217,13 +244,6 @@ class ExportService
                 'Calibre aumentado por regla de conductor pequeño.'
             );
         }
-        $this->row++;
-
-        $deratingText = $deratingOn
-            ? sprintf('Aplicada Tabla 310.15(B)(2)(a), conductores a 75 °C',
-                (float)($prot['tmax'] ?? 0), (float)$deratingFactor)
-            : 'No aplicada (conductores a temperatura estándar)';
-        $this->addDataRow($s, 'Corrección por temperatura', $deratingText);
         $this->row++;
 
         // Footer note
