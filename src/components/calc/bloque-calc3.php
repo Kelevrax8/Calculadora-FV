@@ -246,7 +246,7 @@
         </div>
       </div>
 
-      <!-- Hard: I per MPPT (1 string per MPPT assumed) -->
+      <!-- Hard: I per MPPT -->
       <div class="col-sm-6 col-lg-4 mb-3">
         <div id="chk-i-mppt" class="card card-outline card-default h-100">
           <div class="card-body p-3">
@@ -330,11 +330,6 @@
         </div>
       </div>
 
-    </div>
-
-    <!-- String config summary -->
-    <div id="selected-string-config" class="alert alert-light border small mb-3">
-      Configuración: —
     </div>
 
     <!-- Electrical protections -->
