@@ -701,12 +701,7 @@
     }
 
     const Np_pi = Math.ceil(Np / currentNInv);
-    document.getElementById('selected-string-config').textContent =
-      `Configuración: ${currentNs} mód/string × ${Np} strings` +
-      (currentNInv > 1
-        ? ` ÷ ${currentNInv} inversores = ${Np_pi} strings/inv`
-        : '') +
-      ` = ${currentNs * Np} módulos (requeridos: ${N_total})`;
+
     // Keep calcState in sync after every computation
     window.calcState.N_inv      = currentNInv;
     window.calcState.Np_per_inv = Np_pi;

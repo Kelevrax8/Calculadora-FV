@@ -246,7 +246,7 @@
         </div>
       </div>
 
-      <!-- Hard: I per MPPT -->
+      <!-- Hard: I per MPPT (1 string per MPPT assumed) -->
       <div class="col-sm-6 col-lg-4 mb-3">
         <div id="chk-i-mppt" class="card card-outline card-default h-100">
           <div class="card-body p-3">
