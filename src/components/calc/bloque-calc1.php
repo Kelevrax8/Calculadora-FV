@@ -78,7 +78,7 @@
           </div>
           <div class="form-group mb-1">
             <label for="cobertura_pct">
-              Cobertura Solar
+              Cobertura del Consumo
               <small class="text-muted">(% del consumo)</small>
             </label>
             <div class="input-group input-group-sm">
