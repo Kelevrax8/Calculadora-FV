@@ -335,9 +335,9 @@
       NOM-001-SEDE / NEC 690.8 &mdash;
       <strong>Fusible de cadena (gPV)</strong> requerido cuando hay &ge; 2 strings por entrada MPPT
       (protege contra corriente inversa). Calibre gPV: I<sub>sc</sub> &times; 1.56 redondeado al tamaño estándar superior.
-      <strong>Conductores Cu 75&nbsp;°C</strong>: cadena = I<sub>sc</sub> &times; 1.25; entrada MPPT = N<sub>str</sub> &times; I<sub>sc</sub> &times; 1.25
+      <strong>Conductores Cu 75&nbsp;°C</strong>: cadena = I<sub>sc</sub> &times; 1.56; entrada MPPT = N<sub>str</sub> &times; I<sub>sc</sub> &times; 1.56
       (÷ factor de corrección por temperatura si aplica).
-      OCPD: mismo factor pero con 1.56. Verificar regla Art. 240-4(d).
+      OCPD: mismo factor 1.56. Verificar regla Art. 240-4(d).
     </small>
 
     <!-- AC Output circuit -->
