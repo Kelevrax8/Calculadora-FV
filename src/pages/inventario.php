@@ -292,13 +292,13 @@ include '../components/header-dashboard.php';
             <div class="col-sm-6">
               <div class="form-group">
                 <label>Largo (m) <span class="text-danger">*</span></label>
-                <input type="number" step="0.01" id="mod-length_m" required class="form-control">
+                <input type="number" step="0.001" id="mod-length_m" required class="form-control">
               </div>
             </div>
             <div class="col-sm-6">
               <div class="form-group">
                 <label>Ancho (m) <span class="text-danger">*</span></label>
-                <input type="number" step="0.01" id="mod-width_m" required class="form-control">
+                <input type="number" step="0.001" id="mod-width_m" required class="form-control">
               </div>
             </div>
           </div>

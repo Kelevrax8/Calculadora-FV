@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS pv_modules (
     temp_coeff_voc DECIMAL(6,4) NOT NULL,
     temp_coeff_pmax DECIMAL(6,4) NOT NULL,
 
-    length_m DECIMAL(4,2) NOT NULL,
-    width_m DECIMAL(4,2) NOT NULL,
+    length_m DECIMAL(5,3) NOT NULL,
+    width_m DECIMAL(5,3) NOT NULL,
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
