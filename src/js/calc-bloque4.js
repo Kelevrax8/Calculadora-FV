@@ -504,9 +504,9 @@
         const needsFuse = strPerMppt >= 2;
         const fuseMinA  = Isc * 1.56;
         const fuseStdA  = needsFuse ? nextGpvFuse(fuseMinA) : null;
-        // Conductor sized to derated requirement; OCPD/fuse sized to design current (not derated)
-        const strCircuit  = resolveCircuit(Isc * 1.25 / factor, Isc * 1.56);
-        const mpptCircuit = resolveCircuit(strPerMppt * Isc * 1.25 / factor, strPerMppt * Isc * 1.56);
+        // Conductor sized to derated requirement (Art. 690-8(B): 1.56×Isc); OCPD/fuse sized to design current
+        const strCircuit  = resolveCircuit(Isc * 1.56 / factor, Isc * 1.56);
+        const mpptCircuit = resolveCircuit(strPerMppt * Isc * 1.56 / factor, strPerMppt * Isc * 1.56);
         return { strPerMppt, mpptCount, labels, needsFuse, fuseMinA, fuseStdA, strCircuit, mpptCircuit, Isc };
       });
   }
@@ -547,11 +547,11 @@
           sc.fuseStdA + ' A', false
         );
         bodyHtml += row(
-          `Cable cadena Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.25${factor !== 1.0 ? ' ÷' + factor : ''} = ${(sc.Isc * 1.25 / factor).toFixed(1)} A)</small>:`,
+          `Cable cadena Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.56${factor !== 1.0 ? ' ÷' + factor : ''} = ${(sc.Isc * 1.56 / factor).toFixed(1)} A)</small>:`,
           sc.strCircuit.awg, sc.strCircuit.upsized
         );
         bodyHtml += row(
-          `Cable entrada MPPT <small class="text-muted">(${sc.strPerMppt}×I<sub>sc</sub> ×1.25${factor !== 1.0 ? ' ÷' + factor : ''} = ${(sc.strPerMppt * sc.Isc * 1.25 / factor).toFixed(1)} A)</small>:`,
+          `Cable entrada MPPT <small class="text-muted">(${sc.strPerMppt}×I<sub>sc</sub> ×1.56${factor !== 1.0 ? ' ÷' + factor : ''} = ${(sc.strPerMppt * sc.Isc * 1.56 / factor).toFixed(1)} A)</small>:`,
           sc.mpptCircuit.awg, sc.mpptCircuit.upsized
         );
         bodyHtml += row(
@@ -564,7 +564,7 @@
       } else {
         bodyHtml += `<div class="small mb-2 text-success"><i class="fas fa-check-circle mr-1"></i>String único &mdash; sin corriente inversa posible</div>`;
         bodyHtml += row(
-          `Cable DC Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.25${factor !== 1.0 ? ' ÷' + factor : ''} = ${(sc.Isc * 1.25 / factor).toFixed(1)} A)</small>:`,
+          `Cable DC Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.56${factor !== 1.0 ? ' ÷' + factor : ''} = ${(sc.Isc * 1.56 / factor).toFixed(1)} A)</small>:`,
           sc.strCircuit.awg, sc.strCircuit.upsized
         );
         bodyHtml += row(
