@@ -815,11 +815,11 @@
       .map(([strPerMppt, { mpptCount, labels }]) => {
         const needsFuse = strPerMppt >= 2;
 
-        // Individual string circuit: Isc×1.25 required, Isc×1.56 design (NEC 690.8)
-        const strCircuit  = resolveCircuit(Isc * 1.25, Isc * 1.56);
+        // Individual string circuit: Isc×1.56 required (Art. 690-8(B): 125% of 690-8(A))
+        const strCircuit  = resolveCircuit(Isc * 1.56, Isc * 1.56);
 
-        // Combined MPPT input circuit: N×Isc×1.25 required, N×Isc×1.56 design
-        const mpptCircuit = resolveCircuit(strPerMppt * Isc * 1.25, strPerMppt * Isc * 1.56);
+        // Combined MPPT input circuit: N×Isc×1.56 required (Art. 690-8(B))
+        const mpptCircuit = resolveCircuit(strPerMppt * Isc * 1.56, strPerMppt * Isc * 1.56);
 
         // Per-string gPV fuse (protects each string against reverse current from parallel strings)
         const fuseMinA = Isc * 1.56;
@@ -869,12 +869,12 @@
           false
         );
         bodyHtml += row(
-          `Cable cadena Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.25 = ${(sc.Isc * 1.25).toFixed(1)} A)</small>:`,
+          `Cable cadena Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.56 = ${(sc.Isc * 1.56).toFixed(1)} A)</small>:`,
           sc.strCircuit.awg,
           sc.strCircuit.upsized
         );
         bodyHtml += row(
-          `Cable entrada MPPT <small class="text-muted">(${sc.strPerMppt}×I<sub>sc</sub> ×1.25 = ${(sc.strPerMppt * sc.Isc * 1.25).toFixed(1)} A)</small>:`,
+          `Cable entrada MPPT <small class="text-muted">(${sc.strPerMppt}×I<sub>sc</sub> ×1.56 = ${(sc.strPerMppt * sc.Isc * 1.56).toFixed(1)} A)</small>:`,
           sc.mpptCircuit.awg,
           sc.mpptCircuit.upsized
         );
@@ -899,7 +899,7 @@
           <i class="fas fa-check-circle mr-1"></i>String único &mdash; sin corriente inversa posible
         </div>`;
         bodyHtml += row(
-          `Cable DC Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.25 = ${(sc.Isc * 1.25).toFixed(1)} A)</small>:`,
+          `Cable DC Cu 75°C <small class="text-muted">(I<sub>sc</sub> ×1.56 = ${(sc.Isc * 1.56).toFixed(1)} A)</small>:`,
           sc.strCircuit.awg,
           sc.strCircuit.upsized
         );
