@@ -215,10 +215,12 @@
               <div class="card bg-light border-0 h-100">
                 <div class="card-body p-3">
                   <p class="text-muted small mb-1">Módulos del arreglo</p>
-                  <div class="d-flex align-items-center" style="gap:.35rem;">
+                  <div class="d-flex align-items-center flex-wrap" style="gap:.35rem;">
+                    <button type="button" id="btn-n-dec-10" class="btn btn-xs btn-default border px-2" style="line-height:1.4;" disabled>−10</button>
                     <button type="button" id="btn-n-dec" class="btn btn-xs btn-default border px-2" style="line-height:1.4;" disabled>−</button>
                     <p id="res-n-modulos" class="font-weight-bold h4 mb-0">—</p>
                     <button type="button" id="btn-n-inc" class="btn btn-xs btn-default border px-2" style="line-height:1.4;">+</button>
+                    <button type="button" id="btn-n-inc-10" class="btn btn-xs btn-default border px-2" style="line-height:1.4;">+10</button>
                   </div>
                   <small>
                     <span id="res-n-base-hint" class="text-muted">unidades</span>

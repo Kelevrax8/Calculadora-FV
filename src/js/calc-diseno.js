@@ -141,11 +141,7 @@
 
   // ── Entry point (called by showStep(2)) ─────────────────────
   window.loadDisenoBlock = async function () {
-    if (dataLoaded) {
-      // Refresh inverter compat symbols in case calcState changed
-      if (selectedModule) populateInverterDropdown();
-      return;
-    }
+    if (dataLoaded) return;
     try {
       const [modRes, invRes] = await Promise.all([
         fetch(`${BASE_URL}/api/calculadora.php?action=get_pv_modules`),
@@ -225,7 +221,7 @@
 
     // ── Populate module preview card ──
     const area = m.length_m * m.width_m;
-    const eta  = (m.pmax_stc / (1000 * area) * 100).toFixed(1);
+    const eta  = (m.pmax_stc / (1000 * area) * 100).toFixed(2);
 
     document.getElementById('mod-preview-manufacturer').textContent = m.manufacturer;
     document.getElementById('mod-preview-model').textContent        = m.model;
@@ -268,7 +264,8 @@
     document.getElementById('res-n-sugerido').textContent = N_suggested;
     document.getElementById('res-n-sugerido-hint').classList.add('d-none');
     document.getElementById('res-n-base-hint').classList.remove('d-none');
-    document.getElementById('btn-n-dec').disabled = N_total <= 1;
+    document.getElementById('btn-n-dec').disabled    = N_total <= 1;
+    document.getElementById('btn-n-dec-10').disabled = N_total <= 10;
 
     window.calcState.N        = N_total;
     window.calcState.P_stc_kW = P_stc_kW;
@@ -314,7 +311,8 @@
     const isDiff = N_total !== N_suggested;
     document.getElementById('res-n-sugerido-hint').classList.toggle('d-none', !isDiff);
     document.getElementById('res-n-base-hint').classList.toggle('d-none', isDiff);
-    document.getElementById('btn-n-dec').disabled = N_total <= 1;
+    document.getElementById('btn-n-dec').disabled    = N_total <= 1;
+    document.getElementById('btn-n-dec-10').disabled = N_total <= 10;
 
     window.calcState.N        = N_total;
     window.calcState.P_stc_kW = P_stc_kW;
@@ -469,11 +467,17 @@
   }
 
   // N_total (module count) stepper events
+  document.getElementById('btn-n-dec-10').addEventListener('click', function () {
+    if (!this.disabled) applyNewNTotal(N_total - 10);
+  });
   document.getElementById('btn-n-dec').addEventListener('click', function () {
     if (!this.disabled) applyNewNTotal(N_total - 1);
   });
   document.getElementById('btn-n-inc').addEventListener('click', function () {
     applyNewNTotal(N_total + 1);
+  });
+  document.getElementById('btn-n-inc-10').addEventListener('click', function () {
+    applyNewNTotal(N_total + 10);
   });
   document.getElementById('btn-n-reset').addEventListener('click', function (e) {
     e.preventDefault();
@@ -514,7 +518,6 @@
     const { Np, Voc_cold, Vmpp_hot, Vmpp_cold } = getStringMetrics(currentNs);
     const Np_per_inv     = Math.ceil(Np / currentNInv);
     const P_cold_per_inv = Np_per_inv * currentNs * P_cold_per;
-    const P_cold_total   = N_total * P_cold_per;
     const totalCapacity     = totalCapacityPerInv(inv);
     const capacityPass      = Np_per_inv <= totalCapacity;
     const groupLoads        = distributeStrings(Np_per_inv, inv.mppt_groups || []);
@@ -534,19 +537,11 @@
     const hardFail     = !capacityPass || !vocPass || !allGroupIMpptPass || !allGroupIScPass || !pDcPass;
     const warn         = !vmppHotPass || !startupPass || !vmppColdPass;
     return {
-      Np, Np_per_inv, Voc_cold, Vmpp_hot, Vmpp_cold, P_cold_total,
-      totalCapacity, capacityPass, groupLoads, allGroupIMpptPass, allGroupIScPass,
+      Np, Np_per_inv, Voc_cold, Vmpp_hot, Vmpp_cold,
+      totalCapacity, capacityPass, groupLoads,
       vocPass, vmppHotPass, startupPass, vmppColdPass, pDcPass,
       hardFail, warn,
     };
-  }
-
-  function getCompatSymbol(inv) {
-    if (!selectedModule) return '';
-    const c = evaluateCompatibility(inv);
-    if (c.hardFail) return '✗ ';
-    if (c.warn)     return '⚠ ';
-    return '✓ ';
   }
 
   // ── Inverter dropdown ───────────────────────────────────────
@@ -564,8 +559,7 @@
       byManuf[manuf].forEach(inv => {
         const opt = document.createElement('option');
         opt.value = inv.id;
-        const sym = selectedModule ? getCompatSymbol(inv) : '';
-        opt.textContent = sym + inv.model + '  (' +
+        opt.textContent = inv.model + '  (' +
           (inv.nominal_ac_power / 1000).toFixed(1) + ' kW · ' +
           mapPhaseLabel(inv.phase_type) + ')';
         grp.appendChild(opt);
