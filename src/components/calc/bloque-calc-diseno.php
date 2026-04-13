@@ -417,9 +417,9 @@
     </div>
     <div class="d-flex align-items-center" style="gap:.5rem;">
       <label for="en-pr-input" class="mb-0 small font-weight-bold text-muted">Factor PR</label>
-      <input type="number" id="en-pr-input" min="0.50" max="1.00" step="0.01" value="0.80"
+      <input type="number" id="en-pr-input" min="0.50" max="1.00" step="0.01" value="1"
              class="form-control form-control-sm" style="width:78px;"
-             title="Performance Ratio: eficiencia global del sistema (típico residencial: 0.75–0.80)">
+             title="Performance Ratio: eficiencia global del sistema (Valor típico: 0.75–0.85)">
       <small class="text-muted">/ 1.00</small>
     </div>
   </div>

@@ -62,7 +62,7 @@
   let enShowConsumption   = false;
   let deratingOn          = false;
   let N_suggested         = 1;
-  let currentPR           = 0.80;
+  let currentPR           = 1;
 
   // Per-module derived temperature values (set in selectModule)
   let N_total, betaVoc, Voc_cold_per, Vmpp_hot_per, Vmpp_cold_per, P_cold_per;
