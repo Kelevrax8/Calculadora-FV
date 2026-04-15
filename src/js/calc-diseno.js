@@ -100,21 +100,33 @@
   }
 
   // ── MPPT-group helpers ──────────────────────────────────────
-  function totalCapacityPerInv(inv) {
-    const groups = inv.mppt_groups || [];
-    if (groups.length === 0) return inv.mppt_count || 1;
-    return groups.reduce((s, g) => s + g.mppt_count * g.max_strings_per_mppt, 0);
+  // Returns how many parallel strings can feed a single MPPT input given a
+  // module, accounting for both the hardware cap (if any) and current limits.
+  function effectiveStringsPerMppt(group, mod) {
+    const hwCap  = (group.max_strings_per_mppt != null) ? group.max_strings_per_mppt : Infinity;
+    const impCap = Math.floor(group.max_input_current        / mod.imp_stc);
+    const iscCap = Math.floor(group.max_short_circuit_current / mod.isc_stc);
+    return Math.min(hwCap, impCap, iscCap);
   }
 
-  function distributeStrings(Np_per_inv, groups) {
+  function totalCapacityPerInv(inv, mod) {
+    const groups = inv.mppt_groups || [];
+    if (groups.length === 0) return inv.mppt_count || 1;
+    const fromGroups = groups.reduce((s, g) => s + g.mppt_count * effectiveStringsPerMppt(g, mod), 0);
+    const totalCap   = (inv.max_total_strings != null) ? inv.max_total_strings : Infinity;
+    return Math.min(fromGroups, totalCap);
+  }
+
+  function distributeStrings(Np_per_inv, groups, mod) {
     if (!groups || groups.length === 0) return [];
     let remaining = Np_per_inv;
     return groups.map(g => {
-      const capacity       = g.mppt_count * g.max_strings_per_mppt;
-      const assigned       = Math.min(capacity, remaining);
-      remaining           -= assigned;
+      const effPerMppt = effectiveStringsPerMppt(g, mod);
+      const capacity   = g.mppt_count * effPerMppt;
+      const assigned   = Math.min(capacity, remaining);
+      remaining       -= assigned;
       const stringsPerMppt = assigned > 0 ? Math.ceil(assigned / g.mppt_count) : 0;
-      return { group: g, stringsAssigned: assigned, stringsPerMppt };
+      return { group: g, stringsAssigned: assigned, stringsPerMppt, effectiveCap: effPerMppt };
     });
   }
 
@@ -388,7 +400,7 @@
         const remV           = (n_rem * Vmpp_hot_per).toFixed(1);
         const rem_mppt_ok    = (n_rem * Vmpp_hot_per) >= selectedInverter.mppt_voltage_min;
         const rem_startup_ok = (n_rem * Vmpp_hot_per) >= selectedInverter.startup_voltage;
-        const hasParallel    = (selectedInverter.mppt_groups || []).some(g => g.max_strings_per_mppt > 1);
+        const hasParallel    = (selectedInverter.mppt_groups || []).some(g => g.max_strings_per_mppt == null || g.max_strings_per_mppt > 1);
         mpptNote.innerHTML =
           '<span class="d-block">' + (rem_mppt_ok ? '✓' : '✗') +
           ' MPPT mín (' + selectedInverter.mppt_voltage_min + ' V): ' +
@@ -430,7 +442,7 @@
 
     // ── N_inv stepper ──
     const Np_total  = Math.ceil(N_total / currentNs);
-    const capPerInv = selectedInverter ? totalCapacityPerInv(selectedInverter) : 0;
+    const capPerInv = selectedInverter ? totalCapacityPerInv(selectedInverter, selectedModule) : 0;
     const nInvMin   = selectedInverter ? Math.ceil(Np_total / capPerInv) : 1;
     currentNInv     = Math.max(nInvMin, currentNInv);
 
@@ -518,16 +530,16 @@
     const { Np, Voc_cold, Vmpp_hot, Vmpp_cold } = getStringMetrics(currentNs);
     const Np_per_inv     = Math.ceil(Np / currentNInv);
     const P_cold_per_inv = Np_per_inv * currentNs * P_cold_per;
-    const totalCapacity     = totalCapacityPerInv(inv);
+    const totalCapacity     = totalCapacityPerInv(inv, selectedModule);
     const capacityPass      = Np_per_inv <= totalCapacity;
-    const groupLoads        = distributeStrings(Np_per_inv, inv.mppt_groups || []);
+    const groupLoads        = distributeStrings(Np_per_inv, inv.mppt_groups || [], selectedModule);
     const allGroupIMpptPass = groupLoads.every(
       gl => gl.stringsPerMppt === 0 ||
-            gl.stringsPerMppt * selectedModule.imp_stc * NOM_FACTOR <= gl.group.max_input_current
+            gl.stringsPerMppt * selectedModule.imp_stc <= gl.group.max_input_current
     );
     const allGroupIScPass = groupLoads.every(
       gl => gl.stringsPerMppt === 0 ||
-            gl.stringsPerMppt * selectedModule.isc_stc * NOM_FACTOR <= gl.group.max_short_circuit_current
+            gl.stringsPerMppt * selectedModule.isc_stc <= gl.group.max_short_circuit_current
     );
     const vocPass      = Voc_cold <= inv.max_dc_voltage;
     const vmppHotPass  = Vmpp_hot >= inv.mppt_voltage_min;
@@ -592,7 +604,7 @@
 
     // ── Populate inverter preview card ──
     const groups   = inv.mppt_groups || [];
-    const totalCap = totalCapacityPerInv(inv);
+    const totalCap = totalCapacityPerInv(inv, selectedModule);
     const invImpRow = groups.length > 1
       ? groups.map(g => g.group_label + ': ' + g.max_input_current + ' A').join(' / ')
       : inv.max_input_current_per_mppt + ' A';
@@ -729,7 +741,7 @@
     const limitKey  = type === 'imp' ? 'max_input_current'    : 'max_short_circuit_current';
     const typeLabel = type === 'imp' ? 'Imp' : 'Isc';
     const active    = groupLoads.filter(gl => gl.stringsAssigned > 0);
-    const allPass   = active.every(gl => gl.stringsPerMppt * baseI * NOM_FACTOR <= gl.group[limitKey]);
+    const allPass   = active.every(gl => gl.stringsPerMppt * baseI <= gl.group[limitKey]);
 
     const badge = card.querySelector('[data-badge]');
     card.className  = 'card card-outline h-100 ' + (allPass ? 'card-success' : 'card-danger');
@@ -740,21 +752,21 @@
     const limitEl  = card.querySelector('[data-limit]');
     if (active.length <= 1) {
       const gl  = active[0];
-      const I   = gl ? gl.stringsPerMppt * baseI * NOM_FACTOR : baseI * NOM_FACTOR;
+      const I   = gl ? gl.stringsPerMppt * baseI : baseI;
       const lim = gl ? gl.group[limitKey] : 0;
       actualEl.textContent = I.toFixed(2) + ' A (' +
         (gl && gl.stringsPerMppt > 1
-          ? gl.stringsPerMppt + ' str × ' + typeLabel + ' ×1.25'
-          : typeLabel + ' ×1.25, 1 str') + ')';
+          ? gl.stringsPerMppt + ' str × ' + typeLabel
+          : typeLabel + ', 1 str') + ')';
       limitEl.textContent = '≤ ' + lim + ' A';
     } else {
       actualEl.innerHTML = active.map(gl => {
-        const I   = (gl.stringsPerMppt * baseI * NOM_FACTOR).toFixed(2);
+        const I   = (gl.stringsPerMppt * baseI).toFixed(2);
         const lim = gl.group[limitKey];
         const ok  = parseFloat(I) <= lim;
         return '<span style="display:block' +
           (ok ? '' : ';color:var(--danger,#dc3545);font-weight:700') + '">' +
-          gl.group.group_label + ': ' + gl.stringsPerMppt + ' str ×1.25 = ' + I + ' A / ' + lim + ' A</span>';
+          gl.group.group_label + ': ' + gl.stringsPerMppt + ' str = ' + I + ' A / ' + lim + ' A</span>';
       }).join('');
       limitEl.textContent = type === 'imp' ? 'I máx por entrada MPPT' : 'Isc máx por entrada MPPT';
     }
@@ -905,7 +917,7 @@
 
     // DC scenarios
     const Np_per_inv = cs.Np_per_inv || cs.Np || 1;
-    const groupLoads = distributeStrings(Np_per_inv, inv.mppt_groups || []);
+    const groupLoads = distributeStrings(Np_per_inv, inv.mppt_groups || [], mod);
     renderDcProtection(getDcScenarios(mod, groupLoads, factor), factor);
 
     // Derating hint
@@ -1190,25 +1202,28 @@
     // Checks (per-group)
     const expGroups      = inv.mppt_groups || [];
     const expTotalCap    = expGroups.length > 0
-      ? expGroups.reduce((s, g) => s + g.mppt_count * g.max_strings_per_mppt, 0)
+      ? Math.min(
+          expGroups.reduce((s, g) => s + g.mppt_count * effectiveStringsPerMppt(g, mod), 0),
+          inv.max_total_strings != null ? inv.max_total_strings : Infinity
+        )
       : inv.mppt_count;
     const expCapacityPass = Np_per_inv <= expTotalCap;
-    const expGroupLoads   = distributeStrings(Np_per_inv, expGroups);
+    const expGroupLoads   = distributeStrings(Np_per_inv, expGroups, mod);
     const expGroupCurrentChecks = expGroupLoads
       .filter(gl => gl.stringsAssigned > 0)
       .flatMap(gl => {
-        const I_mp = (gl.stringsPerMppt * mod.imp_stc * 1.25).toFixed(2);
-        const I_sc = (gl.stringsPerMppt * mod.isc_stc * 1.25).toFixed(2);
+        const I_mp = (gl.stringsPerMppt * mod.imp_stc).toFixed(2);
+        const I_sc = (gl.stringsPerMppt * mod.isc_stc).toFixed(2);
         const lim_mp = gl.group.max_input_current;
         const lim_sc = gl.group.max_short_circuit_current;
         return [
           {
-            label:  `Grupo ${gl.group.group_label}: I MPPT ≤ Imáx (${gl.stringsPerMppt} str × Imp ×1.25)`,
+            label:  `Grupo ${gl.group.group_label}: I MPPT ≤ Imáx (${gl.stringsPerMppt} str × Imp)`,
             detail: `${I_mp} A ≤ ${lim_mp} A`,
             pass:   parseFloat(I_mp) <= lim_mp, hard: true,
           },
           {
-            label:  `Grupo ${gl.group.group_label}: Isc MPPT ≤ Iscmáx (${gl.stringsPerMppt} str × Isc ×1.25)`,
+            label:  `Grupo ${gl.group.group_label}: Isc MPPT ≤ Iscmáx (${gl.stringsPerMppt} str × Isc)`,
             detail: `${I_sc} A ≤ ${lim_sc} A`,
             pass:   parseFloat(I_sc) <= lim_sc, hard: true,
           },
@@ -1225,7 +1240,7 @@
       { label: N_inv > 1
           ? `Strings/inv (${Np_per_inv}) ≤ Capacidad total (${Np} totales ÷ ${N_inv} inv)`
           : 'Strings ≤ Capacidad total del inversor',
-        detail: `${Np_per_inv} strings/inv ≤ ${expTotalCap} (MPPT × str máx/MPPT)`, pass: expCapacityPass, hard: true  },
+        detail: `${Np_per_inv} strings/inv ≤ ${expTotalCap} (capacidad efectiva para módulo seleccionado)`, pass: expCapacityPass, hard: true  },
       { label: 'Voc en frío ≤ Tensión máx. DC',             detail: `${Voc_cold.toFixed(1)} V ≤ ${inv.max_dc_voltage} V`,                                                     pass: vocPass,           hard: true  },
       { label: 'Vmpp en calor ≥ Límite inferior MPPT',      detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.mppt_voltage_min} V`,                                                   pass: vmppHotPass,       hard: false },
       { label: 'Vmpp en calor ≥ Tensión de arranque',       detail: `${Vmpp_hot.toFixed(1)} V ≥ ${inv.startup_voltage} V`,                                                    pass: startupPass,       hard: false },

@@ -24,7 +24,7 @@ class InverterRepository
                 i.pmax_dc_input, i.max_dc_voltage,
                 i.mppt_voltage_min, i.mppt_voltage_max, i.startup_voltage,
                 i.nominal_ac_power, i.ac_voltage_nominal,
-                i.phase_type, i.efficiency_weighted,
+                i.phase_type, i.efficiency_weighted, i.max_total_strings,
                 DATE_FORMAT(i.created_at, '%d/%m/%Y') AS created_at";
     }
 
@@ -213,7 +213,8 @@ class InverterRepository
                          nominal_ac_power   = :nominal_ac_power,
                          ac_voltage_nominal = :ac_voltage_nominal,
                          phase_type         = :phase_type,
-                         efficiency_weighted= :efficiency_weighted
+                         efficiency_weighted= :efficiency_weighted,
+                         max_total_strings  = :max_total_strings
                      WHERE id = :id'
                 );
                 $stmt->bindValue(':id', $inverter->id, PDO::PARAM_INT);
@@ -223,12 +224,12 @@ class InverterRepository
                          (manufacturer_id, model, pmax_dc_input, max_dc_voltage,
                           mppt_voltage_min, mppt_voltage_max, startup_voltage,
                           nominal_ac_power, ac_voltage_nominal, phase_type,
-                          efficiency_weighted)
+                          efficiency_weighted, max_total_strings)
                      VALUES
                          (:manufacturer_id, :model, :pmax_dc_input, :max_dc_voltage,
                           :mppt_voltage_min, :mppt_voltage_max, :startup_voltage,
                           :nominal_ac_power, :ac_voltage_nominal, :phase_type,
-                          :efficiency_weighted)'
+                          :efficiency_weighted, :max_total_strings)'
                 );
             }
 
@@ -243,6 +244,11 @@ class InverterRepository
             $stmt->bindValue(':ac_voltage_nominal',  $inverter->acVoltageNominal);
             $stmt->bindValue(':phase_type',          $inverter->phaseType);
             $stmt->bindValue(':efficiency_weighted', $inverter->efficiencyWeighted);
+            if ($inverter->maxTotalStrings !== null) {
+                $stmt->bindValue(':max_total_strings', $inverter->maxTotalStrings, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue(':max_total_strings', null, PDO::PARAM_NULL);
+            }
             $stmt->execute();
 
             $inverterId = $inverter->id > 0

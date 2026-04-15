@@ -211,7 +211,9 @@ class InventarioApiController
                         inverterId:             0,
                         label:                  $label,
                         mpptCount:              max(1, (int)($g['mppt_count']           ?? 1)),
-                        maxStringsPerMppt:      max(1, (int)($g['max_strings_per_mppt'] ?? 1)),
+                        maxStringsPerMppt:      isset($g['max_strings_per_mppt']) && $g['max_strings_per_mppt'] !== '' && $g['max_strings_per_mppt'] !== null
+                                                    ? max(1, (int)$g['max_strings_per_mppt'])
+                                                    : null,
                         maxInputCurrent:        (float)($g['max_input_current']         ?? 0),
                         maxShortCircuitCurrent: (float)($g['max_short_circuit_current'] ?? 0),
                     );
@@ -251,6 +253,9 @@ class InventarioApiController
                 efficiencyWeighted: (float)($body['efficiency_weighted']?? 0),
                 createdAt:          '',
                 mpptGroups:         $groups,
+                maxTotalStrings:    isset($body['max_total_strings']) && $body['max_total_strings'] !== '' && $body['max_total_strings'] !== null
+                                        ? max(1, (int)$body['max_total_strings'])
+                                        : null,
             );
 
             $this->inverters->save($inverter);

@@ -86,9 +86,13 @@ function renderRows(tab, data) {
       </tr>`;
 
     if (tab === 'inversores') {
-      const groupsSummary = (r.mppt_groups || []).map(g =>
-        `<span class="d-block text-nowrap">${esc(g.group_label)}: ${g.mppt_count}\u00d7${g.max_strings_per_mppt} &mdash; ${g.max_input_current}\u00a0A/\u00a0${g.max_short_circuit_current}\u00a0A</span>`
-      ).join('');
+      const groupsSummary = (r.mppt_groups || []).map(g => {
+        const strPerMppt = g.max_strings_per_mppt != null ? g.max_strings_per_mppt : '∞';
+        return `<span class="d-block text-nowrap">${esc(g.group_label)}: ${g.mppt_count}\u00d7${strPerMppt} &mdash; ${g.max_input_current}\u00a0A\u00a0/\u00a0${g.max_short_circuit_current}\u00a0A</span>`;
+      }).join('');
+      const totalStrNote = r.max_total_strings != null
+        ? `<span class="d-block text-nowrap text-muted">Total máx: ${r.max_total_strings} str</span>`
+        : '';
       return `
       <tr>
         <td class="font-weight-bold">${esc(r.manufacturer)}</td>
@@ -97,7 +101,7 @@ function renderRows(tab, data) {
         <td class="text-right">${r.max_dc_voltage}</td>
         <td class="text-right">${r.mppt_voltage_min} \u2013 ${r.mppt_voltage_max}</td>
         <td class="text-right">${r.startup_voltage}</td>
-        <td class="small">${groupsSummary || '\u2014'}</td>
+        <td class="small">${groupsSummary + totalStrNote || '\u2014'}</td>
         <td class="text-right">${r.nominal_ac_power}</td>
         <td class="text-right">${r.ac_voltage_nominal}</td>
         <td>${esc(PHASE_ES[r.phase_type] ?? r.phase_type)}</td>
@@ -147,9 +151,9 @@ function addMpptGroup(data = {}) {
           value="${data.mppt_count || 1}">
       </div>
       <div class="col-6 col-sm-2">
-        <label class="small mb-1">Str p&#225;ral./MPPT <span class="text-danger">*</span></label>
-        <input type="number" min="1" step="1" class="form-control form-control-sm grp-max-strings" required
-          value="${data.max_strings_per_mppt || 1}">
+        <label class="small mb-1">Str p&#225;ral./MPPT</label>
+        <input type="number" min="1" step="1" class="form-control form-control-sm grp-max-strings"
+          placeholder="— (ilimitado)" value="${data.max_strings_per_mppt ?? ''}">
       </div>
       <div class="col-6 col-sm-2">
         <label class="small mb-1">I MPPT m&#225;x (A) <span class="text-danger">*</span></label>
@@ -239,6 +243,7 @@ async function openModal(tab, row = null) {
     document.getElementById('inv-ac_voltage_nominal').value = row?.ac_voltage_nominal  ?? '';
     document.getElementById('inv-phase_type').value         = row?.phase_type          ?? '';
     document.getElementById('inv-efficiency_weighted').value = row?.efficiency_weighted ?? '';
+    document.getElementById('inv-max_total_strings').value   = row?.max_total_strings   ?? '';
     // Populate MPPT groups
     const groupsContainer = document.getElementById('inv-mppt-groups');
     groupsContainer.innerHTML = '';
@@ -301,10 +306,12 @@ async function saveEntity() {
     }
     const mppt_groups = Array.from(groupRows).map(r => ({
       group_label:               r.querySelector('.grp-label').value.trim(),
-      mppt_count:                parseInt(r.querySelector('.grp-mppt-count').value, 10)  || 1,
-      max_strings_per_mppt:      parseInt(r.querySelector('.grp-max-strings').value, 10) || 1,
-      max_input_current:         parseFloat(r.querySelector('.grp-imax').value)          || 0,
-      max_short_circuit_current: parseFloat(r.querySelector('.grp-isc').value)           || 0,
+      mppt_count:                parseInt(r.querySelector('.grp-mppt-count').value, 10) || 1,
+      max_strings_per_mppt:      r.querySelector('.grp-max-strings').value !== ''
+                                   ? parseInt(r.querySelector('.grp-max-strings').value, 10) || null
+                                   : null,
+      max_input_current:         parseFloat(r.querySelector('.grp-imax').value)         || 0,
+      max_short_circuit_current: parseFloat(r.querySelector('.grp-isc').value)          || 0,
     }));
     payload = {
       id:                  document.getElementById('inv-id').value,
@@ -319,6 +326,9 @@ async function saveEntity() {
       ac_voltage_nominal:  document.getElementById('inv-ac_voltage_nominal').value,
       phase_type:          document.getElementById('inv-phase_type').value,
       efficiency_weighted: document.getElementById('inv-efficiency_weighted').value,
+      max_total_strings:   document.getElementById('inv-max_total_strings').value !== ''
+                             ? document.getElementById('inv-max_total_strings').value
+                             : null,
       mppt_groups,
     };
   }

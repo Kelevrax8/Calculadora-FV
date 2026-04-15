@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS inverters (
     ac_voltage_nominal DECIMAL(6,2) NOT NULL,
     phase_type ENUM('Single Phase','Split Phase','Three Phase') NOT NULL,
     efficiency_weighted DECIMAL(5,2) NOT NULL,
+    -- Optional aggregate string cap when the datasheet states a total count
+    -- rather than (or in addition to) per-MPPT caps. NULL = no aggregate cap.
+    max_total_strings TINYINT UNSIGNED NULL DEFAULT NULL,
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
@@ -92,8 +95,9 @@ CREATE TABLE IF NOT EXISTS inverter_mppt_groups (
     group_label               VARCHAR(30) NOT NULL,
     -- Number of physical MPPT inputs that share identical current ratings in this group
     mppt_count                TINYINT UNSIGNED NOT NULL DEFAULT 1,
-    -- Maximum parallel strings the inverter hardware allows per single MPPT input
-    max_strings_per_mppt      TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    -- Maximum parallel strings the inverter hardware allows per single MPPT input.
+    -- NULL = no hard hardware limit per MPPT; effective capacity is current-limited.
+    max_strings_per_mppt      TINYINT UNSIGNED NULL DEFAULT NULL,
     -- Per-MPPT-input current limits (independent of number of parallel strings)
     max_input_current         DECIMAL(6,2) NOT NULL,
     max_short_circuit_current DECIMAL(6,2) NOT NULL,
