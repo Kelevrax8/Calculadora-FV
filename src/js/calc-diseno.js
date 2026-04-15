@@ -862,6 +862,7 @@
                   placeholder="—"/>
               </td>
               <td class="en-cons-col d-none text-right font-weight-bold" id="en-bal-${i}">—</td>
+              <td class="en-cons-col d-none text-right font-weight-bold" id="en-bolsa-${i}">—</td>
             </tr>`;
         }).join('');
 
@@ -874,6 +875,7 @@
             <td class="text-right" id="en-total-prod">${Math.round(totalProd)}</td>
             <td class="en-cons-col d-none text-right" id="en-total-cons">—</td>
             <td class="en-cons-col d-none text-right" id="en-total-bal">—</td>
+            <td class="en-cons-col d-none text-right" id="en-total-bolsa">—</td>
           </tr>`;
 
         // Delegate input listener (only needed once on initial build)
@@ -1063,30 +1065,44 @@
   }
 
   function updateEnBalances() {
-    let totalCons = 0, totalBal = 0, hasAny = false;
+    let totalCons = 0, totalBal = 0, bolsa = 0, hasAny = false;
     for (let i = 0; i < 12; i++) {
-      const input = document.getElementById('en-cons-input-' + i);
-      const balEl = document.getElementById('en-bal-' + i);
-      if (!input || !balEl) continue;
+      const input   = document.getElementById('en-cons-input-' + i);
+      const balEl   = document.getElementById('en-bal-'   + i);
+      const bolsaEl = document.getElementById('en-bolsa-' + i);
+      if (!input || !balEl || !bolsaEl) continue;
       const val = parseFloat(input.value);
-      if (isNaN(val) || input.value === '') { balEl.textContent = '—'; balEl.style.color = ''; continue; }
+      if (isNaN(val) || input.value === '') {
+        balEl.textContent   = '—'; balEl.style.color   = '';
+        bolsaEl.textContent = '—'; bolsaEl.style.color = '';
+        continue;
+      }
       hasAny = true;
       const balance = enMonthlyProduction[i] - val;
       totalCons += val;
       totalBal  += balance;
+      bolsa     += balance;
       balEl.textContent  = (balance >= 0 ? '+' : '') + Math.round(balance);
       balEl.style.color  = balance >= 0 ? 'var(--color-green-600,#16a34a)' : 'var(--color-red-500,#ef4444)';
       balEl.style.fontWeight = 'bold';
+      bolsaEl.textContent  = (bolsa >= 0 ? '+' : '') + Math.round(bolsa);
+      bolsaEl.style.color  = bolsa >= 0 ? 'var(--color-green-600,#16a34a)' : 'var(--color-red-500,#ef4444)';
+      bolsaEl.style.fontWeight = 'bold';
     }
-    const consEl = document.getElementById('en-total-cons');
-    const totBal = document.getElementById('en-total-bal');
+    const consEl      = document.getElementById('en-total-cons');
+    const totBal      = document.getElementById('en-total-bal');
+    const totBolsa    = document.getElementById('en-total-bolsa');
     if (consEl) consEl.textContent = hasAny ? Math.round(totalCons) : '—';
     if (totBal) {
+      // Balance column: no aggregate — cumulative total lives in Bolsa
+      totBal.textContent = '—'; totBal.style.color = ''; totBal.style.fontWeight = '';
+    }
+    if (totBolsa) {
       if (hasAny) {
-        totBal.textContent     = (totalBal >= 0 ? '+' : '') + Math.round(totalBal);
-        totBal.style.color     = totalBal >= 0 ? 'var(--color-green-600,#16a34a)' : 'var(--color-red-500,#ef4444)';
-        totBal.style.fontWeight = 'bold';
-      } else { totBal.textContent = '—'; totBal.style.color = ''; totBal.style.fontWeight = ''; }
+        totBolsa.textContent     = (bolsa >= 0 ? '+' : '') + Math.round(bolsa);
+        totBolsa.style.color     = bolsa >= 0 ? 'var(--color-green-600,#16a34a)' : 'var(--color-red-500,#ef4444)';
+        totBolsa.style.fontWeight = 'bold';
+      } else { totBolsa.textContent = '—'; totBolsa.style.color = ''; totBolsa.style.fontWeight = ''; }
     }
   }
 

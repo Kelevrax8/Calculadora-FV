@@ -260,13 +260,14 @@ class ExportService
         // Detect whether consumption data was entered by the user
         $hasConsumption = array_reduce($monthly, fn($carry, $m) => $carry || isset($m['consumo']), false);
 
-        $colCount = $hasConsumption ? 6 : 4;
-        $lastCol  = chr(64 + $colCount); // D or F
+        $colCount = $hasConsumption ? 7 : 4;
+        $lastCol  = chr(64 + $colCount); // D or G
 
         $widths = ['A' => 18, 'B' => 20, 'C' => 10, 'D' => 24];
         if ($hasConsumption) {
             $widths['E'] = 22;
             $widths['F'] = 22;
+            $widths['G'] = 28;
         }
         $this->setColumnWidths($s, $widths);
 
@@ -289,6 +290,7 @@ class ExportService
         if ($hasConsumption) {
             $headers[] = 'Consumo real (kWh)';
             $headers[] = 'Balance (kWh)';
+            $headers[] = 'Bolsa Energética (kWh)';
         }
         foreach ($headers as $i => $h) {
             $col = chr(65 + $i);
@@ -302,7 +304,7 @@ class ExportService
 
         $totalProd = 0.0;
         $totalCons = 0.0;
-        $totalBal  = 0.0;
+        $bolsa     = 0.0; // running cumulative balance ("energy bag")
 
         foreach ($monthly as $i => $m) {
             $r    = $i + 3;
@@ -328,7 +330,7 @@ class ExportService
                     $cons    = (float)$m['consumo'];
                     $balance = (float)($m['balance'] ?? ($prod - $cons));
                     $totalCons += $cons;
-                    $totalBal  += $balance;
+                    $bolsa     += $balance;
 
                     $s->setCellValue("E{$r}", (int)round($cons));
                     $s->setCellValue("F{$r}", ($balance >= 0 ? '+' : '') . (int)round($balance));
@@ -341,9 +343,20 @@ class ExportService
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $balBg]],
                         'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                     ]);
+
+                    // Bolsa Energética: running cumulative balance
+                    $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                    $bolsaBg = $bolsa >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
+                    $s->setCellValue("G{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                    $s->getStyle("G{$r}")->applyFromArray([
+                        'font' => ['bold' => true, 'color' => ['argb' => $bolsaFg]],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bolsaBg]],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
                 } else {
                     $s->setCellValue("E{$r}", '—');
                     $s->setCellValue("F{$r}", '—');
+                    $s->setCellValue("G{$r}", '—');
                 }
             }
         }
@@ -364,13 +377,15 @@ class ExportService
 
         if ($hasConsumption) {
             $s->setCellValue("E{$r}", $totalCons > 0 ? (int)round($totalCons) : '—');
-
+            // Balance column: no aggregate total — cumulative total lives in Bolsa
+            $s->setCellValue("F{$r}", '—');
+            // Bolsa Energética total: final running value = net annual balance
             if ($totalCons > 0) {
-                $s->setCellValue("F{$r}", ($totalBal >= 0 ? '+' : '') . (int)round($totalBal));
-                $balFg = $totalBal >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
-                $s->getStyle("F{$r}")->getFont()->getColor()->setARGB($balFg);
+                $s->setCellValue("G{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                $s->getStyle("G{$r}")->getFont()->getColor()->setARGB($bolsaFg);
             } else {
-                $s->setCellValue("F{$r}", '—');
+                $s->setCellValue("G{$r}", '—');
             }
         }
 

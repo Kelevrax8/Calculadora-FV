@@ -497,6 +497,7 @@
               <th class="text-right">Producción<br/><span class="font-weight-normal">(kWh)</span></th>
               <th class="en-cons-col d-none text-right">Consumo real<br/><span class="font-weight-normal">(kWh)</span></th>
               <th class="en-cons-col d-none text-right">Balance<br/><span class="font-weight-normal">(kWh)</span></th>
+              <th class="en-cons-col d-none text-right">Bolsa Energ&eacute;tica<br/><span class="font-weight-normal">(kWh)</span></th>
             </tr>
           </thead>
           <tbody id="en-monthly-tbody"></tbody>
