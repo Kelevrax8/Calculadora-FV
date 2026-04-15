@@ -298,6 +298,7 @@
 
     // ── Populate inverter dropdown with compat indicators ──
     clearInverterSelection();
+    document.getElementById('inverter-select').value = '';
     populateInverterDropdown();
     inverterSection.classList.remove('d-none');
     checksPanel.classList.add('d-none');
