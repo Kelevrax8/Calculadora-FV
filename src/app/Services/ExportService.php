@@ -60,7 +60,8 @@ class ExportService
         if (!empty($payload['monthly']) && count($payload['monthly']) === 12) {
             $monthly = $spreadsheet->createSheet();
             $monthly->setTitle('Producción Mensual');
-            $this->buildMonthly($monthly, $payload['monthly']);
+            $pr = (float)(($payload['energy']['PR'] ?? 0));
+            $this->buildMonthly($monthly, $payload['monthly'], $pr);
         }
 
         $spreadsheet->setActiveSheetIndex(0);
@@ -254,7 +255,7 @@ class ExportService
     }
 
     // ── Sheet 2 builder ───────────────────────────────────────
-    private function buildMonthly(Worksheet $s, array $monthly): void
+    private function buildMonthly(Worksheet $s, array $monthly, float $pr = 0.0): void
     {
         // Detect whether consumption data was entered by the user
         $hasConsumption = array_reduce($monthly, fn($carry, $m) => $carry || isset($m['consumo']), false);
@@ -375,7 +376,8 @@ class ExportService
 
         // Note
         $noteRow = $r + 2;
-        $s->setCellValue("A{$noteRow}", 'Producción estimada: P_STC (kWp) × GHI diario × días del mes × PR (0.75)');
+        $prPct = (int)round($pr * 100);
+        $s->setCellValue("A{$noteRow}", "Producción estimada: P_STC (kWp) × GHI diario × días del mes × PR ({$prPct}%)");
         $s->getStyle("A{$noteRow}")->getFont()->setItalic(true)->setSize(8)
           ->getColor()->setARGB(self::C_LABEL_FG);
         $s->mergeCells("A{$noteRow}:{$lastCol}{$noteRow}");
