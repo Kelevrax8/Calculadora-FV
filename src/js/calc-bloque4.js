@@ -46,9 +46,57 @@
     { maxTemp: 60, factor: 0.58 },
   ];
 
-  // Performance ratio — typical value for preliminary design (wiring + inverter + temp + soiling losses)
-  // Must match the PR used in block 2 for module sizing (calc-bloque2.js)
-  const PR = 0.75;
+  // ── Performance Ratio calculation ────────────────────────
+  // Dynamic PR calculation based on climate data (temperature losses)
+  // Base losses: soiling (2%), wiring (1.5%), inverter (1.5%) = ~5% total
+  const BASE_PR = 0.95;  // Base performance ratio before temperature effects
+
+  /**
+   * Calculates Performance Ratio for a given temperature.
+   * Accounts for PV module efficiency losses at elevated temperatures.
+   *
+   * @param {number} t_avg - Average ambient temperature (°C)
+   * @param {number} gamma - Module temperature coefficient (%/°C as decimal, e.g., -0.0037 for -0.37%/°C)
+   * @returns {number} Performance ratio (0-1)
+   */
+  function calculatePR(t_avg, gamma = -0.0037) {
+    // Estimate cell temperature: T_cell ≈ T_ambient + (NOCT - 20)
+    // For typical modules, NOCT ≈ 45°C, so delta ≈ 25°C
+    const CELL_TEMP_DELTA = 25;
+    const t_cell = t_avg + CELL_TEMP_DELTA;
+
+    // Temperature loss relative to STC (25°C)
+    const dt = t_cell - 25;
+    const temp_factor = 1 + (gamma * dt);  // gamma is negative, so this reduces output
+
+    // Combined PR: base losses × temperature effect
+    return BASE_PR * temp_factor;
+  }
+
+  /**
+   * Calculates average annual PR from monthly climate data.
+   *
+   * @param {Array} monthly - Array of monthly climate data with t2m_avg and ghi
+   * @param {number} gamma - Module temperature coefficient (decimal)
+   * @returns {number} Weighted average PR based on irradiance
+   */
+  function calculateAveragePR(monthly, gamma = -0.0037) {
+    if (!monthly || monthly.length !== 12) {
+      return 0.75;  // Fallback to conservative default
+    }
+
+    let weightedPR = 0;
+    let totalWeight = 0;
+
+    for (const month of monthly) {
+      const pr = calculatePR(month.t2m_avg, gamma);
+      const weight = month.ghi;  // Weight by solar irradiance
+      weightedPR += pr * weight;
+      totalWeight += weight;
+    }
+
+    return totalWeight > 0 ? weightedPR / totalWeight : 0.75;
+  }
 
   // ── MPPT-group helper (mirrors bloque3; both live in separate IIFEs) ────────
   function distributeStrings(Np_per_inv, groups) {
@@ -290,13 +338,16 @@
     if (dcacLabelEl) { dcacLabelEl.textContent = dcacLabel;   dcacLabelEl.className = 'small font-weight-bold mb-0 ' + dcacColor; }
 
     // ── Energy estimate ────────────────────────────────────
+    // Calculate dynamic PR based on module temperature coefficient and climate data
+    const gamma = mod.temp_coeff_pmax / 100;  // Convert %/°C to decimal
+    const PR = calculateAveragePR(cs.monthly, gamma);
     const E_year   = cs.P_stc_kW * hsp * 365 * PR;
     const coverage = consumo > 0 ? Math.min((E_year / consumo) * 100, 999) : 0;
     setText('s4-energy-production', E_year.toFixed(0) + ' kWh/año');
     setText('s4-self-sufficiency',  coverage.toFixed(1) + '%');
     setText('s4-pr',                (PR * 100).toFixed(0) + '%');
     // ── Monthly table ────────────────────────────────────
-    renderMonthlyTable(cs.monthly, cs.P_stc_kW, consumo);
+    renderMonthlyTable(cs.monthly, cs.P_stc_kW, consumo, mod);
     // ── Electrical protection ──────────────────────────────
     computeProtection(mod, inv, tmax);
   }
@@ -309,7 +360,7 @@
   let monthlyProduction = [];   // kWh per month, set once on render
   let showConsumption   = false;
 
-  function renderMonthlyTable(monthly, P_stc_kW, consumo) {
+  function renderMonthlyTable(monthly, P_stc_kW, consumo, mod) {
     const section = document.getElementById('s4-monthly-section');
     const tbody   = document.getElementById('s4-monthly-tbody');
     const tfoot   = document.getElementById('s4-monthly-tfoot');
@@ -322,10 +373,14 @@
 
     section.classList.remove('d-none');
 
-    // Pre-compute production per month
-    monthlyProduction = monthly.map((row, i) =>
-      P_stc_kW * row.ghi * MONTH_DAYS[i] * PR
-    );
+    // Get module temperature coefficient
+    const gamma = mod ? (mod.temp_coeff_pmax / 100) : -0.0037;
+
+    // Pre-compute production per month with month-specific PR
+    monthlyProduction = monthly.map((row, i) => {
+      const PR_month = calculatePR(row.t2m_avg, gamma);
+      return P_stc_kW * row.ghi * MONTH_DAYS[i] * PR_month;
+    });
 
     // Build rows — consumption column contains an editable input
     tbody.innerHTML = monthly.map((row, i) => {
@@ -783,6 +838,8 @@ hint.classList.remove('d-none');
     ];
 
     // Energy
+    const gamma = mod.temp_coeff_pmax / 100;
+    const PR = calculateAveragePR(cs.monthly, gamma);
     const E_year   = cs.P_stc_kW * hsp * 365 * PR;
     const coverage = consumo > 0 ? Math.min((E_year / consumo) * 100, 999) : 0;
 
@@ -799,7 +856,9 @@ hint.classList.remove('d-none');
     // Monthly — include consumption + balance if the user toggled that view on
     const monthly = (cs.monthly && cs.monthly.length === 12)
       ? cs.monthly.map((row, i) => {
-          const prod  = monthlyProduction[i] ?? (cs.P_stc_kW * row.ghi * MONTH_DAYS[i] * PR);
+          // Calculate month-specific PR for accurate monthly production
+          const PR_month = calculatePR(row.t2m_avg, gamma);
+          const prod  = monthlyProduction[i] ?? (cs.P_stc_kW * row.ghi * MONTH_DAYS[i] * PR_month);
           const entry = { ghi: row.ghi, production: prod };
 
           if (showConsumption) {

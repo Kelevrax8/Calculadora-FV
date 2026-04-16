@@ -3,6 +3,58 @@
 // ============================================================
 (function () {
 
+  // ── Performance Ratio calculation ────────────────────────
+  // Dynamic PR calculation based on climate data (temperature losses)
+  // Base losses: soiling (2%), wiring (1.5%), inverter (1.5%) = ~5% total
+  const BASE_PR = 0.95;  // Base performance ratio before temperature effects
+
+  /**
+   * Calculates Performance Ratio for a given temperature.
+   * Accounts for PV module efficiency losses at elevated temperatures.
+   *
+   * @param {number} t_avg - Average ambient temperature (°C)
+   * @param {number} gamma - Module temperature coefficient (%/°C as decimal, e.g., -0.0037 for -0.37%/°C)
+   * @returns {number} Performance ratio (0-1)
+   */
+  function calculatePR(t_avg, gamma = -0.0037) {
+    // Estimate cell temperature: T_cell ≈ T_ambient + (NOCT - 20)
+    // For typical modules, NOCT ≈ 45°C, so delta ≈ 25°C
+    const CELL_TEMP_DELTA = 25;
+    const t_cell = t_avg + CELL_TEMP_DELTA;
+
+    // Temperature loss relative to STC (25°C)
+    const dt = t_cell - 25;
+    const temp_factor = 1 + (gamma * dt);  // gamma is negative, so this reduces output
+
+    // Combined PR: base losses × temperature effect
+    return BASE_PR * temp_factor;
+  }
+
+  /**
+   * Calculates average annual PR from monthly climate data.
+   *
+   * @param {Array} monthly - Array of monthly climate data with t2m_avg and ghi
+   * @param {number} gamma - Module temperature coefficient (decimal)
+   * @returns {number} Weighted average PR based on irradiance
+   */
+  function calculateAveragePR(monthly, gamma = -0.0037) {
+    if (!monthly || monthly.length !== 12) {
+      return 0.75;  // Fallback to conservative default
+    }
+
+    let weightedPR = 0;
+    let totalWeight = 0;
+
+    for (const month of monthly) {
+      const pr = calculatePR(month.t2m_avg, gamma);
+      const weight = month.ghi;  // Weight by solar irradiance
+      weightedPR += pr * weight;
+      totalWeight += weight;
+    }
+
+    return totalWeight > 0 ? weightedPR / totalWeight : 0.75;
+  }
+
   // ── State ─────────────────────────────────────────────────
   let allModules     = [];
   let filteredIds    = new Set();
@@ -199,14 +251,17 @@
     const cobertura  = parseFloat(document.getElementById('cobertura_pct').value)    || 100;
     const hsp        = parseFloat(document.getElementById('hsp').value)               || 0;
     const tmax       = parseFloat(document.getElementById('tmax').value)               || 25;
-    const PR = 0.75; //Standard performance ratio
+
+    // Calculate dynamic PR based on climate data and module temperature coefficient
+    const gamma = m.temp_coeff_pmax / 100;  // %/°C → decimal
+    const monthly = window.calcState?.monthly;
+    const PR = calculateAveragePR(monthly, gamma);
 
     const E_dia_Wh      = (consumo * (cobertura / 100) / 365) * 1000;
-    const P_req_W       = E_dia_Wh / (hsp * PR); 
+    const P_req_W       = E_dia_Wh / (hsp * PR);
     const N             = Math.ceil(P_req_W / m.pmax_stc);
     const P_stc_kW      = (N * m.pmax_stc) / 1000;
 
-    const gamma         = m.temp_coeff_pmax / 100;          // %/°C → decimal
     const dT_calor      = tmax - 25;
     const P_mod_calor   = m.pmax_stc * (1 + gamma * dT_calor);
     const P_calor_kW    = (N * P_mod_calor) / 1000;

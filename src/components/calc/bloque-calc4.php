@@ -237,8 +237,11 @@
       <div class="col-sm-6 col-lg-3 mb-2">
         <div class="card bg-light border-0 h-100">
           <div class="card-body p-3">
-            <p class="text-muted small mb-1">Factor de rendimiento (PR)</p>
-            <p id="s4-pr" class="font-weight-bold small mb-0">0.75</p>
+            <p class="text-muted small mb-1">Factor de rendimiento (PR)
+              <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="top"
+                 title="Calculado dinámicamente según temperatura del sitio y características del módulo"></i>
+            </p>
+            <p id="s4-pr" class="font-weight-bold small mb-0">—</p>
           </div>
         </div>
       </div>
