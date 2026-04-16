@@ -233,7 +233,7 @@
 
     // ── Populate module preview card ──
     const area = m.length_m * m.width_m;
-    const eta  = (m.pmax_stc / (1000 * area) * 100).toFixed(2);
+    const eta  = (m.pmax_stc / (1000 * m.length_m * m.width_m) * 100).toFixed(2);
 
     document.getElementById('mod-preview-manufacturer').textContent = m.manufacturer;
     document.getElementById('mod-preview-model').textContent        = m.model;
