@@ -80,6 +80,7 @@ function renderRows(tab, data) {
         <td class="text-right">${r.imp_stc}</td>
         <td class="text-right">${r.temp_coeff_voc}</td>
         <td class="text-right">${r.temp_coeff_pmax}</td>
+        <td class="text-right">${r.noct}</td>
         <td class="text-right">${r.length_m}</td>
         <td class="text-right">${r.width_m}</td>
         <td class="text-center">${actions}</td>
@@ -228,6 +229,7 @@ async function openModal(tab, row = null) {
     document.getElementById('mod-imp_stc').value       = row?.imp_stc        ?? '';
     document.getElementById('mod-temp_coeff_voc').value  = row?.temp_coeff_voc  ?? '';
     document.getElementById('mod-temp_coeff_pmax').value = row?.temp_coeff_pmax ?? '';
+    document.getElementById('mod-noct').value             = row?.noct             ?? '45';
     document.getElementById('mod-length_m').value      = row?.length_m       ?? '';
     document.getElementById('mod-width_m').value       = row?.width_m        ?? '';
   }
@@ -294,6 +296,7 @@ async function saveEntity() {
       imp_stc:          document.getElementById('mod-imp_stc').value,
       temp_coeff_voc:   document.getElementById('mod-temp_coeff_voc').value,
       temp_coeff_pmax:  document.getElementById('mod-temp_coeff_pmax').value,
+      noct:             document.getElementById('mod-noct').value,
       length_m:         document.getElementById('mod-length_m').value,
       width_m:          document.getElementById('mod-width_m').value,
     };

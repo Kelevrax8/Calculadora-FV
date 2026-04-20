@@ -62,7 +62,21 @@
   let enShowConsumption   = false;
   let deratingOn          = false;
   let N_suggested         = 1;
-  let currentPR           = 1;
+
+  // ── Itemized losses (Option B) – percentages ────────────────
+  const LOSS_DEFAULTS = {
+    soiling:   2.0,
+    mismatch:  2.0,
+    dc_wiring: 1.5,
+    clipping:  1.5,
+    ac_wiring: 0.5,
+    lid:       1.5,
+  };
+  let currentLosses = { ...LOSS_DEFAULTS };
+
+  function computeLossFactor() {
+    return Object.values(currentLosses).reduce((f, pct) => f * (1 - pct / 100), 1);
+  }
 
   // Per-module derived temperature values (set in selectModule)
   let N_total, betaVoc, Voc_cold_per, Vmpp_hot_per, Vmpp_cold_per, P_cold_per;
@@ -247,6 +261,7 @@
     document.getElementById('mod-preview-imp').textContent   = m.imp_stc   + ' A';
     document.getElementById('mod-preview-bvoc').textContent  = m.temp_coeff_voc   + ' %/°C';
     document.getElementById('mod-preview-gp').textContent    = m.temp_coeff_pmax  + ' %/°C';
+    document.getElementById('mod-preview-noct').textContent  = (m.noct || 45) + ' °C';
     document.getElementById('mod-preview-area').textContent  = area.toFixed(2) + ' m²';
     document.getElementById('mod-preview-eta').textContent   = eta + '%';
     document.getElementById('module-card-preview').classList.remove('d-none');
@@ -788,19 +803,57 @@
     }
   }
 
-  // ── Energy production section ────────────────────────────────
+  // ── Energy production section ─────────────
+  //NOCT cell temperature model per month
+  //Itemized non-temperature losses
   function renderEnergiaSection(dc_ac) {
     const cs      = window.calcState || {};
     const P_stc   = cs.P_stc_kW || 0;
-    const hsp     = parseFloat(document.getElementById('hsp').value)                || 0;
+    const mod     = cs.module;
     const consumo = parseFloat(document.getElementById('consumo_anual_kwh').value) || 0;
 
-    const E_year    = P_stc * hsp * 365 * currentPR;
+    const lossFactor = computeLossFactor();
+    const invEff      = cs.inverter ? (cs.inverter.efficiency_weighted / 100) : 0.96;
+
+    // NOCT parameters
+    const noct    = mod ? (mod.noct || 45) : 45;
+    const gamma   = mod ? (mod.temp_coeff_pmax / 100) : -0.0040;
+
+    // Monthly data available?
+    const monthly        = cs.monthly;
+    const hasMonthly     = monthly && monthly.length === 12;
+
+    // Compute annual energy with temperature model if monthly data available
+    let E_year = 0;
+    let monthlyDetails = [];
+
+    if (hasMonthly) {
+      monthlyDetails = monthly.map((row, i) => {
+        // IEC 61215 simplified NOCT: T_cell = T_amb + (NOCT - 20)
+        // T_amb uses daytime average (t2m_avg + t2m_max) / 2 per NASA POWER
+        const T_amb  = (row.t2m_avg + row.t2m_max) / 2;
+        const T_cell = T_amb + (noct - 20);
+        const f_temp = 1 + gamma * (T_cell - STC_TEMP);
+        const prod   = P_stc * row.ghi * MONTH_DAYS[i] * f_temp * lossFactor * invEff;
+        return { T_amb, T_cell, f_temp, prod: Math.max(0, prod) };
+      });
+      E_year = monthlyDetails.reduce((s, d) => s + d.prod, 0);
+      enMonthlyProduction = monthlyDetails.map(d => d.prod);
+    } else {
+      // Fallback: use HSP with manual average temperature
+      const hsp  = parseFloat(document.getElementById('hsp').value) || 0;
+      const tAvg = parseFloat(document.getElementById('tavg')?.value) || 25;
+      const T_cell_avg = tAvg + (noct - 20);
+      const f_temp_avg = 1 + gamma * (T_cell_avg - STC_TEMP);
+      E_year = P_stc * hsp * 365 * f_temp_avg * lossFactor * invEff;
+    }
+
     const cobertura = consumo > 0 ? Math.min((E_year / consumo) * 100, 999) : 0;
 
     document.getElementById('en-p-stc').textContent            = P_stc.toFixed(2);
     document.getElementById('en-produccion-anual').textContent = Math.round(E_year) + '';
     document.getElementById('en-cobertura').textContent        = cobertura.toFixed(1) + '%';
+    document.getElementById('en-loss-factor-display').textContent = lossFactor.toFixed(4);
 
     const dcacEl   = document.getElementById('en-dcac');
     const dcacHint = document.getElementById('en-dcac-hint');
@@ -811,29 +864,32 @@
     dcacHint.className   = 'text-muted font-weight-bold small ' + dcacLbl.cssClass;
 
     // Monthly table
-    const monthly        = cs.monthly;
     const monthlySection = document.getElementById('en-monthly-section');
     const noMonthly      = document.getElementById('en-no-monthly');
     const tbody          = document.getElementById('en-monthly-tbody');
     const tfoot          = document.getElementById('en-monthly-tfoot');
 
-    if (monthly && monthly.length === 12) {
+    if (hasMonthly) {
       noMonthly.classList.add('d-none');
       monthlySection.classList.remove('d-none');
-
-      // Recompute production with latest P_stc and PR
-      enMonthlyProduction = monthly.map((row, i) => P_stc * row.ghi * MONTH_DAYS[i] * currentPR);
 
       const tableAlreadyBuilt = tbody.querySelector('tr') !== null;
 
       if (tableAlreadyBuilt) {
-        // ── In-place update: patch production cells and balances only ──
-        enMonthlyProduction.forEach((prod, i) => {
+        // ── In-place update: patch production + temperature cells ──
+        monthlyDetails.forEach((det, i) => {
           const row = tbody.querySelector(`tr[data-month="${i}"]`);
           if (!row) return;
-          // 4th <td> (index 3) is the production cell
           const cells = row.querySelectorAll('td');
-          if (cells[3]) cells[3].textContent = Math.round(prod);
+          // cells: [name, ghi, t_amb, t_cell, f_temp, days, prod, ...]
+          if (cells[2]) cells[2].textContent = det.T_amb.toFixed(1);
+          if (cells[3]) cells[3].textContent = det.T_cell.toFixed(1);
+          if (cells[4]) {
+            const pct = (det.f_temp - 1) * 100;
+            cells[4].textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1);
+            cells[4].style.color = pct >= 0 ? '' : 'var(--color-red-500,#ef4444)';
+          }
+          if (cells[6]) cells[6].textContent = Math.round(det.prod);
         });
 
         // Update total production in tfoot
@@ -841,20 +897,23 @@
         const totalProdEl = document.getElementById('en-total-prod');
         if (totalProdEl) totalProdEl.textContent = Math.round(totalProd);
 
-        // Recompute balances since production values changed
         updateEnBalances();
 
       } else {
-        // ── Full build: construct the table for the first time ──
+        // ── Full build ──
         tbody.innerHTML = monthly.map((row, i) => {
-          const prod  = enMonthlyProduction[i];
+          const det   = monthlyDetails[i];
+          const pct   = (det.f_temp - 1) * 100;
           const rowBg = i % 2 === 0 ? '' : 'table-light';
           return `
             <tr class="${rowBg}" data-month="${i}">
               <td>${MONTH_NAMES[i]}</td>
               <td class="text-right">${row.ghi.toFixed(2)}</td>
+              <td class="text-right">${det.T_amb.toFixed(1)}</td>
+              <td class="text-right">${det.T_cell.toFixed(1)}</td>
+              <td class="text-right" style="color:${pct >= 0 ? '' : 'var(--color-red-500,#ef4444)'}">${(pct >= 0 ? '+' : '') + pct.toFixed(2)}</td>
               <td class="text-right">${MONTH_DAYS[i]}</td>
-              <td class="text-right font-weight-bold">${Math.round(prod)}</td>
+              <td class="text-right font-weight-bold">${Math.round(det.prod)}</td>
               <td class="en-cons-col d-none text-right">
                 <input type="number" min="0" step="1"
                   id="en-cons-input-${i}"
@@ -871,6 +930,9 @@
           <tr>
             <td>Total anual</td>
             <td class="text-right">—</td>
+            <td class="text-right">—</td>
+            <td class="text-right">—</td>
+            <td class="text-right">—</td>
             <td class="text-right">365</td>
             <td class="text-right" id="en-total-prod">${Math.round(totalProd)}</td>
             <td class="en-cons-col d-none text-right" id="en-total-cons">—</td>
@@ -878,14 +940,12 @@
             <td class="en-cons-col d-none text-right" id="en-total-bolsa">—</td>
           </tr>`;
 
-        // Delegate input listener (only needed once on initial build)
         tbody.addEventListener('input', function (e) {
           if (!e.target.matches('input[id^="en-cons-input-"]')) return;
           updateEnBalances();
         });
       }
 
-      // Keep consumption column visibility in sync with current toggle state
       document.querySelectorAll('.en-cons-col').forEach(el => {
         el.classList.toggle('d-none', !enShowConsumption);
       });
@@ -1113,7 +1173,7 @@
     currentNs        = 1;
     currentNInv      = 1;
     N_suggested      = 1;
-    currentPR        = 0.80;
+    currentLosses    = { ...LOSS_DEFAULTS };
     document.getElementById('module-select').value   = '';
     document.getElementById('inverter-select').value = '';
     document.getElementById('module-card-preview').classList.add('d-none');
@@ -1126,8 +1186,7 @@
     document.getElementById('bloque-energia').classList.add('d-none');
     document.getElementById('bloque-protecciones').classList.add('d-none');
     document.getElementById('bloque-export').classList.add('d-none');
-    const prInput = document.getElementById('en-pr-input');
-    if (prInput) prInput.value = '0.80';
+    syncLossesModalUI();
     document.getElementById('res-n-sugerido-hint').classList.add('d-none');
     document.getElementById('res-n-base-hint').classList.remove('d-none');
     enMonthlyProduction = [];
@@ -1143,16 +1202,71 @@
   // ── Navigation ──────────────────────────────────────────────
   // (single-page flow — no step transitions needed)
 
-  // PR input — immediately re-render energy section on change
-  document.getElementById('en-pr-input').addEventListener('input', function () {
-    const val = parseFloat(this.value);
-    if (isNaN(val) || val < 0.50 || val > 1.00) return;
-    currentPR = val;
+  // ── Losses modal interaction (Option B) ───────────────────
+  function syncLossesModalUI() {
+    document.querySelectorAll('#losses-list .loss-row').forEach(row => {
+      const key   = row.dataset.lossKey;
+      const val   = currentLosses[key] ?? 0;
+      const input = row.querySelector('.loss-input');
+      const range = row.querySelector('.loss-range');
+      if (input) input.value = val;
+      if (range) range.value = val;
+    });
+    updateLossesModalCombined();
+  }
+
+  function updateLossesModalCombined() {
+    const el = document.getElementById('losses-modal-combined');
+    if (el) el.textContent = computeLossFactor().toFixed(4);
+  }
+
+  function triggerEnergyRecalc() {
     if (selectedInverter && window.calcState && window.calcState.P_stc_kW) {
       const P_stc_W = window.calcState.P_stc_kW * 1000;
       const dc_ac   = P_stc_W / (currentNInv * selectedInverter.nominal_ac_power);
       renderEnergiaSection(dc_ac);
     }
+  }
+
+  // Sync range ↔ input for each loss row
+  document.querySelectorAll('#losses-list .loss-row').forEach(row => {
+    const key   = row.dataset.lossKey;
+    const input = row.querySelector('.loss-input');
+    const range = row.querySelector('.loss-range');
+    input.addEventListener('input', function () {
+      const v = parseFloat(this.value);
+      if (isNaN(v)) return;
+      const clamped = Math.max(parseFloat(range.min), Math.min(parseFloat(range.max), v));
+      currentLosses[key] = clamped;
+      range.value = clamped;
+      updateLossesModalCombined();
+      triggerEnergyRecalc();
+    });
+    range.addEventListener('input', function () {
+      const v = parseFloat(this.value);
+      currentLosses[key] = v;
+      input.value = v;
+      updateLossesModalCombined();
+      triggerEnergyRecalc();
+    });
+  });
+
+  // Open modal
+  document.getElementById('btn-open-losses-modal').addEventListener('click', function () {
+    syncLossesModalUI();
+    $('#losses-modal').modal('show');
+  });
+
+  // Reset to defaults
+  document.getElementById('btn-losses-reset').addEventListener('click', function () {
+    currentLosses = { ...LOSS_DEFAULTS };
+    syncLossesModalUI();
+    triggerEnergyRecalc();
+  });
+
+  // Initialize tooltips in the modal
+  $(function () {
+    $('#losses-modal [data-toggle="tooltip"]').tooltip({ container: 'body' });
   });
 
   // Consumption column toggle for the energia section
@@ -1269,8 +1383,26 @@
         detail: `${(P_cold_per_inv/1000).toFixed(2)} kW/inv (T_min=${tmin}°C) ≤ ${(inv.pmax_dc_input/1000).toFixed(2)} kW`, pass: pDcPass, hard: true },
     ];
 
-    // Energy (with PR)
-    const E_year   = cs.P_stc_kW * hsp * 365 * currentPR;
+    // Energy (NOCT temperature model + itemized losses)
+    const lossFactor = computeLossFactor();
+    const invEff     = inv.efficiency_weighted / 100;
+    const noct       = mod.noct || 45;
+    let E_year = 0;
+
+    if (cs.monthly && cs.monthly.length === 12) {
+      E_year = cs.monthly.reduce((sum, row, i) => {
+        const T_amb  = (row.t2m_avg + row.t2m_max) / 2;
+        const T_cell = T_amb + (noct - 20);
+        const f_temp = 1 + gammaPmax * (T_cell - 25);
+        return sum + Math.max(0, cs.P_stc_kW * row.ghi * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
+      }, 0);
+    } else {
+      const tAvg       = parseFloat(document.getElementById('tavg')?.value) || 25;
+      const T_cell_avg = tAvg + (noct - 20);
+      const f_temp_avg = 1 + gammaPmax * (T_cell_avg - 25);
+      E_year = cs.P_stc_kW * hsp * 365 * f_temp_avg * lossFactor * invEff;
+    }
+
     const coverage = consumo > 0 ? Math.min((E_year / consumo) * 100, 999) : 0;
 
     // Protection
@@ -1286,8 +1418,11 @@
     // Monthly — include consumption + balance if the user toggled that view on
     const monthly = (cs.monthly && cs.monthly.length === 12)
       ? cs.monthly.map((row, i) => {
-          const prod  = enMonthlyProduction[i] ?? (cs.P_stc_kW * row.ghi * MONTH_DAYS[i] * currentPR);
-          const entry = { ghi: row.ghi, production: prod };
+          const T_amb  = (row.t2m_avg + row.t2m_max) / 2;
+          const T_cell = T_amb + (noct - 20);
+          const f_temp = 1 + gammaPmax * (T_cell - 25);
+          const prod   = enMonthlyProduction[i] ?? Math.max(0, cs.P_stc_kW * row.ghi * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
+          const entry  = { ghi: row.ghi, t2m_avg: row.t2m_avg, T_cell, f_temp, production: prod };
 
           if (enShowConsumption) {
             const input = document.getElementById('en-cons-input-' + i);
@@ -1308,7 +1443,7 @@
       array:   { Ns, Np, N_inv, Np_per_inv, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea, n_rem },
       inverter:{ ...inv },
       checks,
-      energy:  { E_year, coverage, PR: currentPR, dc_ac },
+      energy:  { E_year, coverage, loss_factor: lossFactor, losses: { ...currentLosses }, noct, dc_ac },
       protection: {
         derating_on:     deratingOn,
         derating_factor: factor,

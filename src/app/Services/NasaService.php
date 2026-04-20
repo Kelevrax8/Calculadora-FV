@@ -110,6 +110,9 @@ class NasaService
         $stmt = $this->pdo->prepare(
             'SELECT month,
                     ghi_kwh_m2_day AS ghi,
+                    dni_kwh_m2_day AS dni,
+                    dhi_kwh_m2_day AS dhi,
+                    sun_hours,
                     t2m_avg, t2m_max, t2m_min
              FROM climatology_monthly
              WHERE location_id = :id
@@ -133,7 +136,7 @@ class NasaService
     {
         $url = sprintf(
             'https://power.larc.nasa.gov/api/temporal/climatology/point'
-            . '?parameters=ALLSKY_SFC_SW_DWN,T2M,T2M_MAX,T2M_MIN'
+            . '?parameters=ALLSKY_SFC_SW_DWN,ALLSKY_SFC_SW_DNI,ALLSKY_SFC_SW_DIFF,T2M,T2M_MAX,T2M_MIN'
             . '&community=RE&latitude=%s&longitude=%s&format=JSON',
             $lat,
             $lng
@@ -156,6 +159,8 @@ class NasaService
             !$params
             || !isset(
                 $params['ALLSKY_SFC_SW_DWN'],
+                $params['ALLSKY_SFC_SW_DNI'],
+                $params['ALLSKY_SFC_SW_DIFF'],
                 $params['T2M'],
                 $params['T2M_MAX'],
                 $params['T2M_MIN']
@@ -167,15 +172,49 @@ class NasaService
         $monthly = [];
         foreach (self::MONTH_KEYS as $i => $key) {
             $monthly[] = [
-                'month'   => $i + 1,
-                'ghi'     => (float) $params['ALLSKY_SFC_SW_DWN'][$key],
-                't2m_avg' => (float) $params['T2M'][$key],
-                't2m_max' => (float) $params['T2M_MAX'][$key],
-                't2m_min' => (float) $params['T2M_MIN'][$key],
+                'month'     => $i + 1,
+                'ghi'       => (float) $params['ALLSKY_SFC_SW_DWN'][$key],
+                'dni'       => (float) $params['ALLSKY_SFC_SW_DNI'][$key],
+                'dhi'       => (float) $params['ALLSKY_SFC_SW_DIFF'][$key],
+                'sun_hours' => $this->computeSunHours($lat, $i + 1),
+                't2m_avg'   => (float) $params['T2M'][$key],
+                't2m_max'   => (float) $params['T2M_MAX'][$key],
+                't2m_min'   => (float) $params['T2M_MIN'][$key],
             ];
         }
 
         return $monthly;
+    }
+
+    /**
+     * Computes astronomical daylight hours for a given latitude and month.
+     *
+     * Uses the mid-month representative day (Cooper's formula for solar
+     * declination) and the sunset hour angle to derive day length.
+     */
+    private function computeSunHours(float $lat, int $month): float
+    {
+        // Representative day-of-year for mid-month (Klein, 1977)
+        $midMonthDoy = [17, 47, 75, 105, 135, 162, 198, 228, 258, 288, 318, 344];
+        $n = $midMonthDoy[$month - 1];
+
+        // Solar declination (Cooper's equation) in radians
+        $decl = deg2rad(23.45 * sin(deg2rad(360.0 / 365.0 * (284 + $n))));
+        $latRad = deg2rad($lat);
+
+        // Sunset hour angle
+        $cosWs = -tan($latRad) * tan($decl);
+
+        // Handle polar day / polar night
+        if ($cosWs < -1.0) {
+            return 24.0; // Midnight sun
+        }
+        if ($cosWs > 1.0) {
+            return 0.0;  // Polar night
+        }
+
+        $ws = acos($cosWs); // radians
+        return round((2.0 * rad2deg($ws)) / 15.0, 2);
     }
 
     /**
@@ -209,14 +248,17 @@ class NasaService
 
             $stmt = $this->pdo->prepare(
                 'INSERT INTO climatology_monthly
-                    (location_id, month, ghi_kwh_m2_day, t2m_avg, t2m_max, t2m_min)
-                 VALUES (:loc, :month, :ghi, :avg, :max, :min)'
+                    (location_id, month, ghi_kwh_m2_day, dni_kwh_m2_day, dhi_kwh_m2_day, sun_hours, t2m_avg, t2m_max, t2m_min)
+                 VALUES (:loc, :month, :ghi, :dni, :dhi, :sun, :avg, :max, :min)'
             );
             foreach ($monthly as $row) {
                 $stmt->execute([
                     ':loc'   => $locationId,
                     ':month' => $row['month'],
                     ':ghi'   => $row['ghi'],
+                    ':dni'   => $row['dni'],
+                    ':dhi'   => $row['dhi'],
+                    ':sun'   => $row['sun_hours'],
                     ':avg'   => $row['t2m_avg'],
                     ':max'   => $row['t2m_max'],
                     ':min'   => $row['t2m_min'],

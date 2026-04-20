@@ -63,6 +63,7 @@
                 <span class="col-4 text-muted">Imp</span>   <span id="mod-preview-imp"  class="col-8 font-weight-bold">—</span>
                 <span class="col-4 text-muted">βVoc</span>  <span id="mod-preview-bvoc" class="col-8 font-weight-bold">—</span>
                 <span class="col-4 text-muted">γP</span>    <span id="mod-preview-gp"   class="col-8 font-weight-bold">—</span>
+                <span class="col-4 text-muted">NOCT</span>  <span id="mod-preview-noct" class="col-8 font-weight-bold">—</span>
                 <span class="col-4 text-muted mt-1">Área</span>       <span id="mod-preview-area" class="col-8 font-weight-bold mt-1">—</span>
                 <span class="col-4 text-muted">Eficiencia</span> <span id="mod-preview-eta"  class="col-8 font-weight-bold text-success">—</span>
               </div>
@@ -415,14 +416,15 @@
   <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:.5rem;">
     <div>
       <h5 class="mb-0">Producción Energética</h5>
-      <small class="text-muted">Estimado con factor de rendimiento (PR)</small>
+      <small class="text-muted">Estimado con modelo de temperatura NOCT y pérdidas detalladas</small>
     </div>
     <div class="d-flex align-items-center" style="gap:.5rem;">
-      <label for="en-pr-input" class="mb-0 small font-weight-bold text-muted">Factor PR</label>
-      <input type="number" id="en-pr-input" min="0.50" max="1.00" step="0.01" value="1"
-             class="form-control form-control-sm" style="width:78px;"
-             title="Performance Ratio: eficiencia global del sistema (Valor típico: 0.75–0.85)">
-      <small class="text-muted">/ 1.00</small>
+      <label class="mb-0 small font-weight-bold text-muted">Factor de pérdidas</label>
+      <span id="en-loss-factor-display" class="font-weight-bold" style="min-width:50px;">—</span>
+      <button type="button" id="btn-open-losses-modal" class="btn btn-xs btn-default border"
+              title="Editar pérdidas detalladas">
+        <i class="fas fa-sliders-h"></i>
+      </button>
     </div>
   </div>
 
@@ -493,6 +495,9 @@
             <tr>
               <th>Mes</th>
               <th class="text-right">GHI diario<br/><span class="font-weight-normal">(kWh/m²/día)</span></th>
+              <th class="text-right">T<sub>amb</sub><br/><span class="font-weight-normal">(°C)</span></th>
+              <th class="text-right">T<sub>cel</sub><br/><span class="font-weight-normal">(°C)</span></th>
+              <th class="text-right">f<sub>temp</sub><br/><span class="font-weight-normal">(%)</span></th>
               <th class="text-right">Días</th>
               <th class="text-right">Producción<br/><span class="font-weight-normal">(kWh)</span></th>
               <th class="en-cons-col d-none text-right">Consumo real<br/><span class="font-weight-normal">(kWh)</span></th>
@@ -607,5 +612,149 @@
     <button type="button" id="btn-excel-export" class="btn btn-primary">
       <i class="fas fa-download mr-2"></i>Exportar Excel (.xlsx)
     </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: Pérdidas Detalladas del Sistema
+================================================================ -->
+<div class="modal fade" id="losses-modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-dialog-centered" role="document" style="max-width:480px;">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white py-2">
+        <h5 class="modal-title"><i class="fas fa-sliders-h mr-2"></i>Pérdidas del Sistema</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body px-4 py-3">
+        <p class="text-muted small mb-3">
+          Ajusta cada factor de pérdida. El factor combinado se calcula automáticamente.
+          <strong>Las pérdidas por temperatura se calculan por separado</strong> con el modelo NOCT.
+        </p>
+
+        <!-- Loss items -->
+        <div id="losses-list">
+
+          <div class="loss-row mb-3" data-loss-key="soiling">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="mb-0 small font-weight-bold">
+                Suciedad / Soiling
+                <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                   title="Acumulación de polvo, hojas, excrementos de aves u otros residuos sobre los módulos que reducen la irradiancia efectiva."></i>
+              </label>
+              <div class="d-flex align-items-center" style="gap:4px;">
+                <input type="number" min="0" max="20" step="0.1"
+                       class="loss-input form-control form-control-sm text-right" style="width:68px;" value="2">
+                <span class="text-muted small">%</span>
+              </div>
+            </div>
+            <input type="range" min="0" max="20" step="0.1" value="2"
+                   class="loss-range custom-range">
+          </div>
+
+          <div class="loss-row mb-3" data-loss-key="mismatch">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="mb-0 small font-weight-bold">
+                Desajuste / Mismatch
+                <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                   title="Variación eléctrica entre módulos del mismo modelo. Los módulos en serie se limitan por el peor, lo que reduce la producción del string."></i>
+              </label>
+              <div class="d-flex align-items-center" style="gap:4px;">
+                <input type="number" min="0" max="10" step="0.1"
+                       class="loss-input form-control form-control-sm text-right" style="width:68px;" value="2">
+                <span class="text-muted small">%</span>
+              </div>
+            </div>
+            <input type="range" min="0" max="10" step="0.1" value="2"
+                   class="loss-range custom-range">
+          </div>
+
+          <div class="loss-row mb-3" data-loss-key="dc_wiring">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="mb-0 small font-weight-bold">
+                Cableado DC
+                <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                   title="Pérdidas óhmicas (I²R) en los conductores de corriente continua entre los módulos y el inversor."></i>
+              </label>
+              <div class="d-flex align-items-center" style="gap:4px;">
+                <input type="number" min="0" max="10" step="0.1"
+                       class="loss-input form-control form-control-sm text-right" style="width:68px;" value="1.5">
+                <span class="text-muted small">%</span>
+              </div>
+            </div>
+            <input type="range" min="0" max="10" step="0.1" value="1.5"
+                   class="loss-range custom-range">
+          </div>
+
+          <div class="loss-row mb-3" data-loss-key="clipping">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="mb-0 small font-weight-bold">
+                Recorte (Clipping)
+                <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                   title="Energía descartada cuando la potencia DC del arreglo supera la capacidad AC del inversor. Valores recomendados: DC/AC ≤ 1.15 → 0–0.5%; DC/AC 1.15–1.30 → 1–3%; DC/AC > 1.30 → 3–5%."></i>
+              </label>
+              <div class="d-flex align-items-center" style="gap:4px;">
+                <input type="number" min="0" max="10" step="0.1"
+                       class="loss-input form-control form-control-sm text-right" style="width:68px;" value="1.5">
+                <span class="text-muted small">%</span>
+              </div>
+            </div>
+            <input type="range" min="0" max="10" step="0.1" value="1.5"
+                   class="loss-range custom-range">
+          </div>
+
+          <div class="loss-row mb-3" data-loss-key="ac_wiring">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="mb-0 small font-weight-bold">
+                Cableado AC
+                <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                   title="Pérdidas óhmicas en los conductores de corriente alterna entre el inversor y el punto de interconexión."></i>
+              </label>
+              <div class="d-flex align-items-center" style="gap:4px;">
+                <input type="number" min="0" max="5" step="0.1"
+                       class="loss-input form-control form-control-sm text-right" style="width:68px;" value="0.5">
+                <span class="text-muted small">%</span>
+              </div>
+            </div>
+            <input type="range" min="0" max="5" step="0.1" value="0.5"
+                   class="loss-range custom-range">
+          </div>
+
+          <div class="loss-row mb-3" data-loss-key="lid">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="mb-0 small font-weight-bold">
+                Degradación inicial (LID)
+                <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                   title="Light-Induced Degradation: pérdida de potencia que sufren los módulos de silicio cristalino durante las primeras horas de exposición al sol."></i>
+              </label>
+              <div class="d-flex align-items-center" style="gap:4px;">
+                <input type="number" min="0" max="5" step="0.1"
+                       class="loss-input form-control form-control-sm text-right" style="width:68px;" value="1.5">
+                <span class="text-muted small">%</span>
+              </div>
+            </div>
+            <input type="range" min="0" max="5" step="0.1" value="1.5"
+                   class="loss-range custom-range">
+          </div>
+
+        </div><!-- /losses-list -->
+
+        <!-- Combined result -->
+        <hr class="my-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="font-weight-bold">Factor combinado de pérdidas</span>
+          <span id="losses-modal-combined" class="h5 font-weight-bold text-primary mb-0">—</span>
+        </div>
+        <small class="text-muted d-block mt-1">
+          Calculado como ∏(1 − L<sub>i</sub>). No incluye pérdidas por temperatura (modelo NOCT).
+        </small>
+
+      </div><!-- /modal-body -->
+      <div class="modal-footer py-2">
+        <button type="button" id="btn-losses-reset" class="btn btn-sm btn-default mr-auto">
+          <i class="fas fa-undo mr-1"></i>Valores predeterminados
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal">Aceptar</button>
+      </div>
+    </div>
   </div>
 </div>

@@ -136,6 +136,7 @@ class InventarioApiController
                 impStc:         (float)($body['imp_stc']         ?? 0),
                 tempCoeffVoc:   (float)($body['temp_coeff_voc']  ?? 0),
                 tempCoeffPmax:  (float)($body['temp_coeff_pmax'] ?? 0),
+                noct:           (float)($body['noct']            ?? 45.0),
                 lengthM:        (float)($body['length_m']        ?? 0),
                 widthM:         (float)($body['width_m']         ?? 0),
                 createdAt:      '',

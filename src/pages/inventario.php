@@ -118,6 +118,7 @@ include '../components/header-dashboard.php';
                     <th class="text-right">Imp (A)</th>
                     <th class="text-right">β Voc (%/°C)</th>
                     <th class="text-right">β Pmax (%/°C)</th>
+                    <th class="text-right">NOCT (°C)</th>
                     <th class="text-right">Largo (m)</th>
                     <th class="text-right">Ancho (m)</th>
                     <th class="text-center" style="width:100px;">Acciones</th>
@@ -287,6 +288,12 @@ include '../components/header-dashboard.php';
                 <div id="warn-tcp" class="text-danger small d-none mt-1">
                   <i class="fas fa-exclamation-triangle mr-1"></i>El valor debe ser negativo (ej. -0.3500)
                 </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-group">
+                <label>NOCT (°C) <span class="text-danger">*</span></label>
+                <input type="number" step="0.1" min="30" max="60" id="mod-noct" required class="form-control" value="45">
               </div>
             </div>
             <div class="col-sm-6">

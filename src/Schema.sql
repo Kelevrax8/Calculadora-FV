@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS pv_modules (
 
     temp_coeff_voc DECIMAL(6,4) NOT NULL,
     temp_coeff_pmax DECIMAL(6,4) NOT NULL,
+    noct DECIMAL(4,1) NOT NULL DEFAULT 45.0,
 
     length_m DECIMAL(5,3) NOT NULL,
     width_m DECIMAL(5,3) NOT NULL,
@@ -143,6 +144,9 @@ CREATE TABLE IF NOT EXISTS climatology_monthly (
     month TINYINT NOT NULL,
 
     ghi_kwh_m2_day DECIMAL(6,3) NOT NULL,
+    dni_kwh_m2_day DECIMAL(6,3) NOT NULL DEFAULT 0,
+    dhi_kwh_m2_day DECIMAL(6,3) NOT NULL DEFAULT 0,
+    sun_hours DECIMAL(4,2) NOT NULL DEFAULT 0,
     t2m_avg DECIMAL(5,2) NOT NULL,
     t2m_max DECIMAL(5,2) NOT NULL,
     t2m_min DECIMAL(5,2) NOT NULL,
