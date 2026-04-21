@@ -690,7 +690,7 @@
               <label class="mb-0 small font-weight-bold">
                 Recorte (Clipping)
                 <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
-                   title="Energía descartada cuando la potencia DC del arreglo supera la capacidad AC del inversor. Valores recomendados: DC/AC ≤ 1.15 → 0–0.5%; DC/AC 1.15–1.30 → 1–3%; DC/AC > 1.30 → 3–5%."></i>
+                   title="Energía descartada cuando la potencia DC del arreglo supera la capacidad AC del inversor. Valores recomendados: DC/AC ≤ 1.20 → 0–1.5%; DC/AC 1.20–1.30 → 1.5–5%; DC/AC 1.30-1.40 → 5–10%."></i>
               </label>
               <div class="d-flex align-items-center" style="gap:4px;">
                 <input type="number" min="0" max="10" step="0.1"
