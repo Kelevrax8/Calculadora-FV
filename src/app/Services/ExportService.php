@@ -277,14 +277,14 @@ class ExportService
         // Detect whether consumption data was entered by the user
         $hasConsumption = array_reduce($monthly, fn($carry, $m) => $carry || isset($m['consumo']), false);
 
-        $colCount = $hasConsumption ? 10 : 7;
+        $colCount = $hasConsumption ? 11 : 8;
         $lastCol  = chr(64 + $colCount);
 
-        $widths = ['A' => 18, 'B' => 20, 'C' => 12, 'D' => 12, 'E' => 12, 'F' => 10, 'G' => 24];
+        $widths = ['A' => 18, 'B' => 20, 'C' => 16, 'D' => 12, 'E' => 12, 'F' => 12, 'G' => 10, 'H' => 24];
         if ($hasConsumption) {
-            $widths['H'] = 22;
             $widths['I'] = 22;
-            $widths['J'] = 28;
+            $widths['J'] = 22;
+            $widths['K'] = 28;
         }
         $this->setColumnWidths($s, $widths);
 
@@ -303,7 +303,7 @@ class ExportService
         $s->getRowDimension(1)->setRowHeight(22);
 
         // Column headers
-        $headers = ['Mes', 'GHI diario (kWh/m²)', 'T amb (°C)', 'T cel (°C)', 'f temp (%)', 'Días', 'Producción estimada (kWh)'];
+        $headers = ['Mes', 'GHI diario (kWh/m²)', 'POA diario (kWh/m²)', 'T amb (°C)', 'T cel (°C)', 'f temp (%)', 'Días', 'Producción estimada (kWh)'];
         if ($hasConsumption) {
             $headers[] = 'Consumo real (kWh)';
             $headers[] = 'Balance (kWh)';
@@ -332,12 +332,14 @@ class ExportService
             $s->setCellValue("A{$r}", $monthNames[$i] ?? '—');
             $s->setCellValue("B{$r}", (float)($m['ghi'] ?? 0));
             $s->getStyle("B{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $s->setCellValue("C{$r}", round((float)($m['t2m_avg'] ?? 0), 1));
-            $s->setCellValue("D{$r}", round((float)($m['T_cell'] ?? 0), 1));
+            $s->setCellValue("C{$r}", round((float)($m['poa'] ?? $m['ghi'] ?? 0), 2));
+            $s->getStyle("C{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $s->setCellValue("D{$r}", round((float)($m['t2m_avg'] ?? 0), 1));
+            $s->setCellValue("E{$r}", round((float)($m['T_cell'] ?? 0), 1));
             $fTempPct = (((float)($m['f_temp'] ?? 1)) - 1) * 100;
-            $s->setCellValue("E{$r}", round($fTempPct, 1));
-            $s->setCellValue("F{$r}", $monthDays[$i]);
-            $s->setCellValue("G{$r}", (int)round($prod));
+            $s->setCellValue("F{$r}", round($fTempPct, 1));
+            $s->setCellValue("G{$r}", $monthDays[$i]);
+            $s->setCellValue("H{$r}", (int)round($prod));
 
             $s->getStyle("A{$r}:{$lastCol}{$r}")->applyFromArray([
                 'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
@@ -353,13 +355,13 @@ class ExportService
                     $totalCons += $cons;
                     $bolsa     += $balance;
 
-                    $s->setCellValue("H{$r}", (int)round($cons));
-                    $s->setCellValue("I{$r}", ($balance >= 0 ? '+' : '') . (int)round($balance));
+                    $s->setCellValue("I{$r}", (int)round($cons));
+                    $s->setCellValue("J{$r}", ($balance >= 0 ? '+' : '') . (int)round($balance));
 
                     // Color balance cell: green if surplus, red if deficit
                     $balFg = $balance >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
                     $balBg = $balance >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
-                    $s->getStyle("I{$r}")->applyFromArray([
+                    $s->getStyle("J{$r}")->applyFromArray([
                         'font' => ['bold' => true, 'color' => ['argb' => $balFg]],
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $balBg]],
                         'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -368,16 +370,16 @@ class ExportService
                     // Bolsa Energética: running cumulative balance
                     $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
                     $bolsaBg = $bolsa >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
-                    $s->setCellValue("J{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
-                    $s->getStyle("J{$r}")->applyFromArray([
+                    $s->setCellValue("K{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                    $s->getStyle("K{$r}")->applyFromArray([
                         'font' => ['bold' => true, 'color' => ['argb' => $bolsaFg]],
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bolsaBg]],
                         'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                     ]);
                 } else {
-                    $s->setCellValue("H{$r}", '—');
                     $s->setCellValue("I{$r}", '—');
                     $s->setCellValue("J{$r}", '—');
+                    $s->setCellValue("K{$r}", '—');
                 }
             }
         }
@@ -389,8 +391,9 @@ class ExportService
         $s->setCellValue("C{$r}", '—');
         $s->setCellValue("D{$r}", '—');
         $s->setCellValue("E{$r}", '—');
-        $s->setCellValue("F{$r}", 365);
-        $s->setCellValue("G{$r}", (int)round($totalProd));
+        $s->setCellValue("F{$r}", '—');
+        $s->setCellValue("G{$r}", 365);
+        $s->setCellValue("H{$r}", (int)round($totalProd));
 
         $s->getStyle("A{$r}:{$lastCol}{$r}")->applyFromArray([
             'font' => ['bold' => true, 'color' => ['argb' => self::C_SECTION_FG]],
@@ -400,14 +403,14 @@ class ExportService
         $s->getStyle("A{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
         if ($hasConsumption) {
-            $s->setCellValue("H{$r}", $totalCons > 0 ? (int)round($totalCons) : '—');
+            $s->setCellValue("I{$r}", $totalCons > 0 ? (int)round($totalCons) : '—');
             // Balance column: no aggregate total — cumulative total lives in Bolsa
-            $s->setCellValue("I{$r}", '—');
+            $s->setCellValue("J{$r}", '—');
             // Bolsa Energética total: final running value = net annual balance
             if ($totalCons > 0) {
-                $s->setCellValue("J{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                $s->setCellValue("K{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
                 $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
-                $s->getStyle("J{$r}")->getFont()->getColor()->setARGB($bolsaFg);
+                $s->getStyle("K{$r}")->getFont()->getColor()->setARGB($bolsaFg);
             } else {
                 $s->setCellValue("J{$r}", '—');
             }
@@ -416,7 +419,7 @@ class ExportService
         // Note
         $noteRow = $r + 2;
         $lfPct = round($lossFactor * 100, 1);
-        $s->setCellValue("A{$noteRow}", "Producción estimada: P_STC × GHI × días × f_temp(NOCT) × factor pérdidas ({$lfPct}%)");
+        $s->setCellValue("A{$noteRow}", "Producción estimada: P_STC × POA × días × f_temp(NOCT) × factor pérdidas ({$lfPct}%). Transposición GHI→POA: modelo Hay-Davies.");
         $s->getStyle("A{$noteRow}")->getFont()->setItalic(true)->setSize(8)
           ->getColor()->setARGB(self::C_LABEL_FG);
         $s->mergeCells("A{$noteRow}:{$lastCol}{$noteRow}");

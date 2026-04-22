@@ -34,6 +34,9 @@
   const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                        'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const MONTH_DAYS  = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  // Representative mid-month day-of-year (Cooper 1969) for solar geometry
+  const MID_MONTH_DOY = [17, 47, 75, 105, 135, 162, 198, 228, 258, 288, 318, 344];
+  const SOLAR_CONST   = 1367; // W/m²
 
   // Temperature derating factors for 75 °C conductors (NOM Tabla 310.15(B)(2)(a))
   const DERATING_TABLE = [
@@ -62,6 +65,7 @@
   let enShowConsumption   = false;
   let deratingOn          = false;
   let N_suggested         = 1;
+  let tiltAutoSet          = false; // auto-set tilt from lat on first energy render
 
   // ── Itemized losses (Option B) – percentages ────────────────
   const LOSS_DEFAULTS = {
@@ -89,6 +93,72 @@
   const inverterSection = document.getElementById('inverter-section');
   const prelimResults   = document.getElementById('prelim-results');
   const checksPanel     = document.getElementById('elect-checks-panel');
+
+  // ── Circuit helpers ─────────────────────────────────────────
+  // ── Hay-Davies POA transposition helpers ───────────────────
+  function deg2rad(d) { return d * Math.PI / 180; }
+
+  // Monthly extraterrestrial daily radiation (kWh/m²/day) — for Hay anisotropy index
+  function extraterrestrialDaily(latDeg, monthIdx) {
+    const n     = MID_MONTH_DOY[monthIdx];
+    const phi   = deg2rad(latDeg);
+    const delta = deg2rad(23.45 * Math.sin(deg2rad(360 / 365 * (284 + n))));
+    const E0    = 1 + 0.033 * Math.cos(deg2rad(360 * n / 365));
+    const cosWs = -Math.tan(phi) * Math.tan(delta);
+    if (cosWs >= 1) return 0;
+    const ws = cosWs <= -1 ? Math.PI : Math.acos(cosWs);
+    return (24 / Math.PI) * SOLAR_CONST * E0 *
+      (Math.cos(phi) * Math.cos(delta) * Math.sin(ws) + ws * Math.sin(phi) * Math.sin(delta)) / 1000;
+  }
+
+  // Monthly mean beam tilt factor Rb via numerical hour-angle integration (Duffie & Beckman)
+  // azCompassDeg: 0=N, 90=E, 180=S, 270=W
+  function computeRb(latDeg, tiltDeg, azCompassDeg, monthIdx) {
+    const n     = MID_MONTH_DOY[monthIdx];
+    const phi   = deg2rad(latDeg);
+    const beta  = deg2rad(tiltDeg);
+    const gamma = deg2rad(azCompassDeg - 180); // south-relative: 0=S, +W, -E
+    const delta = deg2rad(23.45 * Math.sin(deg2rad(360 / 365 * (284 + n))));
+    const cosWs = -Math.tan(phi) * Math.tan(delta);
+    if (cosWs >= 1) return 0;
+    const ws   = cosWs <= -1 ? Math.PI : Math.acos(cosWs);
+    const STEPS = 240;
+    const dw    = (2 * ws) / STEPS;
+    let sumH = 0, sumT = 0;
+    for (let k = 0; k <= STEPS; k++) {
+      const w      = -ws + k * dw;
+      const cosThZ = Math.sin(delta) * Math.sin(phi) + Math.cos(delta) * Math.cos(phi) * Math.cos(w);
+      if (cosThZ <= 0) continue;
+      const cosThI =
+          Math.sin(delta) * Math.sin(phi) * Math.cos(beta)
+        - Math.sin(delta) * Math.cos(phi) * Math.sin(beta) * Math.cos(gamma)
+        + Math.cos(delta) * Math.cos(phi) * Math.cos(beta) * Math.cos(w)
+        + Math.cos(delta) * Math.sin(phi) * Math.sin(beta) * Math.cos(gamma) * Math.cos(w)
+        + Math.cos(delta) * Math.sin(beta) * Math.sin(gamma) * Math.sin(w);
+      sumH += cosThZ;
+      sumT += Math.max(0, cosThI);
+    }
+    return sumH > 0 ? sumT / sumH : 0;
+  }
+
+  // Hay-Davies transposition: returns daily POA irradiation (kWh/m²/day)
+  // row: { ghi, dhi, ... }  azCompassDeg: 0=N, 180=S
+  function hayDaviesPOA(row, latDeg, tiltDeg, azCompassDeg, albedo, monthIdx) {
+    const betaRad = deg2rad(tiltDeg);
+    const H_ghi   = row.ghi;
+    const H_dhi   = row.dhi;
+    const H_b_hor = Math.max(0, H_ghi - H_dhi);          // beam on horizontal
+    const H_0     = extraterrestrialDaily(latDeg, monthIdx);
+    const f       = H_0 > 0 ? Math.min(1, H_b_hor / H_0) : 0; // Hay anisotropy index
+    const Rb      = computeRb(latDeg, tiltDeg, azCompassDeg, monthIdx);
+    const Fcs     = (1 + Math.cos(betaRad)) / 2;          // sky-view factor
+    const Fgr     = (1 - Math.cos(betaRad)) / 2;          // ground-view factor
+    return Math.max(0,
+      H_b_hor * Rb +
+      H_dhi   * (f * Rb + (1 - f) * Fcs) +
+      H_ghi   * albedo * Fgr
+    );
+  }
 
   // ── Circuit helpers ─────────────────────────────────────────
   function nextGpvFuse(current) {
@@ -827,23 +897,37 @@
     let E_year = 0;
     let monthlyDetails = [];
 
+    // Orientation parameters — auto-set tilt from latitude on first render
+    const lat    = parseFloat(document.getElementById('latitud').value) || 0;
+    const tiltEl = document.getElementById('en-tilt');
+    if (!tiltAutoSet && tiltEl) {
+      tiltEl.value = Math.round(Math.abs(lat)) || 20;
+      tiltAutoSet  = true;
+    }
+    const tilt    = parseFloat(tiltEl ? tiltEl.value : '') || 20;
+    const azimuth = parseFloat(document.getElementById('en-azimuth')?.value) || 180;
+    const albedo  = parseFloat(document.getElementById('en-albedo')?.value)  || 0.20;
+
     if (hasMonthly) {
       monthlyDetails = monthly.map((row, i) => {
-        // IEC 61215 simplified NOCT: T_cell = T_amb + (NOCT - 20)
-        // T_amb uses daytime average (t2m_avg + t2m_max) / 2 per NASA POWER
+        // Hay-Davies transposition: GHI (horizontal) → POA (tilted plane)
+        const poa        = hayDaviesPOA(row, lat, tilt, azimuth, albedo, i);
+        // IEC 61215 NOCT model with actual POA irradiance (W/m²)
+        const G_POA_inst = poa * 1000 / (row.sun_hours || 6);
         const T_amb  = (row.t2m_avg + row.t2m_max) / 2;
-        const T_cell = T_amb + (noct - 20);
+        const T_cell = T_amb + (noct - 20) / 800 * G_POA_inst;
         const f_temp = 1 + gamma * (T_cell - STC_TEMP);
-        const prod   = P_stc * row.ghi * MONTH_DAYS[i] * f_temp * lossFactor * invEff;
-        return { T_amb, T_cell, f_temp, prod: Math.max(0, prod) };
+        const prod   = P_stc * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff;
+        return { poa, T_amb, T_cell, f_temp, prod: Math.max(0, prod) };
       });
       E_year = monthlyDetails.reduce((s, d) => s + d.prod, 0);
       enMonthlyProduction = monthlyDetails.map(d => d.prod);
     } else {
-      // Fallback: use HSP with manual average temperature
+      // Fallback: no climate data — use HSP with manual temperature
       const hsp  = parseFloat(document.getElementById('hsp').value) || 0;
       const tAvg = parseFloat(document.getElementById('tavg')?.value) || 25;
-      const T_cell_avg = tAvg + (noct - 20);
+      // Representative G = 1000 W/m² (STC reference)
+      const T_cell_avg = tAvg + (noct - 20) / 800 * 1000;
       const f_temp_avg = 1 + gamma * (T_cell_avg - STC_TEMP);
       E_year = P_stc * hsp * 365 * f_temp_avg * lossFactor * invEff;
     }
@@ -876,20 +960,21 @@
       const tableAlreadyBuilt = tbody.querySelector('tr') !== null;
 
       if (tableAlreadyBuilt) {
-        // ── In-place update: patch production + temperature cells ──
+        // ── In-place update: patch POA, production + temperature cells ──
         monthlyDetails.forEach((det, i) => {
           const row = tbody.querySelector(`tr[data-month="${i}"]`);
           if (!row) return;
           const cells = row.querySelectorAll('td');
-          // cells: [name, ghi, t_amb, t_cell, f_temp, days, prod, ...]
-          if (cells[2]) cells[2].textContent = det.T_amb.toFixed(1);
-          if (cells[3]) cells[3].textContent = det.T_cell.toFixed(1);
-          if (cells[4]) {
+          // cells: [name, ghi, poa, t_amb, t_cell, f_temp, days, prod, ...]
+          if (cells[2]) cells[2].textContent = det.poa.toFixed(2);
+          if (cells[3]) cells[3].textContent = det.T_amb.toFixed(1);
+          if (cells[4]) cells[4].textContent = det.T_cell.toFixed(1);
+          if (cells[5]) {
             const pct = (det.f_temp - 1) * 100;
-            cells[4].textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1);
-            cells[4].style.color = pct >= 0 ? '' : 'var(--color-red-500,#ef4444)';
+            cells[5].textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1);
+            cells[5].style.color = pct >= 0 ? '' : 'var(--color-red-500,#ef4444)';
           }
-          if (cells[6]) cells[6].textContent = Math.round(det.prod);
+          if (cells[7]) cells[7].textContent = Math.round(det.prod);
         });
 
         // Update total production in tfoot
@@ -909,6 +994,7 @@
             <tr class="${rowBg}" data-month="${i}">
               <td>${MONTH_NAMES[i]}</td>
               <td class="text-right">${row.ghi.toFixed(2)}</td>
+              <td class="text-right">${det.poa.toFixed(2)}</td>
               <td class="text-right">${det.T_amb.toFixed(1)}</td>
               <td class="text-right">${det.T_cell.toFixed(1)}</td>
               <td class="text-right" style="color:${pct >= 0 ? '' : 'var(--color-red-500,#ef4444)'}">${(pct >= 0 ? '+' : '') + pct.toFixed(2)}</td>
@@ -929,6 +1015,7 @@
         tfoot.innerHTML = `
           <tr>
             <td>Total anual</td>
+            <td class="text-right">—</td>
             <td class="text-right">—</td>
             <td class="text-right">—</td>
             <td class="text-right">—</td>
@@ -1192,6 +1279,14 @@
     enMonthlyProduction = [];
     enShowConsumption   = false;
     deratingOn          = false;
+    tiltAutoSet         = false;
+    // Reset orientation inputs to defaults so tilt re-fills from new location's lat
+    const tiltEl = document.getElementById('en-tilt');
+    if (tiltEl) tiltEl.value = '';
+    const azEl = document.getElementById('en-azimuth');
+    if (azEl) azEl.value = '180';
+    const alEl = document.getElementById('en-albedo');
+    if (alEl) alEl.value = '0.20';
     // Clear table so the next module selection triggers a full rebuild
     const tbody = document.getElementById('en-monthly-tbody');
     const tfoot = document.getElementById('en-monthly-tfoot');
@@ -1255,6 +1350,12 @@
   document.getElementById('btn-open-losses-modal').addEventListener('click', function () {
     syncLossesModalUI();
     $('#losses-modal').modal('show');
+  });
+
+  // Orientation inputs (tilt, azimuth, albedo) — re-render energy on change
+  ['en-tilt', 'en-azimuth', 'en-albedo'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', triggerEnergyRecalc);
   });
 
   // Reset to defaults
@@ -1387,18 +1488,24 @@
     const lossFactor = computeLossFactor();
     const invEff     = inv.efficiency_weighted / 100;
     const noct       = mod.noct || 45;
+    const expLat     = parseFloat(document.getElementById('latitud').value)    || 0;
+    const expTilt    = parseFloat(document.getElementById('en-tilt')?.value)   || 20;
+    const expAzimuth = parseFloat(document.getElementById('en-azimuth')?.value)|| 180;
+    const expAlbedo  = parseFloat(document.getElementById('en-albedo')?.value) || 0.20;
     let E_year = 0;
 
     if (cs.monthly && cs.monthly.length === 12) {
       E_year = cs.monthly.reduce((sum, row, i) => {
-        const T_amb  = (row.t2m_avg + row.t2m_max) / 2;
-        const T_cell = T_amb + (noct - 20);
-        const f_temp = 1 + gammaPmax * (T_cell - 25);
-        return sum + Math.max(0, cs.P_stc_kW * row.ghi * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
+        const poa        = hayDaviesPOA(row, expLat, expTilt, expAzimuth, expAlbedo, i);
+        const G_POA_inst = poa * 1000 / (row.sun_hours || 6);
+        const T_amb      = (row.t2m_avg + row.t2m_max) / 2;
+        const T_cell     = T_amb + (noct - 20) / 800 * G_POA_inst;
+        const f_temp     = 1 + gammaPmax * (T_cell - 25);
+        return sum + Math.max(0, cs.P_stc_kW * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
       }, 0);
     } else {
       const tAvg       = parseFloat(document.getElementById('tavg')?.value) || 25;
-      const T_cell_avg = tAvg + (noct - 20);
+      const T_cell_avg = tAvg + (noct - 20) / 800 * 1000;
       const f_temp_avg = 1 + gammaPmax * (T_cell_avg - 25);
       E_year = cs.P_stc_kW * hsp * 365 * f_temp_avg * lossFactor * invEff;
     }
@@ -1418,11 +1525,13 @@
     // Monthly — include consumption + balance if the user toggled that view on
     const monthly = (cs.monthly && cs.monthly.length === 12)
       ? cs.monthly.map((row, i) => {
-          const T_amb  = (row.t2m_avg + row.t2m_max) / 2;
-          const T_cell = T_amb + (noct - 20);
-          const f_temp = 1 + gammaPmax * (T_cell - 25);
-          const prod   = enMonthlyProduction[i] ?? Math.max(0, cs.P_stc_kW * row.ghi * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
-          const entry  = { ghi: row.ghi, t2m_avg: row.t2m_avg, T_cell, f_temp, production: prod };
+          const poa        = hayDaviesPOA(row, expLat, expTilt, expAzimuth, expAlbedo, i);
+          const G_POA_inst = poa * 1000 / (row.sun_hours || 6);
+          const T_amb      = (row.t2m_avg + row.t2m_max) / 2;
+          const T_cell     = T_amb + (noct - 20) / 800 * G_POA_inst;
+          const f_temp     = 1 + gammaPmax * (T_cell - 25);
+          const prod       = enMonthlyProduction[i] ?? Math.max(0, cs.P_stc_kW * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
+          const entry      = { ghi: row.ghi, poa, t2m_avg: row.t2m_avg, T_cell, f_temp, production: prod };
 
           if (enShowConsumption) {
             const input = document.getElementById('en-cons-input-' + i);
@@ -1443,7 +1552,7 @@
       array:   { Ns, Np, N_inv, Np_per_inv, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea, n_rem },
       inverter:{ ...inv },
       checks,
-      energy:  { E_year, coverage, loss_factor: lossFactor, losses: { ...currentLosses }, noct, dc_ac },
+      energy:  { E_year, coverage, loss_factor: lossFactor, losses: { ...currentLosses }, noct, tilt: expTilt, azimuth: expAzimuth, albedo: expAlbedo, dc_ac },
       protection: {
         derating_on:     deratingOn,
         derating_factor: factor,

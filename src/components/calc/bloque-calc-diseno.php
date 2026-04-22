@@ -416,7 +416,7 @@
   <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:.5rem;">
     <div>
       <h5 class="mb-0">Producción Energética</h5>
-      <small class="text-muted">Estimado con modelo de temperatura NOCT y pérdidas detalladas</small>
+      <small class="text-muted">Modelo Hay-Davies (POA), temperatura NOCT y pérdidas detalladas</small>
     </div>
     <div class="d-flex align-items-center" style="gap:.5rem;">
       <label class="mb-0 small font-weight-bold text-muted">Factor de pérdidas</label>
@@ -429,6 +429,31 @@
   </div>
 
   <div class="card-body">
+
+    <!-- Array orientation parameters (Hay-Davies POA transposition) -->
+    <div class="row mb-3 align-items-end" id="en-orientation-row">
+      <div class="col-sm-4 col-6 mb-2">
+        <label for="en-tilt" class="mb-1 small font-weight-bold text-muted">Inclinación &beta; (°)</label>
+        <input type="number" id="en-tilt" min="0" max="90" step="1"
+               class="form-control form-control-sm"
+               title="Ángulo de inclinación del panel (0°=horizontal, 90°=vertical). Valor óptimo ≈ |latitud|.">
+        <small class="text-muted">0–90°, óptimo ≈ |latitud|</small>
+      </div>
+      <div class="col-sm-4 col-6 mb-2">
+        <label for="en-azimuth" class="mb-1 small font-weight-bold text-muted">Azimut (° brújula)</label>
+        <input type="number" id="en-azimuth" min="0" max="360" step="1" value="180"
+               class="form-control form-control-sm"
+               title="Orientación del panel (0°=Norte, 90°=Este, 180°=Sur, 270°=Oeste). México: 180° (Sur verdadero).">
+        <small class="text-muted">180° = Sur (recomendado México)</small>
+      </div>
+      <div class="col-sm-4 col-6 mb-2">
+        <label for="en-albedo" class="mb-1 small font-weight-bold text-muted">Albedo suelo</label>
+        <input type="number" id="en-albedo" min="0.00" max="1.00" step="0.01" value="0.20"
+               class="form-control form-control-sm"
+               title="Reflectividad del suelo: 0.20=pasto/concreto, 0.40=arena, 0.60=arena clara, 0.80=nieve">
+        <small class="text-muted">0.20 = pasto / concreto</small>
+      </div>
+    </div><!-- /orientation row -->
 
     <!-- Summary metrics -->
     <div class="row mb-3">
@@ -494,7 +519,8 @@
           <thead class="thead-light">
             <tr>
               <th>Mes</th>
-              <th class="text-right">GHI diario<br/><span class="font-weight-normal">(kWh/m²/día)</span></th>
+              <th class="text-right">GHI<br/><span class="font-weight-normal">(kWh/m²/d)</span></th>
+              <th class="text-right">POA<br/><span class="font-weight-normal">(kWh/m²/d)</span></th>
               <th class="text-right">T<sub>amb</sub><br/><span class="font-weight-normal">(°C)</span></th>
               <th class="text-right">T<sub>cel</sub><br/><span class="font-weight-normal">(°C)</span></th>
               <th class="text-right">f<sub>temp</sub><br/><span class="font-weight-normal">(%)</span></th>
