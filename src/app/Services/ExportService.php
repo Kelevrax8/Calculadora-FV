@@ -115,12 +115,27 @@ class ExportService
         $this->addDataRow($s, 'Coef. temperatura Pmax (γ)',   (float)($mod['temp_coeff_pmax'] ?? 0), '%/°C', 2);
         $this->row++;
 
-        // ── Configuración del Arreglo ─────────────────────────
-        $this->addSectionHeader($s, 'CONFIGURACIÓN DEL ARREGLO');
+        // ── Inversor ──────────────────────────────────────────
+        $this->addSectionHeader($s, 'INVERSOR');
+        $this->addDataRow($s, 'Fabricante',                  $inv['manufacturer']             ?? '—');
+        $this->addDataRow($s, 'Modelo',                      $inv['model']                    ?? '—');
+        $this->addDataRow($s, 'Potencia AC nominal',        (float)($inv['nominal_ac_power'] ?? 0), 'W');
+        $this->addDataRow($s, 'Tipo de fase',                $inv['phase_type']               ?? '—');
+        $this->addDataRow($s, 'Tensión AC nominal',          $inv['ac_voltage_nominal']       ?? '—', 'V');
+        $this->addDataRow($s, 'Rango de tensión MPPT',       ($inv['mppt_voltage_min'] ?? '—') . ' – ' . ($inv['mppt_voltage_max'] ?? '—'), 'V');
+        $this->addDataRow($s, 'Tensión DC máxima',           $inv['max_dc_voltage']           ?? '—', 'V');
+        $this->addDataRow($s, 'Corriente máx. por MPPT',     $inv['max_input_current_per_mppt'] ?? '—', 'A');
+        $this->addDataRow($s, 'Corriente de CC máx. entrada',$inv['max_short_circuit_current']  ?? '—', 'A');
+        $this->addDataRow($s, 'Número de entradas MPPT',     $inv['mppt_count']               ?? '—');
+        $this->row++;
+
+        // ── Configuración de la Planta ────────────────────────
+        $this->addSectionHeader($s, 'CONFIGURACIÓN DE LA PLANTA');
         $n_rem = (int)($arr['n_rem'] ?? 0);
         $Ns    = (int)($arr['Ns']    ?? 0);
         $Np    = (int)($arr['Np']    ?? 0);
         $N     = (int)($arr['N']     ?? 0);
+        $N_inv = (int)($arr['N_inv'] ?? 1);
         if ($n_rem > 0) {
             $n_full       = $Np - 1;
             $stringsValue = sprintf('%d string%s × %d mód + 1 string × %d mód — string corto',
@@ -134,22 +149,42 @@ class ExportService
         $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  (float)($arr['Voc_cold']  ?? 0), 'V', 1);
         $this->addDataRow($s, 'Vmpp del arreglo en calor (Tmax)',(float)($arr['Vmpp_hot']  ?? 0), 'V', 1);
         $this->addDataRow($s, 'Vmpp del arreglo en frío (Tmin)', (float)($arr['Vmpp_cold'] ?? 0), 'V', 1);
-        $this->addDataRow($s, 'Área del arreglo neta',                 (float)($arr['arrArea'] ?? 0), 'm²', 2);
-        $this->row++;
+        $this->addDataRow($s, 'Área del arreglo neta',           (float)($arr['arrArea'] ?? 0), 'm²', 2);
+        $this->addDataRow($s, 'Número de inversores',            $N_inv);
 
-        // ── Inversor ──────────────────────────────────────────
-        $this->addSectionHeader($s, 'INVERSOR');
-        $this->addDataRow($s, 'Fabricante',                  $inv['manufacturer']             ?? '—');
-        $this->addDataRow($s, 'Modelo',                      $inv['model']                    ?? '—');
-        $this->addDataRow($s, 'Número de inversores',        (int)($arr['N_inv']              ?? 1));
-        $this->addDataRow($s, 'Potencia AC nominal',        (float)($inv['nominal_ac_power'] ?? 0), 'W');
-        $this->addDataRow($s, 'Tipo de fase',                $inv['phase_type']               ?? '—');
-        $this->addDataRow($s, 'Tensión AC nominal',          $inv['ac_voltage_nominal']       ?? '—', 'V');
-        $this->addDataRow($s, 'Rango de tensión MPPT',       ($inv['mppt_voltage_min'] ?? '—') . ' – ' . ($inv['mppt_voltage_max'] ?? '—'), 'V');
-        $this->addDataRow($s, 'Tensión DC máxima',           $inv['max_dc_voltage']           ?? '—', 'V');
-        $this->addDataRow($s, 'Corriente máx. por MPPT',     $inv['max_input_current_per_mppt'] ?? '—', 'A');
-        $this->addDataRow($s, 'Corriente de CC máx. entrada',$inv['max_short_circuit_current']  ?? '—', 'A');
-        $this->addDataRow($s, 'Número de entradas MPPT',     $inv['mppt_count']               ?? '—');
+        // ── MPPT occupancy ────────────────────────────────────
+        $capPerInv    = (int)($arr['cap_per_inv'] ?? 0);
+        $floorStrings = ($N_inv > 0) ? (int)floor($Np / $N_inv) : 0;
+        $ceilStrings  = ($N_inv > 0) ? (int)ceil($Np  / $N_inv) : 0;
+        $nWithCeil    = ($N_inv > 0) ? ($Np % $N_inv) : 0;
+        $nWithFloor   = $N_inv - $nWithCeil;
+
+        if ($floorStrings === $ceilStrings) {
+            $distValue = $ceilStrings . ' strings/inv';
+        } else {
+            $distValue = sprintf('%d inv. × %d + %d inv. × %d strings', $nWithCeil, $ceilStrings, $nWithFloor, $floorStrings);
+        }
+        $this->addDataRow($s, 'Distribución de strings', $distValue);
+
+        if ($capPerInv > 0) {
+            if ($floorStrings < $capPerInv) {
+                if ($nWithCeil === 0) {
+                    $unused = $capPerInv - $floorStrings;
+                    $occupancyNote = sprintf('Cada inversor usa %d/%d entradas (%d sin usar/inv)', $floorStrings, $capPerInv, $unused);
+                } elseif ($ceilStrings === $capPerInv) {
+                    $unused = $capPerInv - $floorStrings;
+                    $occupancyNote = sprintf('%d inversor%s con %d/%d strings (%d entrada%s sin usar)',
+                        $nWithFloor, $nWithFloor > 1 ? 'es' : '', $floorStrings, $capPerInv,
+                        $unused, $unused > 1 ? 's' : '');
+                } else {
+                    $occupancyNote = sprintf('%d inv. × %d/%d + %d inv. × %d/%d strings (máx: %d/inv)',
+                        $nWithCeil, $ceilStrings, $capPerInv, $nWithFloor, $floorStrings, $capPerInv, $capPerInv);
+                }
+                $this->addDataRow($s, '⚠ Ocupación de entradas MPPT', $occupancyNote);
+            } else {
+                $this->addDataRow($s, '✓ Ocupación de entradas MPPT', 'Todos los inversores operan a plena capacidad');
+            }
+        }
         $this->row++;
 
         // ── Verificaciones de Compatibilidad ──────────────────

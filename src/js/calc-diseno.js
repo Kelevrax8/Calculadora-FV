@@ -1593,7 +1593,7 @@
     return {
       site:    { lat, lng, consumo, hsp, tmin, tmax },
       module:  { ...mod },
-      array:   { Ns, Np, N_inv, Np_per_inv, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea, n_rem },
+      array:   { Ns, Np, N_inv, Np_per_inv, cap_per_inv: expTotalCap, N, P_stc_kW: cs.P_stc_kW, Voc_cold, Vmpp_hot, Vmpp_cold, arrArea, n_rem },
       inverter:{ ...inv },
       checks,
       energy:  { E_year, coverage, loss_factor: lossFactor, losses: { ...currentLosses }, noct, tilt: expTilt, azimuth: expAzimuth, albedo: expAlbedo, dc_ac },
