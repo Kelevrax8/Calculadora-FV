@@ -52,17 +52,16 @@ class ExportService
 
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Resumen');
-        $this->setColumnWidths($sheet, ['A' => 42, 'B' => 45, 'C' => 14]);
+        $this->setColumnWidths($sheet, [
+            'A' => 42, 'B' => 45, 'C' => 14,
+            'D' => 3,
+            'E' => 16, 'F' => 16, 'G' => 16,
+            'H' => 12, 'I' => 12, 'J' => 12,
+            'K' => 10, 'L' => 22,
+            'M' => 20, 'N' => 18, 'O' => 22,
+        ]);
 
         $this->buildResumen($sheet, $payload);
-
-        // Sheet 2: monthly production (only if data present)
-        if (!empty($payload['monthly']) && count($payload['monthly']) === 12) {
-            $monthly = $spreadsheet->createSheet();
-            $monthly->setTitle('Producción Mensual');
-            $lossFactor = (float)($payload['energy']['loss_factor'] ?? 0.80);
-            $this->buildMonthly($monthly, $payload['monthly'], $lossFactor);
-        }
 
         $spreadsheet->setActiveSheetIndex(0);
 
@@ -75,13 +74,14 @@ class ExportService
     // ── Sheet 1 builder ───────────────────────────────────────
     private function buildResumen(Worksheet $s, array $p): void
     {
-        $site  = $p['site']       ?? [];
-        $mod   = $p['module']     ?? [];
-        $arr   = $p['array']      ?? [];
-        $inv   = $p['inverter']   ?? [];
-        $chk   = $p['checks']     ?? [];
-        $nrg   = $p['energy']     ?? [];
-        $prot  = $p['protection'] ?? [];
+        $site    = $p['site']       ?? [];
+        $mod     = $p['module']     ?? [];
+        $arr     = $p['array']      ?? [];
+        $inv     = $p['inverter']   ?? [];
+        $chk     = $p['checks']     ?? [];
+        $nrg     = $p['energy']     ?? [];
+        $prot    = $p['protection'] ?? [];
+        $monthly = $p['monthly']    ?? [];
 
         // ── Title ─────────────────────────────────────────────
         $this->addTitle($s, 'CALCULADORA FV — RESUMEN DEL SISTEMA FOTOVOLTAICO');
@@ -161,6 +161,7 @@ class ExportService
         $this->row++;
 
         // ── Estimación Energética ─────────────────────────────
+        $energiaStartRow = $this->row;
         $this->addSectionHeader($s, 'ESTIMACIÓN ENERGÉTICA');
         $this->addDataRow($s, 'Producción anual estimada', (float)($nrg['E_year'] ?? 0), 'kWh/año');
         $this->addDataRow($s, 'Autosuficiencia estimada',  (float)($nrg['coverage'] ?? 0), '%', 1);
@@ -184,6 +185,11 @@ class ExportService
         }
         $this->addDataRow($s, 'Relación DC/CA',            (float)($nrg['dc_ac'] ?? 0), '', 2);
         $this->row++;
+
+        // ── Inline monthly table (to the right of Estimación Energética) ──
+        if (!empty($monthly) && count($monthly) === 12) {
+            $this->addMonthlyTableInline($s, $monthly, $energiaStartRow, $lossFactor);
+        }
 
         // ── Protecciones Eléctricas ───────────────────────────
         $this->addSectionHeader($s, 'PROTECCIONES ELÉCTRICAS — NOM-001-SEDE-2012, Art. 690.8');
@@ -269,160 +275,6 @@ class ExportService
         $s->getStyle("A{$this->row}")->getFont()->setItalic(true)->setSize(8)
           ->getColor()->setARGB(self::C_LABEL_FG);
         $s->mergeCells("A{$this->row}:C{$this->row}");
-    }
-
-    // ── Sheet 2 builder ───────────────────────────────────────
-    private function buildMonthly(Worksheet $s, array $monthly, float $lossFactor = 0.80): void
-    {
-        // Detect whether consumption data was entered by the user
-        $hasConsumption = array_reduce($monthly, fn($carry, $m) => $carry || isset($m['consumo']), false);
-
-        $colCount = $hasConsumption ? 11 : 8;
-        $lastCol  = chr(64 + $colCount);
-
-        $widths = ['A' => 18, 'B' => 20, 'C' => 16, 'D' => 12, 'E' => 12, 'F' => 12, 'G' => 10, 'H' => 24];
-        if ($hasConsumption) {
-            $widths['I'] = 22;
-            $widths['J'] = 22;
-            $widths['K'] = 28;
-        }
-        $this->setColumnWidths($s, $widths);
-
-        $monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                       'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-        $monthDays  = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-        // Title
-        $s->setCellValue('A1', 'PRODUCCIÓN MENSUAL ESTIMADA');
-        $s->mergeCells("A1:{$lastCol}1");
-        $s->getStyle('A1')->applyFromArray([
-            'font'      => ['bold' => true, 'size' => 13, 'color' => ['argb' => self::C_TITLE_FG]],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_TITLE_BG]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'indent' => 1],
-        ]);
-        $s->getRowDimension(1)->setRowHeight(22);
-
-        // Column headers
-        $headers = ['Mes', 'GHI diario (kWh/m²)', 'POA diario (kWh/m²)', 'T amb (°C)', 'T cel (°C)', 'f temp (%)', 'Días', 'Producción estimada (kWh)'];
-        if ($hasConsumption) {
-            $headers[] = 'Consumo real (kWh)';
-            $headers[] = 'Balance (kWh)';
-            $headers[] = 'Bolsa Energética (kWh)';
-        }
-        foreach ($headers as $i => $h) {
-            $col = chr(65 + $i);
-            $s->setCellValue("{$col}2", $h);
-        }
-        $s->getStyle("A2:{$lastCol}2")->applyFromArray([
-            'font'      => ['bold' => true, 'color' => ['argb' => self::C_SECTION_FG]],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-        ]);
-
-        $totalProd = 0.0;
-        $totalCons = 0.0;
-        $bolsa     = 0.0; // running cumulative balance ("energy bag")
-
-        foreach ($monthly as $i => $m) {
-            $r    = $i + 3;
-            $bg   = ($i % 2 === 0) ? 'FFFFFFFF' : self::C_ODD_BG;
-            $prod = (float)($m['production'] ?? 0);
-            $totalProd += $prod;
-
-            $s->setCellValue("A{$r}", $monthNames[$i] ?? '—');
-            $s->setCellValue("B{$r}", (float)($m['ghi'] ?? 0));
-            $s->getStyle("B{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $s->setCellValue("C{$r}", round((float)($m['poa'] ?? $m['ghi'] ?? 0), 2));
-            $s->getStyle("C{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $s->setCellValue("D{$r}", round((float)($m['t2m_avg'] ?? 0), 1));
-            $s->setCellValue("E{$r}", round((float)($m['T_cell'] ?? 0), 1));
-            $fTempPct = (((float)($m['f_temp'] ?? 1)) - 1) * 100;
-            $s->setCellValue("F{$r}", round($fTempPct, 1));
-            $s->setCellValue("G{$r}", $monthDays[$i]);
-            $s->setCellValue("H{$r}", (int)round($prod));
-
-            $s->getStyle("A{$r}:{$lastCol}{$r}")->applyFromArray([
-                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
-            ]);
-            $s->getStyle("A{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $s->getStyle("A{$r}")->getFont()->setBold(true);
-
-            if ($hasConsumption) {
-                if (isset($m['consumo'])) {
-                    $cons    = (float)$m['consumo'];
-                    $balance = (float)($m['balance'] ?? ($prod - $cons));
-                    $totalCons += $cons;
-                    $bolsa     += $balance;
-
-                    $s->setCellValue("I{$r}", (int)round($cons));
-                    $s->setCellValue("J{$r}", ($balance >= 0 ? '+' : '') . (int)round($balance));
-
-                    // Color balance cell: green if surplus, red if deficit
-                    $balFg = $balance >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
-                    $balBg = $balance >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
-                    $s->getStyle("J{$r}")->applyFromArray([
-                        'font' => ['bold' => true, 'color' => ['argb' => $balFg]],
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $balBg]],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                    ]);
-
-                    // Bolsa Energética: running cumulative balance
-                    $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
-                    $bolsaBg = $bolsa >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
-                    $s->setCellValue("K{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
-                    $s->getStyle("K{$r}")->applyFromArray([
-                        'font' => ['bold' => true, 'color' => ['argb' => $bolsaFg]],
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bolsaBg]],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                    ]);
-                } else {
-                    $s->setCellValue("I{$r}", '—');
-                    $s->setCellValue("J{$r}", '—');
-                    $s->setCellValue("K{$r}", '—');
-                }
-            }
-        }
-
-        // Total row
-        $r = count($monthly) + 3;
-        $s->setCellValue("A{$r}", 'Total anual');
-        $s->setCellValue("B{$r}", '—');
-        $s->setCellValue("C{$r}", '—');
-        $s->setCellValue("D{$r}", '—');
-        $s->setCellValue("E{$r}", '—');
-        $s->setCellValue("F{$r}", '—');
-        $s->setCellValue("G{$r}", 365);
-        $s->setCellValue("H{$r}", (int)round($totalProd));
-
-        $s->getStyle("A{$r}:{$lastCol}{$r}")->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['argb' => self::C_SECTION_FG]],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
-        ]);
-        $s->getStyle("A{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-
-        if ($hasConsumption) {
-            $s->setCellValue("I{$r}", $totalCons > 0 ? (int)round($totalCons) : '—');
-            // Balance column: no aggregate total — cumulative total lives in Bolsa
-            $s->setCellValue("J{$r}", '—');
-            // Bolsa Energética total: final running value = net annual balance
-            if ($totalCons > 0) {
-                $s->setCellValue("K{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
-                $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
-                $s->getStyle("K{$r}")->getFont()->getColor()->setARGB($bolsaFg);
-            } else {
-                $s->setCellValue("J{$r}", '—');
-            }
-        }
-
-        // Note
-        $noteRow = $r + 2;
-        $lfPct = round($lossFactor * 100, 1);
-        $s->setCellValue("A{$noteRow}", "Producción estimada: P_STC × POA × días × f_temp(NOCT) × factor pérdidas ({$lfPct}%). Transposición GHI→POA: modelo Hay-Davies.");
-        $s->getStyle("A{$noteRow}")->getFont()->setItalic(true)->setSize(8)
-          ->getColor()->setARGB(self::C_LABEL_FG);
-        $s->mergeCells("A{$noteRow}:{$lastCol}{$noteRow}");
     }
 
     // ── Row helpers ───────────────────────────────────────────
@@ -574,7 +426,160 @@ class ExportService
 
         $this->row++;
     }
+    // ── Inline monthly table (Sheet 1, right of Estimación Energética) ────
+    private function addMonthlyTableInline(Worksheet $s, array $monthly, int $startRow, float $lossFactor): void
+    {
+        $hasConsumption = array_reduce($monthly, fn($carry, $m) => $carry || isset($m['consumo']), false);
+        $colCount   = $hasConsumption ? 11 : 8;
+        $base       = 4; // E = chr(65+4) = 'E'
+        $col        = fn(int $offset) => chr(65 + $base + $offset);
+        $firstCol   = $col(0);  // 'E'
+        $lastCol    = $col($colCount - 1);
 
+        $monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                       'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        $monthDays  = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+        $r = $startRow;
+
+        // ── Title ────────────────────────────────────────────────
+        $s->setCellValue("{$firstCol}{$r}", 'PRODUCCIÓN MENSUAL ESTIMADA');
+        $s->mergeCells("{$firstCol}{$r}:{$lastCol}{$r}");
+        $s->getStyle("{$firstCol}{$r}")->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 11, 'color' => ['argb' => self::C_TITLE_FG]],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_TITLE_BG]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'indent' => 1],
+        ]);
+        $r++;
+
+        // ── Column headers ────────────────────────────────────────
+        $headers = [
+            'Mes',
+            "GHI\n(kWh/m²/d)",
+            "POA\n(kWh/m²/d)",
+            "Tamb\n(°C)",
+            "Tcel\n(°C)",
+            "ftemp\n(%)",
+            'Días',
+            "Producción\n(kWh)",
+        ];
+        if ($hasConsumption) {
+            $headers[] = "Consumo\n(kWh)";
+            $headers[] = "Balance\n(kWh)";
+            $headers[] = "Bolsa\n(kWh)";
+        }
+        foreach ($headers as $i => $h) {
+            $s->setCellValue("{$col($i)}{$r}", $h);
+        }
+        $s->getStyle("{$firstCol}{$r}:{$lastCol}{$r}")->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 9, 'color' => ['argb' => self::C_SECTION_FG]],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'wrapText' => true],
+        ]);
+        $s->getRowDimension($r)->setRowHeight(28);
+        $r++;
+
+        // ── Data rows ─────────────────────────────────────────────
+        $totalProd = 0.0;
+        $totalCons = 0.0;
+        $bolsa     = 0.0;
+
+        foreach ($monthly as $i => $m) {
+            $bg   = ($i % 2 === 0) ? 'FFFFFFFF' : self::C_ODD_BG;
+            $prod = (float)($m['production'] ?? 0);
+            $totalProd += $prod;
+
+            $s->setCellValue("{$col(0)}{$r}", $monthNames[$i] ?? '—');
+            $s->setCellValue("{$col(1)}{$r}", (float)($m['ghi'] ?? 0));
+            $s->getStyle("{$col(1)}{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $s->setCellValue("{$col(2)}{$r}", round((float)($m['poa'] ?? $m['ghi'] ?? 0), 2));
+            $s->getStyle("{$col(2)}{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $s->setCellValue("{$col(3)}{$r}", round((float)($m['t2m_avg'] ?? 0), 1));
+            $s->setCellValue("{$col(4)}{$r}", round((float)($m['T_cell'] ?? 0), 1));
+            $fTempPct = (((float)($m['f_temp'] ?? 1)) - 1) * 100;
+            $s->setCellValue("{$col(5)}{$r}", round($fTempPct, 1));
+            $s->setCellValue("{$col(6)}{$r}", $monthDays[$i]);
+            $s->setCellValue("{$col(7)}{$r}", (int)round($prod));
+
+            $s->getStyle("{$firstCol}{$r}:{$lastCol}{$r}")->applyFromArray([
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
+                'font'      => ['size' => 9],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+            ]);
+            $s->getStyle("{$col(0)}{$r}")->applyFromArray([
+                'font'      => ['bold' => true, 'size' => 9],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
+            ]);
+
+            if ($hasConsumption) {
+                if (isset($m['consumo'])) {
+                    $cons    = (float)$m['consumo'];
+                    $balance = (float)($m['balance'] ?? ($prod - $cons));
+                    $totalCons += $cons;
+                    $bolsa     += $balance;
+
+                    $s->setCellValue("{$col(8)}{$r}", (int)round($cons));
+                    $s->setCellValue("{$col(9)}{$r}", ($balance >= 0 ? '+' : '') . (int)round($balance));
+                    $balFg = $balance >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                    $balBg = $balance >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
+                    $s->getStyle("{$col(9)}{$r}")->applyFromArray([
+                        'font' => ['bold' => true, 'size' => 9, 'color' => ['argb' => $balFg]],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $balBg]],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
+
+                    $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                    $bolsaBg = $bolsa >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
+                    $s->setCellValue("{$col(10)}{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                    $s->getStyle("{$col(10)}{$r}")->applyFromArray([
+                        'font' => ['bold' => true, 'size' => 9, 'color' => ['argb' => $bolsaFg]],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bolsaBg]],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
+                } else {
+                    $s->setCellValue("{$col(8)}{$r}", '—');
+                    $s->setCellValue("{$col(9)}{$r}", '—');
+                    $s->setCellValue("{$col(10)}{$r}", '—');
+                }
+            }
+            $r++;
+        }
+
+        // ── Total row ─────────────────────────────────────────────
+        $s->setCellValue("{$col(0)}{$r}", 'Total anual');
+        foreach ([1, 2, 3, 4, 5] as $ci) {
+            $s->setCellValue("{$col($ci)}{$r}", '—');
+        }
+        $s->setCellValue("{$col(6)}{$r}", 365);
+        $s->setCellValue("{$col(7)}{$r}", (int)round($totalProd));
+        $s->getStyle("{$firstCol}{$r}:{$lastCol}{$r}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9, 'color' => ['argb' => self::C_SECTION_FG]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+        ]);
+        $s->getStyle("{$col(0)}{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        if ($hasConsumption) {
+            $s->setCellValue("{$col(8)}{$r}", $totalCons > 0 ? (int)round($totalCons) : '—');
+            $s->setCellValue("{$col(9)}{$r}", '—');
+            if ($totalCons > 0) {
+                $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                $s->setCellValue("{$col(10)}{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                $s->getStyle("{$col(10)}{$r}")->getFont()->getColor()->setARGB($bolsaFg);
+            } else {
+                $s->setCellValue("{$col(10)}{$r}", '—');
+            }
+        }
+        $r++;
+
+        // ── Note ──────────────────────────────────────────────────
+        $lfPct = round($lossFactor * 100, 1);
+        $note  = "Producción estimada: P_STC × POA × días × f_temp(NOCT) × factor pérdidas ({$lfPct}%). Transposición GHI→POA: modelo Hay-Davies.";
+        $s->setCellValue("{$firstCol}{$r}", $note);
+        $s->mergeCells("{$firstCol}{$r}:{$lastCol}{$r}");
+        $s->getStyle("{$firstCol}{$r}")->getFont()->setItalic(true)->setSize(8)
+          ->getColor()->setARGB(self::C_LABEL_FG);
+    }
     // ── Utility ───────────────────────────────────────────────
     /** @param array<string, int|float> $widths */
     private function setColumnWidths(Worksheet $s, array $widths): void
