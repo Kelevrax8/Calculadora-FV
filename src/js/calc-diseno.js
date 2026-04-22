@@ -914,7 +914,7 @@
         const poa        = hayDaviesPOA(row, lat, tilt, azimuth, albedo, i);
         // IEC 61215 NOCT model with actual POA irradiance (W/m²)
         const G_POA_inst = poa * 1000 / (row.sun_hours || 6);
-        const T_amb  = (row.t2m_avg + row.t2m_max) / 2;
+        const T_amb  = (row.t2m_min + row.t2m_max) / 2;
         const T_cell = T_amb + (noct - 20) / 800 * G_POA_inst;
         const f_temp = 1 + gamma * (T_cell - STC_TEMP);
         const prod   = P_stc * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff;
