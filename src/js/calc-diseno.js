@@ -488,18 +488,17 @@
         const rem_startup_ok = (n_rem * Vmpp_hot_per) >= selectedInverter.startup_voltage;
         const hasParallel    = (selectedInverter.mppt_groups || []).some(g => g.max_strings_per_mppt == null || g.max_strings_per_mppt > 1);
         mpptNote.innerHTML =
-          '<span class="d-block">' + (rem_mppt_ok ? '✓' : '✗') +
+          '<span class="d-block ' + (rem_mppt_ok ? 'text-success' : 'text-danger') + '">' + (rem_mppt_ok ? '✓' : '✗') +
           ' MPPT mín (' + selectedInverter.mppt_voltage_min + ' V): ' +
           'Vmpp calor string corto = ' + remV + ' V' +
           (rem_mppt_ok ? ' — dentro del rango.' : ' — ese canal no podrá rastrear.') + '</span>' +
-          '<span class="d-block mt-1">' + (rem_startup_ok ? '✓' : '⚠') +
+          '<span class="d-block mt-1 ' + (rem_startup_ok ? 'text-success' : 'text-danger') + '">' + (rem_startup_ok ? '✓' : '⚠') +
           ' V arranque (' + selectedInverter.startup_voltage + ' V): ' + remV + ' V' +
           (rem_startup_ok ? ' — el string corto la supera.' : ' — podría no arrancar el inversor.') + '</span>' +
           (hasParallel
-            ? '<span class="d-block mt-1">⚠ Conecta el string corto en una entrada MPPT dedicada para evitar pérdidas por desajuste de corriente.</span>'
+            ? '<span class="d-block mt-1 text-warning">⚠ Conecta el string corto en una entrada MPPT dedicada para evitar pérdidas por desajuste de corriente.</span>'
             : '');
-        mpptNote.className = 'mt-2 small font-weight-bold ' +
-          (!rem_mppt_ok || !rem_startup_ok ? 'text-danger' : hasParallel ? 'text-warning' : 'text-success');
+        mpptNote.className = 'mt-2 small font-weight-bold';
         mpptNote.classList.remove('d-none');
       } else {
         mpptNote.classList.add('d-none');
@@ -538,12 +537,57 @@
       : 'Selecciona inversor primero';
     document.getElementById('btn-ninv-dec').disabled = currentNInv <= Math.max(1, nInvMin);
 
+    // ── MPPT occupancy warning ──
+    const mpptWarnEl = document.getElementById('ninv-mppt-warn');
+    if (selectedInverter && Np_total > 0 && capPerInv > 0) {
+      const floorStrings = Math.floor(Np_total / currentNInv); // min strings any inverter gets
+      const ceilStrings  = Math.ceil(Np_total / currentNInv);  // max strings any inverter gets
+      const nWithCeil    = Np_total % currentNInv;             // inverters with ceil strings
+      const nWithFloor   = currentNInv - nWithCeil;            // inverters with floor strings
+      if (floorStrings < capPerInv) {
+        let msg;
+        if (nWithCeil === 0) {
+          // All inverters share the same (below-capacity) load
+          const unused = capPerInv - floorStrings;
+          msg = `⚠ Cada inversor usa ${floorStrings}/${capPerInv} strings (${unused} entrada${unused > 1 ? 's' : ''} sin usar/inv)`;
+        } else if (ceilStrings === capPerInv) {
+          // Some inverters are at full capacity, nWithFloor are underloaded
+          const unused = capPerInv - floorStrings;
+          msg = `⚠ ${nWithFloor} inversor${nWithFloor > 1 ? 'es' : ''} con ${floorStrings}/${capPerInv} strings (${unused} entrada${unused > 1 ? 's' : ''} sin usar)`;
+        } else {
+          // No inverter reaches full capacity; mixed distribution
+          msg = `⚠ Distribución: ${nWithCeil} inv. × ${ceilStrings} strings, ${nWithFloor} inv. × ${floorStrings} strings (máx: ${capPerInv}/inv)`;
+        }
+        mpptWarnEl.textContent = msg;
+        mpptWarnEl.classList.remove('d-none');
+      } else {
+        mpptWarnEl.classList.add('d-none');
+        mpptWarnEl.textContent = '';
+      }
+    } else {
+      mpptWarnEl.classList.add('d-none');
+      mpptWarnEl.textContent = '';
+    }
+
     // ── Np/inv hint ──
-    const Np_per_inv_display = Math.ceil(Np_total / currentNInv);
     const hintEl = document.getElementById('np-mppt-hint');
     if (selectedInverter) {
-      const ok = Np_per_inv_display <= capPerInv;
-      hintEl.textContent = (ok ? '✓ ' : '✗ ') + Np_per_inv_display + ' / ' + capPerInv + ' strings/inv';
+      const ceilStrings  = Math.ceil(Np_total / currentNInv);
+      const floorStrings = Math.floor(Np_total / currentNInv);
+      const nWithCeil    = Np_total % currentNInv; // inverters carrying ceil strings
+      const nWithFloor   = currentNInv - nWithCeil;
+      const ok = ceilStrings <= capPerInv;
+      if (floorStrings === ceilStrings) {
+        // Perfectly even
+        hintEl.textContent = (ok ? '✓ ' : '✗ ') + ceilStrings + ' / ' + capPerInv + ' strings/inv';
+      } else if (nWithCeil === 0) {
+        // Shouldn't happen, but guard anyway
+        hintEl.textContent = (ok ? '✓ ' : '✗ ') + floorStrings + ' / ' + capPerInv + ' strings/inv';
+      } else {
+        // Mixed: nWithCeil inverters at ceilStrings, nWithFloor at floorStrings
+        hintEl.textContent = (ok ? '✓ ' : '✗ ') +
+          nWithCeil + ' inv. × ' + ceilStrings + '/' + capPerInv;
+      }
       hintEl.className = 'small font-weight-bold ' + (ok ? 'text-success' : 'text-danger');
     } else {
       hintEl.textContent = 'Selecciona un inversor para verificar';

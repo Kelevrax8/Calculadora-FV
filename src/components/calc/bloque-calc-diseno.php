@@ -141,6 +141,7 @@
                   title="Calcular mínimo de inversores necesarios">Auto</button>
               </div>
               <small id="ninv-hint" class="text-muted">Selecciona inversor primero</small>
+              <small id="ninv-mppt-warn" class="d-none text-warning font-weight-bold"></small>
             </div>
 
             <!-- String voltages + area -->
