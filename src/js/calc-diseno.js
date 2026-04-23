@@ -67,6 +67,47 @@
   let N_suggested         = 1;
   let tiltAutoSet          = false; // auto-set tilt from lat on first energy render
 
+  // ── Faiman thermal model — default coefficients (IEC 61853-2 rack-mounted) ──
+  const FAIMAN_U0_DEFAULT = 25;    // W/m²/K — constant heat transfer (radiation + conduction)
+  const FAIMAN_U1_DEFAULT = 6.84;  // W/m²/K per m/s — wind-driven convective cooling
+
+  /** Reads U0/U1 from the mounting-type selector (or custom inputs). Falls back to defaults. */
+  function getFaimanCoeffs() {
+    const presetEl = document.getElementById('en-faiman-preset');
+    if (!presetEl) return { U0: FAIMAN_U0_DEFAULT, U1: FAIMAN_U1_DEFAULT };
+    if (presetEl.value === 'custom') {
+      const U0 = parseFloat(document.getElementById('en-faiman-u0')?.value);
+      const U1 = parseFloat(document.getElementById('en-faiman-u1')?.value);
+      return {
+        U0: isNaN(U0) ? FAIMAN_U0_DEFAULT : U0,
+        U1: isNaN(U1) ? 0 : U1,
+      };
+    }
+    const opt = presetEl.options[presetEl.selectedIndex];
+    return {
+      U0: parseFloat(opt.dataset.u0) || FAIMAN_U0_DEFAULT,
+      U1: parseFloat(opt.dataset.u1) || 0,
+    };
+  }
+
+  /** Updates the U0/U1 badge display from the current selection. */
+  function updateFaimanBadges() {
+    const presetEl = document.getElementById('en-faiman-preset');
+    if (!presetEl) return;
+    const isCustom  = presetEl.value === 'custom';
+    const badgesDiv = document.getElementById('en-faiman-badges');
+    const customDiv = document.getElementById('en-faiman-custom');
+    if (badgesDiv) badgesDiv.classList.toggle('d-none', isCustom);
+    if (customDiv) customDiv.classList.toggle('d-none', !isCustom);
+    if (!isCustom) {
+      const { U0, U1 } = getFaimanCoeffs();
+      const u0El = document.getElementById('en-faiman-u0-badge');
+      const u1El = document.getElementById('en-faiman-u1-badge');
+      if (u0El) u0El.textContent = `U₀ = ${U0.toFixed(1)} W/m²K`;
+      if (u1El) u1El.textContent = `U₁ = ${U1.toFixed(2)} W/m²K·(m/s)`;
+    }
+  }
+
   // ── Itemized losses (Option B) – percentages ────────────────
   const LOSS_DEFAULTS = {
     soiling:   2.0,
@@ -158,6 +199,54 @@
       H_dhi   * (f * Rb + (1 - f) * Fcs) +
       H_ghi   * albedo * Fgr
     );
+  }
+
+  // ── Faiman irradiance-weighted cell temperature ───────────────────────────
+  /**
+   * Returns the irradiance-weighted mean cell temperature for a month.
+   *
+   * Applies the Faiman formula to a synthetic sinusoidal daylight profile so
+   * that hot midday hours (high G) weigh more than cool morning/evening hours.
+   *
+   * @param {number} poa_daily  Monthly mean POA daily irradiation (kWh/m²/day)
+   * @param {number} t_avg      Monthly mean 2m ambient temperature (°C)
+   * @param {number} t_max      Monthly mean daily max 2m temperature (°C)
+   * @param {number} ws10m      Monthly mean wind speed at 10 m (m/s)
+   * @param {number} sun_hours  Astronomical daylight hours
+   * @param {number} U0         Constant heat-transfer coefficient (W/m²/K)
+   * @param {number} U1         Wind-dependent coefficient (W/m²/K per m/s)
+   * @returns {number} Irradiance-weighted mean T_cell (°C)
+   */
+  function faimanWeightedTcell(poa_daily, t_avg, t_max, ws10m, sun_hours, U0, U1) {
+    // Height-correct wind from 10 m to module height (~1.5 m) — power law
+    const v_mod = ws10m * Math.pow(1.5 / 10, 0.143);
+    const U_eff = U0 + U1 * v_mod;
+
+    // Sinusoidal daylight profile: G(t) = G_peak × sin(πt), t ∈ [0,1]
+    // ∫₀¹ sin(πt) dt = 2/π  →  G_peak = G_mean × π/2
+    const G_mean = (poa_daily * 1000) / (sun_hours || 10);
+    const G_peak = (Math.PI / 2) * G_mean;
+
+    // Temperature diurnal swing; peak lags solar noon by ~2 h
+    const T_swing   = t_max - t_avg;
+    const lag_frac  = 2 / (sun_hours || 10); // fraction of daylight window
+
+    let sumGT = 0;
+    let sumG  = 0;
+    const N = 48; // 30-min intervals over the daylight window
+    for (let k = 0; k < N; k++) {
+      const t   = k / N;                                   // 0 = sunrise, 1 = sunset
+      const G_h = G_peak * Math.sin(Math.PI * t);
+      if (G_h <= 0) continue;
+      // T peaks at t = 0.5 + lag_frac (2 h after solar noon)
+      const T_h      = t_avg + T_swing * Math.sin(Math.PI * (t - lag_frac));
+      const T_cell_h = T_h + G_h / U_eff;
+      sumGT += G_h * T_cell_h;
+      sumG  += G_h;
+    }
+
+    if (sumG === 0) return t_avg + G_mean / U_eff;
+    return sumGT / sumG;
   }
 
   // ── Circuit helpers ─────────────────────────────────────────
@@ -955,11 +1044,14 @@
     if (hasMonthly) {
       monthlyDetails = monthly.map((row, i) => {
         // Hay-Davies transposition: GHI (horizontal) → POA (tilted plane)
-        const poa        = hayDaviesPOA(row, lat, tilt, azimuth, albedo, i);
-        // IEC 61215 NOCT model with actual POA irradiance (W/m²)
-        const G_POA_inst = poa * 1000 / (row.sun_hours || 6);
-        const T_amb  = (row.t2m_min + row.t2m_max) / 2;
-        const T_cell = T_amb + (noct - 20) / 800 * G_POA_inst;
+        const poa    = hayDaviesPOA(row, lat, tilt, azimuth, albedo, i);
+        // Faiman thermal model with irradiance-weighted T_cell
+        const T_cell = faimanWeightedTcell(
+          poa, row.t2m_avg, row.t2m_max,
+          row.ws10m ?? 2.5, row.sun_hours || 10,
+          ...Object.values(getFaimanCoeffs())
+        );
+        const T_amb  = row.t2m_avg;
         const f_temp = 1 + gamma * (T_cell - STC_TEMP);
         const prod   = P_stc * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff;
         return { poa, T_amb, T_cell, f_temp, prod: Math.max(0, prod) };
@@ -1402,6 +1494,22 @@
     if (el) el.addEventListener('input', triggerEnergyRecalc);
   });
 
+  // Faiman mounting-type preset — toggle custom inputs + re-render
+  const faimanPresetEl = document.getElementById('en-faiman-preset');
+  if (faimanPresetEl) {
+    faimanPresetEl.addEventListener('change', function () {
+      updateFaimanBadges();
+      triggerEnergyRecalc();
+    });
+  }
+  // Custom U0/U1 inputs
+  ['en-faiman-u0', 'en-faiman-u1'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', triggerEnergyRecalc);
+  });
+  // Init badges to match default selection
+  updateFaimanBadges();
+
   // Reset to defaults
   document.getElementById('btn-losses-reset').addEventListener('click', function () {
     currentLosses = { ...LOSS_DEFAULTS };
@@ -1540,11 +1648,13 @@
 
     if (cs.monthly && cs.monthly.length === 12) {
       E_year = cs.monthly.reduce((sum, row, i) => {
-        const poa        = hayDaviesPOA(row, expLat, expTilt, expAzimuth, expAlbedo, i);
-        const G_POA_inst = poa * 1000 / (row.sun_hours || 6);
-        const T_amb      = (row.t2m_avg + row.t2m_max) / 2;
-        const T_cell     = T_amb + (noct - 20) / 800 * G_POA_inst;
-        const f_temp     = 1 + gammaPmax * (T_cell - 25);
+        const poa    = hayDaviesPOA(row, expLat, expTilt, expAzimuth, expAlbedo, i);
+        const T_cell = faimanWeightedTcell(
+          poa, row.t2m_avg, row.t2m_max,
+          row.ws10m ?? 2.5, row.sun_hours || 10,
+          ...Object.values(getFaimanCoeffs())
+        );
+        const f_temp = 1 + gammaPmax * (T_cell - 25);
         return sum + Math.max(0, cs.P_stc_kW * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
       }, 0);
     } else {
@@ -1569,13 +1679,15 @@
     // Monthly — include consumption + balance if the user toggled that view on
     const monthly = (cs.monthly && cs.monthly.length === 12)
       ? cs.monthly.map((row, i) => {
-          const poa        = hayDaviesPOA(row, expLat, expTilt, expAzimuth, expAlbedo, i);
-          const G_POA_inst = poa * 1000 / (row.sun_hours || 6);
-          const T_amb      = (row.t2m_avg + row.t2m_max) / 2;
-          const T_cell     = T_amb + (noct - 20) / 800 * G_POA_inst;
-          const f_temp     = 1 + gammaPmax * (T_cell - 25);
-          const prod       = enMonthlyProduction[i] ?? Math.max(0, cs.P_stc_kW * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
-          const entry      = { ghi: row.ghi, poa, t2m_avg: row.t2m_avg, T_cell, f_temp, production: prod };
+          const poa    = hayDaviesPOA(row, expLat, expTilt, expAzimuth, expAlbedo, i);
+          const T_cell = faimanWeightedTcell(
+            poa, row.t2m_avg, row.t2m_max,
+            row.ws10m ?? 2.5, row.sun_hours || 10,
+            ...Object.values(getFaimanCoeffs())
+          );
+          const f_temp = 1 + gammaPmax * (T_cell - 25);
+          const prod   = enMonthlyProduction[i] ?? Math.max(0, cs.P_stc_kW * poa * MONTH_DAYS[i] * f_temp * lossFactor * invEff);
+          const entry  = { ghi: row.ghi, poa, t2m_avg: row.t2m_avg, T_cell, f_temp, production: prod };
 
           if (enShowConsumption) {
             const input = document.getElementById('en-cons-input-' + i);

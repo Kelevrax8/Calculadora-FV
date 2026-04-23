@@ -113,7 +113,7 @@ class NasaService
                     dni_kwh_m2_day AS dni,
                     dhi_kwh_m2_day AS dhi,
                     sun_hours,
-                    t2m_avg, t2m_max, t2m_min
+                    t2m_avg, t2m_max, t2m_min, ws10m
              FROM climatology_monthly
              WHERE location_id = :id
              ORDER BY month'
@@ -136,7 +136,7 @@ class NasaService
     {
         $url = sprintf(
             'https://power.larc.nasa.gov/api/temporal/climatology/point'
-            . '?parameters=ALLSKY_SFC_SW_DWN,ALLSKY_SFC_SW_DNI,ALLSKY_SFC_SW_DIFF,T2M,T2M_MAX,T2M_MIN'
+            . '?parameters=ALLSKY_SFC_SW_DWN,ALLSKY_SFC_SW_DNI,ALLSKY_SFC_SW_DIFF,T2M,T2M_MAX,T2M_MIN,WS10M'
             . '&community=RE&latitude=%s&longitude=%s&format=JSON',
             $lat,
             $lng
@@ -163,7 +163,8 @@ class NasaService
                 $params['ALLSKY_SFC_SW_DIFF'],
                 $params['T2M'],
                 $params['T2M_MAX'],
-                $params['T2M_MIN']
+                $params['T2M_MIN'],
+                $params['WS10M']
             )
         ) {
             throw new RuntimeException('Respuesta inesperada de NASA POWER.');
@@ -180,6 +181,7 @@ class NasaService
                 't2m_avg'   => (float) $params['T2M'][$key],
                 't2m_max'   => (float) $params['T2M_MAX'][$key],
                 't2m_min'   => (float) $params['T2M_MIN'][$key],
+                'ws10m'     => (float) $params['WS10M'][$key],
             ];
         }
 
@@ -248,20 +250,21 @@ class NasaService
 
             $stmt = $this->pdo->prepare(
                 'INSERT INTO climatology_monthly
-                    (location_id, month, ghi_kwh_m2_day, dni_kwh_m2_day, dhi_kwh_m2_day, sun_hours, t2m_avg, t2m_max, t2m_min)
-                 VALUES (:loc, :month, :ghi, :dni, :dhi, :sun, :avg, :max, :min)'
+                    (location_id, month, ghi_kwh_m2_day, dni_kwh_m2_day, dhi_kwh_m2_day, sun_hours, t2m_avg, t2m_max, t2m_min, ws10m)
+                 VALUES (:loc, :month, :ghi, :dni, :dhi, :sun, :avg, :max, :min, :ws10m)'
             );
             foreach ($monthly as $row) {
                 $stmt->execute([
-                    ':loc'   => $locationId,
-                    ':month' => $row['month'],
-                    ':ghi'   => $row['ghi'],
-                    ':dni'   => $row['dni'],
-                    ':dhi'   => $row['dhi'],
-                    ':sun'   => $row['sun_hours'],
-                    ':avg'   => $row['t2m_avg'],
-                    ':max'   => $row['t2m_max'],
-                    ':min'   => $row['t2m_min'],
+                    ':loc'    => $locationId,
+                    ':month'  => $row['month'],
+                    ':ghi'    => $row['ghi'],
+                    ':dni'    => $row['dni'],
+                    ':dhi'    => $row['dhi'],
+                    ':sun'    => $row['sun_hours'],
+                    ':avg'    => $row['t2m_avg'],
+                    ':max'    => $row['t2m_max'],
+                    ':min'    => $row['t2m_min'],
+                    ':ws10m'  => $row['ws10m'],
                 ]);
             }
 

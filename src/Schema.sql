@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS climatology_monthly (
     t2m_avg DECIMAL(5,2) NOT NULL,
     t2m_max DECIMAL(5,2) NOT NULL,
     t2m_min DECIMAL(5,2) NOT NULL,
+    ws10m   DECIMAL(4,2) NOT NULL DEFAULT 0,
 
     CONSTRAINT fk_climate_location
         FOREIGN KEY (location_id)

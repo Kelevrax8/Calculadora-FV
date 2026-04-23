@@ -417,7 +417,7 @@
   <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:.5rem;">
     <div>
       <h5 class="mb-0">Producción Energética</h5>
-      <small class="text-muted">Modelo Hay-Davies (POA), temperatura NOCT y pérdidas detalladas</small>
+      <small class="text-muted">Modelo Hay-Davies (POA), temperatura Faiman y pérdidas detalladas</small>
     </div>
     <div class="d-flex align-items-center" style="gap:.5rem;">
       <label class="mb-0 small font-weight-bold text-muted">Factor de pérdidas</label>
@@ -455,6 +455,49 @@
         <small class="text-muted">0.20 = pasto / concreto</small>
       </div>
     </div><!-- /orientation row -->
+
+    <!-- Faiman thermal model: mounting type / U0 U1 -->
+    <div class="row mb-3 align-items-start" id="en-faiman-row">
+      <div class="col-sm-5 col-12 mb-2">
+        <label for="en-faiman-preset" class="mb-1 small font-weight-bold text-muted">
+          Tipo de montaje
+          <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+             title="Determina los coeficientes U₀ y U₁ del modelo térmico Faiman. U₀ = transferencia de calor constante; U₁ = enfriamiento por viento. Open rack: valores Faiman 2008 originales (Sandia/IEC 61853-2). Techo con gap: restricción de flujo inferior. Techo integrado: sin circulación de aire inferior (U₁=0). BIPV fachada: orientación vertical."></i>
+        </label>
+        <select id="en-faiman-preset" class="form-control form-control-sm">
+          <option value="open_rack"       data-u0="25"   data-u1="6.84" selected>Libre / Rack abierto</option>
+          <option value="roof_gap"        data-u0="20"   data-u1="6.84">Techo con separaci&oacute;n de aire</option>
+          <option value="roof_integrated" data-u0="15"   data-u1="0"   >Techo integrado (sin separaci&oacute;n)</option>
+          <option value="bipv_facade"     data-u0="12"   data-u1="2"   >BIPV / Fachada</option>
+          <option value="custom"          data-u0=""     data-u1=""    >Personalizado</option>
+        </select>
+      </div>
+      <div class="col-sm-7 col-12 mb-2 d-flex flex-column justify-content-end">
+        <!-- Badge display when preset is selected -->
+        <div id="en-faiman-badges" class="d-flex align-items-center" style="gap:.4rem; flex-wrap:wrap; min-height:31px;">
+          <span class="badge badge-secondary py-1 px-2" id="en-faiman-u0-badge">U&#x2080; = 25.0 W/m&sup2;K</span>
+          <span class="badge badge-secondary py-1 px-2" id="en-faiman-u1-badge">U&#x2081; = 6.84 W/m&sup2;K&middot;(m/s)</span>
+        </div>
+        <!-- Custom inputs (shown only when "Personalizado" is selected) -->
+        <div id="en-faiman-custom" class="d-none">
+          <div class="d-flex align-items-center" style="gap:.75rem; flex-wrap:wrap;">
+            <div>
+              <label class="mb-0 small text-muted">U&#x2080; (W/m&sup2;K)</label>
+              <input type="number" id="en-faiman-u0" min="5" max="40" step="0.5" value="25"
+                     class="form-control form-control-sm" style="width:80px;"
+                     title="Coeficiente constante de transferencia de calor (radiación + conducción). Rango típico: 10–30 W/m²K.">
+            </div>
+            <div>
+              <label class="mb-0 small text-muted">U&#x2081; (W/m&sup2;K&middot;m/s)</label>
+              <input type="number" id="en-faiman-u1" min="0" max="15" step="0.1" value="6.84"
+                     class="form-control form-control-sm" style="width:80px;"
+                     title="Coeficiente de enfriamiento convectivo por viento. 0 = sin circulación de aire (techo integrado). Rango típico: 0–8 W/m²K·(m/s).">
+            </div>
+          </div>
+          <small class="text-muted mt-1 d-block">Faiman 2008: U&#x2080;=25, U&#x2081;=6.84 para vidrio-Tedlar.</small>
+        </div>
+      </div>
+    </div><!-- /faiman row -->
 
     <!-- Summary metrics -->
     <div class="row mb-3">
@@ -655,7 +698,7 @@
       <div class="modal-body px-4 py-3">
         <p class="text-muted small mb-3">
           Ajusta cada factor de pérdida. El factor combinado se calcula automáticamente.
-          <strong>Las pérdidas por temperatura se calculan por separado</strong> con el modelo NOCT.
+          <strong>Las pérdidas por temperatura se calculan por separado</strong> con el modelo Faiman (ponderado por irradiancia).
         </p>
 
         <!-- Loss items -->
@@ -772,7 +815,7 @@
           <span id="losses-modal-combined" class="h5 font-weight-bold text-primary mb-0">—</span>
         </div>
         <small class="text-muted d-block mt-1">
-          Calculado como ∏(1 − L<sub>i</sub>). No incluye pérdidas por temperatura (modelo NOCT).
+          Calculado como ∏(1 − L<sub>i</sub>). No incluye pérdidas por temperatura (modelo Faiman).
         </small>
 
       </div><!-- /modal-body -->
