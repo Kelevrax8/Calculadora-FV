@@ -124,7 +124,7 @@
   }
 
   // Per-module derived temperature values (set in selectModule)
-  let N_total, betaVoc, Voc_cold_per, Vmpp_hot_per, Vmpp_cold_per, P_cold_per;
+  let N_total, betaVoc, Voc_cold_per, Vmpp_hot_per, Vmpp_cold_per, P_cold_per, cellTempHot;
 
   // ── DOM refs ────────────────────────────────────────────────
   const loadingEl       = document.getElementById('diseno-loading');
@@ -458,9 +458,11 @@
     prelimResults.classList.remove('d-none');
 
     // ── Per-module temperature metrics (for string voltage calculations) ──
-    betaVoc       = m.temp_coeff_voc  / 100;
+    betaVoc      = m.temp_coeff_voc  / 100;
+    // Hot-side checks use cell temperature (NOCT model at peak irradiance), not ambient
+    cellTempHot  = tmax + ((m.noct || 45) - 20) / 800 * 1000;
     Voc_cold_per  = m.voc_stc  * (1 + betaVoc             * (tmin - STC_TEMP));
-    Vmpp_hot_per  = m.vmpp_stc * (1 + betaVoc             * (tmax - STC_TEMP));
+    Vmpp_hot_per  = m.vmpp_stc * (1 + betaVoc             * (cellTempHot - STC_TEMP));
     Vmpp_cold_per = m.vmpp_stc * (1 + betaVoc             * (tmin - STC_TEMP));
     P_cold_per    = m.pmax_stc * (1 + (m.temp_coeff_pmax / 100) * (tmin - STC_TEMP));
 
@@ -895,11 +897,11 @@
       '≤ ' + inv.max_dc_voltage + ' V',
       compat.vocPass, true);
     setCheck('chk-vmpp-hot',
-      compat.Vmpp_hot.toFixed(1) + ' V',
+      compat.Vmpp_hot.toFixed(1) + ' V (T_cell=' + cellTempHot.toFixed(0) + '°C)',
       '≥ ' + inv.mppt_voltage_min + ' V',
       compat.vmppHotPass, false);
     setCheck('chk-startup-v',
-      compat.Vmpp_hot.toFixed(1) + ' V',
+      compat.Vmpp_hot.toFixed(1) + ' V (T_cell=' + cellTempHot.toFixed(0) + '°C)',
       '≥ ' + inv.startup_voltage + ' V',
       compat.startupPass, false);
     setCheck('chk-vmpp-cold',
