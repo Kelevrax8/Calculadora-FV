@@ -609,7 +609,7 @@ class ExportService
 
         // ── Note ──────────────────────────────────────────────────
         $lfPct = round($lossFactor * 100, 1);
-        $note  = "Producción estimada: P_STC × POA × días × f_temp(Faiman) × factor pérdidas ({$lfPct}%). Transposición GHI→POA: modelo Hay-Davies. Temperatura celda: modelo Faiman con T_amb ponderada por irradiancia y corrección de viento.";
+        $note  = "Producción estimada: P_STC × POA × días × f_temp(Faiman) × factor pérdidas ({$lfPct}%).";
         $s->setCellValue("{$firstCol}{$r}", $note);
         $s->mergeCells("{$firstCol}{$r}:{$lastCol}{$r}");
         $s->getStyle("{$firstCol}{$r}")->getFont()->setItalic(true)->setSize(8)
