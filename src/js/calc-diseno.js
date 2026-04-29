@@ -1039,9 +1039,12 @@
       tiltEl.value = Math.round(Math.abs(lat)) || 20;
       tiltAutoSet  = true;
     }
-    const tilt    = parseFloat(tiltEl ? tiltEl.value : '') || 20;
-    const azimuth = parseFloat(document.getElementById('en-azimuth')?.value) || 180;
-    const albedo  = parseFloat(document.getElementById('en-albedo')?.value)  || 0.20;
+    const _tiltV  = parseFloat(tiltEl ? tiltEl.value : '');
+    const tilt    = Number.isFinite(_tiltV)  ? _tiltV  : 20;
+    const _azimV  = parseFloat(document.getElementById('en-azimuth')?.value);
+    const azimuth = Number.isFinite(_azimV)  ? _azimV  : 180;
+    const _albV   = parseFloat(document.getElementById('en-albedo')?.value);
+    const albedo  = Number.isFinite(_albV)   ? _albV   : 0.20;
 
     if (hasMonthly) {
       monthlyDetails = monthly.map((row, i) => {
