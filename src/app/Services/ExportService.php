@@ -52,16 +52,16 @@ class ExportService
 
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Resumen');
-        $this->setColumnWidths($sheet, ['A' => 42, 'B' => 45, 'C' => 14]);
+        $this->setColumnWidths($sheet, [
+            'A' => 42, 'B' => 45, 'C' => 14,
+            'D' => 3,
+            'E' => 16, 'F' => 16, 'G' => 16,
+            'H' => 12, 'I' => 12, 'J' => 12,
+            'K' => 10, 'L' => 22,
+            'M' => 20, 'N' => 18, 'O' => 22,
+        ]);
 
         $this->buildResumen($sheet, $payload);
-
-        // Sheet 2: monthly production (only if data present)
-        if (!empty($payload['monthly']) && count($payload['monthly']) === 12) {
-            $monthly = $spreadsheet->createSheet();
-            $monthly->setTitle('Producción Mensual');
-            $this->buildMonthly($monthly, $payload['monthly']);
-        }
 
         $spreadsheet->setActiveSheetIndex(0);
 
@@ -74,13 +74,14 @@ class ExportService
     // ── Sheet 1 builder ───────────────────────────────────────
     private function buildResumen(Worksheet $s, array $p): void
     {
-        $site  = $p['site']       ?? [];
-        $mod   = $p['module']     ?? [];
-        $arr   = $p['array']      ?? [];
-        $inv   = $p['inverter']   ?? [];
-        $chk   = $p['checks']     ?? [];
-        $nrg   = $p['energy']     ?? [];
-        $prot  = $p['protection'] ?? [];
+        $site    = $p['site']       ?? [];
+        $mod     = $p['module']     ?? [];
+        $arr     = $p['array']      ?? [];
+        $inv     = $p['inverter']   ?? [];
+        $chk     = $p['checks']     ?? [];
+        $nrg     = $p['energy']     ?? [];
+        $prot    = $p['protection'] ?? [];
+        $monthly = $p['monthly']    ?? [];
 
         // ── Title ─────────────────────────────────────────────
         $this->addTitle($s, 'CALCULADORA FV — RESUMEN DEL SISTEMA FOTOVOLTAICO');
@@ -114,12 +115,27 @@ class ExportService
         $this->addDataRow($s, 'Coef. temperatura Pmax (γ)',   (float)($mod['temp_coeff_pmax'] ?? 0), '%/°C', 2);
         $this->row++;
 
-        // ── Configuración del Arreglo ─────────────────────────
-        $this->addSectionHeader($s, 'CONFIGURACIÓN DEL ARREGLO');
+        // ── Inversor ──────────────────────────────────────────
+        $this->addSectionHeader($s, 'INVERSOR');
+        $this->addDataRow($s, 'Fabricante',                  $inv['manufacturer']             ?? '—');
+        $this->addDataRow($s, 'Modelo',                      $inv['model']                    ?? '—');
+        $this->addDataRow($s, 'Potencia AC nominal',        (float)($inv['nominal_ac_power'] ?? 0), 'W');
+        $this->addDataRow($s, 'Tipo de fase',                $inv['phase_type']               ?? '—');
+        $this->addDataRow($s, 'Tensión AC nominal',          $inv['ac_voltage_nominal']       ?? '—', 'V');
+        $this->addDataRow($s, 'Rango de tensión MPPT',       ($inv['mppt_voltage_min'] ?? '—') . ' – ' . ($inv['mppt_voltage_max'] ?? '—'), 'V');
+        $this->addDataRow($s, 'Tensión DC máxima',           $inv['max_dc_voltage']           ?? '—', 'V');
+        $this->addDataRow($s, 'Corriente máx. por MPPT',     $inv['max_input_current_per_mppt'] ?? '—', 'A');
+        $this->addDataRow($s, 'Corriente de CC máx. entrada',$inv['max_short_circuit_current']  ?? '—', 'A');
+        $this->addDataRow($s, 'Número de entradas MPPT',     $inv['mppt_count']               ?? '—');
+        $this->row++;
+
+        // ── Configuración de la Planta ────────────────────────
+        $this->addSectionHeader($s, 'CONFIGURACIÓN DE LA PLANTA');
         $n_rem = (int)($arr['n_rem'] ?? 0);
         $Ns    = (int)($arr['Ns']    ?? 0);
         $Np    = (int)($arr['Np']    ?? 0);
         $N     = (int)($arr['N']     ?? 0);
+        $N_inv = (int)($arr['N_inv'] ?? 1);
         if ($n_rem > 0) {
             $n_full       = $Np - 1;
             $stringsValue = sprintf('%d string%s × %d mód + 1 string × %d mód — string corto',
@@ -133,22 +149,42 @@ class ExportService
         $this->addDataRow($s, 'Voc del arreglo en frío (Tmin)',  (float)($arr['Voc_cold']  ?? 0), 'V', 1);
         $this->addDataRow($s, 'Vmpp del arreglo en calor (Tmax)',(float)($arr['Vmpp_hot']  ?? 0), 'V', 1);
         $this->addDataRow($s, 'Vmpp del arreglo en frío (Tmin)', (float)($arr['Vmpp_cold'] ?? 0), 'V', 1);
-        $this->addDataRow($s, 'Área del arreglo neta',                 (float)($arr['arrArea'] ?? 0), 'm²', 2);
-        $this->row++;
+        $this->addDataRow($s, 'Área del arreglo neta',           (float)($arr['arrArea'] ?? 0), 'm²', 2);
+        $this->addDataRow($s, 'Número de inversores',            $N_inv);
 
-        // ── Inversor ──────────────────────────────────────────
-        $this->addSectionHeader($s, 'INVERSOR');
-        $this->addDataRow($s, 'Fabricante',                  $inv['manufacturer']             ?? '—');
-        $this->addDataRow($s, 'Modelo',                      $inv['model']                    ?? '—');
-        $this->addDataRow($s, 'Número de inversores',        (int)($arr['N_inv']              ?? 1));
-        $this->addDataRow($s, 'Potencia AC nominal',        (float)($inv['nominal_ac_power'] ?? 0), 'W');
-        $this->addDataRow($s, 'Tipo de fase',                $inv['phase_type']               ?? '—');
-        $this->addDataRow($s, 'Tensión AC nominal',          $inv['ac_voltage_nominal']       ?? '—', 'V');
-        $this->addDataRow($s, 'Rango de tensión MPPT',       ($inv['mppt_voltage_min'] ?? '—') . ' – ' . ($inv['mppt_voltage_max'] ?? '—'), 'V');
-        $this->addDataRow($s, 'Tensión DC máxima',           $inv['max_dc_voltage']           ?? '—', 'V');
-        $this->addDataRow($s, 'Corriente máx. por MPPT',     $inv['max_input_current_per_mppt'] ?? '—', 'A');
-        $this->addDataRow($s, 'Corriente de CC máx. entrada',$inv['max_short_circuit_current']  ?? '—', 'A');
-        $this->addDataRow($s, 'Número de entradas MPPT',     $inv['mppt_count']               ?? '—');
+        // ── MPPT occupancy ────────────────────────────────────
+        $capPerInv    = (int)($arr['cap_per_inv'] ?? 0);
+        $floorStrings = ($N_inv > 0) ? (int)floor($Np / $N_inv) : 0;
+        $ceilStrings  = ($N_inv > 0) ? (int)ceil($Np  / $N_inv) : 0;
+        $nWithCeil    = ($N_inv > 0) ? ($Np % $N_inv) : 0;
+        $nWithFloor   = $N_inv - $nWithCeil;
+
+        if ($floorStrings === $ceilStrings) {
+            $distValue = $ceilStrings . ' strings/inv';
+        } else {
+            $distValue = sprintf('%d inv. × %d + %d inv. × %d strings', $nWithCeil, $ceilStrings, $nWithFloor, $floorStrings);
+        }
+        $this->addDataRow($s, 'Distribución de strings', $distValue);
+
+        if ($capPerInv > 0) {
+            if ($floorStrings < $capPerInv) {
+                if ($nWithCeil === 0) {
+                    $unused = $capPerInv - $floorStrings;
+                    $occupancyNote = sprintf('Cada inversor usa %d/%d entradas (%d sin usar/inv)', $floorStrings, $capPerInv, $unused);
+                } elseif ($ceilStrings === $capPerInv) {
+                    $unused = $capPerInv - $floorStrings;
+                    $occupancyNote = sprintf('%d inversor%s con %d/%d strings (%d entrada%s sin usar)',
+                        $nWithFloor, $nWithFloor > 1 ? 'es' : '', $floorStrings, $capPerInv,
+                        $unused, $unused > 1 ? 's' : '');
+                } else {
+                    $occupancyNote = sprintf('%d inv. × %d/%d + %d inv. × %d/%d strings (máx: %d/inv)',
+                        $nWithCeil, $ceilStrings, $capPerInv, $nWithFloor, $floorStrings, $capPerInv, $capPerInv);
+                }
+                $this->addDataRow($s, '⚠ Ocupación de entradas MPPT', $occupancyNote);
+            } else {
+                $this->addDataRow($s, '✓ Ocupación de entradas MPPT', 'Todos los inversores operan a plena capacidad');
+            }
+        }
         $this->row++;
 
         // ── Verificaciones de Compatibilidad ──────────────────
@@ -160,12 +196,35 @@ class ExportService
         $this->row++;
 
         // ── Estimación Energética ─────────────────────────────
+        $energiaStartRow = $this->row;
         $this->addSectionHeader($s, 'ESTIMACIÓN ENERGÉTICA');
         $this->addDataRow($s, 'Producción anual estimada', (float)($nrg['E_year'] ?? 0), 'kWh/año');
         $this->addDataRow($s, 'Autosuficiencia estimada',  (float)($nrg['coverage'] ?? 0), '%', 1);
-        $this->addDataRow($s, 'Factor de rendimiento (PR)',(int)(($nrg['PR'] ?? 0) * 100), '%');
+        $lossFactor = (float)($nrg['loss_factor'] ?? 0.80);
+        $this->addDataRow($s, 'Factor de pérdidas (sin temp.)', round($lossFactor * 100, 2), '%');
+        $this->addDataRow($s, 'NOCT del módulo', ($nrg['noct'] ?? 45) . ' °C');
+        $losses = $nrg['losses'] ?? [];
+        if (!empty($losses)) {
+            $lossLabels = [
+                'soiling'   => 'Suciedad',
+                'mismatch'  => 'Desajuste',
+                'dc_wiring' => 'Cableado DC',
+                'inverter'  => 'Conversión inversor',
+                'ac_wiring' => 'Cableado AC',
+                'lid'       => 'Degradación inicial (LID)',
+            ];
+            foreach ($losses as $key => $pct) {
+                $label = $lossLabels[$key] ?? $key;
+                $this->addDataRow($s, '  — ' . $label, (float)$pct, '%');
+            }
+        }
         $this->addDataRow($s, 'Relación DC/CA',            (float)($nrg['dc_ac'] ?? 0), '', 2);
         $this->row++;
+
+        // ── Inline monthly table (to the right of Estimación Energética) ──
+        if (!empty($monthly) && count($monthly) === 12) {
+            $this->addMonthlyTableInline($s, $monthly, $energiaStartRow, $lossFactor);
+        }
 
         // ── Protecciones Eléctricas ───────────────────────────
         $this->addSectionHeader($s, 'PROTECCIONES ELÉCTRICAS — NOM-001-SEDE-2012, Art. 690.8');
@@ -251,134 +310,6 @@ class ExportService
         $s->getStyle("A{$this->row}")->getFont()->setItalic(true)->setSize(8)
           ->getColor()->setARGB(self::C_LABEL_FG);
         $s->mergeCells("A{$this->row}:C{$this->row}");
-    }
-
-    // ── Sheet 2 builder ───────────────────────────────────────
-    private function buildMonthly(Worksheet $s, array $monthly): void
-    {
-        // Detect whether consumption data was entered by the user
-        $hasConsumption = array_reduce($monthly, fn($carry, $m) => $carry || isset($m['consumo']), false);
-
-        $colCount = $hasConsumption ? 6 : 4;
-        $lastCol  = chr(64 + $colCount); // D or F
-
-        $widths = ['A' => 18, 'B' => 20, 'C' => 10, 'D' => 24];
-        if ($hasConsumption) {
-            $widths['E'] = 22;
-            $widths['F'] = 22;
-        }
-        $this->setColumnWidths($s, $widths);
-
-        $monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                       'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-        $monthDays  = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-        // Title
-        $s->setCellValue('A1', 'PRODUCCIÓN MENSUAL ESTIMADA');
-        $s->mergeCells("A1:{$lastCol}1");
-        $s->getStyle('A1')->applyFromArray([
-            'font'      => ['bold' => true, 'size' => 13, 'color' => ['argb' => self::C_TITLE_FG]],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_TITLE_BG]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'indent' => 1],
-        ]);
-        $s->getRowDimension(1)->setRowHeight(22);
-
-        // Column headers
-        $headers = ['Mes', 'GHI diario (kWh/m²)', 'Días', 'Producción estimada (kWh)'];
-        if ($hasConsumption) {
-            $headers[] = 'Consumo real (kWh)';
-            $headers[] = 'Balance (kWh)';
-        }
-        foreach ($headers as $i => $h) {
-            $col = chr(65 + $i);
-            $s->setCellValue("{$col}2", $h);
-        }
-        $s->getStyle("A2:{$lastCol}2")->applyFromArray([
-            'font'      => ['bold' => true, 'color' => ['argb' => self::C_SECTION_FG]],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-        ]);
-
-        $totalProd = 0.0;
-        $totalCons = 0.0;
-        $totalBal  = 0.0;
-
-        foreach ($monthly as $i => $m) {
-            $r    = $i + 3;
-            $bg   = ($i % 2 === 0) ? 'FFFFFFFF' : self::C_ODD_BG;
-            $prod = (float)($m['production'] ?? 0);
-            $totalProd += $prod;
-
-            $s->setCellValue("A{$r}", $monthNames[$i] ?? '—');
-            $s->setCellValue("B{$r}", (float)($m['ghi'] ?? 0));
-            $s->getStyle("B{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $s->setCellValue("C{$r}", $monthDays[$i]);
-            $s->setCellValue("D{$r}", (int)round($prod));
-
-            $s->getStyle("A{$r}:{$lastCol}{$r}")->applyFromArray([
-                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
-            ]);
-            $s->getStyle("A{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $s->getStyle("A{$r}")->getFont()->setBold(true);
-
-            if ($hasConsumption) {
-                if (isset($m['consumo'])) {
-                    $cons    = (float)$m['consumo'];
-                    $balance = (float)($m['balance'] ?? ($prod - $cons));
-                    $totalCons += $cons;
-                    $totalBal  += $balance;
-
-                    $s->setCellValue("E{$r}", (int)round($cons));
-                    $s->setCellValue("F{$r}", ($balance >= 0 ? '+' : '') . (int)round($balance));
-
-                    // Color balance cell: green if surplus, red if deficit
-                    $balFg = $balance >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
-                    $balBg = $balance >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
-                    $s->getStyle("F{$r}")->applyFromArray([
-                        'font' => ['bold' => true, 'color' => ['argb' => $balFg]],
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $balBg]],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                    ]);
-                } else {
-                    $s->setCellValue("E{$r}", '—');
-                    $s->setCellValue("F{$r}", '—');
-                }
-            }
-        }
-
-        // Total row
-        $r = count($monthly) + 3;
-        $s->setCellValue("A{$r}", 'Total anual');
-        $s->setCellValue("B{$r}", '—');
-        $s->setCellValue("C{$r}", 365);
-        $s->setCellValue("D{$r}", (int)round($totalProd));
-
-        $s->getStyle("A{$r}:{$lastCol}{$r}")->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['argb' => self::C_SECTION_FG]],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
-        ]);
-        $s->getStyle("A{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-
-        if ($hasConsumption) {
-            $s->setCellValue("E{$r}", $totalCons > 0 ? (int)round($totalCons) : '—');
-
-            if ($totalCons > 0) {
-                $s->setCellValue("F{$r}", ($totalBal >= 0 ? '+' : '') . (int)round($totalBal));
-                $balFg = $totalBal >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
-                $s->getStyle("F{$r}")->getFont()->getColor()->setARGB($balFg);
-            } else {
-                $s->setCellValue("F{$r}", '—');
-            }
-        }
-
-        // Note
-        $noteRow = $r + 2;
-        $s->setCellValue("A{$noteRow}", 'Producción estimada: P_STC (kWp) × GHI diario × días del mes × PR (0.75)');
-        $s->getStyle("A{$noteRow}")->getFont()->setItalic(true)->setSize(8)
-          ->getColor()->setARGB(self::C_LABEL_FG);
-        $s->mergeCells("A{$noteRow}:{$lastCol}{$noteRow}");
     }
 
     // ── Row helpers ───────────────────────────────────────────
@@ -530,7 +461,160 @@ class ExportService
 
         $this->row++;
     }
+    // ── Inline monthly table (Sheet 1, right of Estimación Energética) ────
+    private function addMonthlyTableInline(Worksheet $s, array $monthly, int $startRow, float $lossFactor): void
+    {
+        $hasConsumption = array_reduce($monthly, fn($carry, $m) => $carry || isset($m['consumo']), false);
+        $colCount   = $hasConsumption ? 11 : 8;
+        $base       = 4; // E = chr(65+4) = 'E'
+        $col        = fn(int $offset) => chr(65 + $base + $offset);
+        $firstCol   = $col(0);  // 'E'
+        $lastCol    = $col($colCount - 1);
 
+        $monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                       'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        $monthDays  = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+        $r = $startRow;
+
+        // ── Title ────────────────────────────────────────────────
+        $s->setCellValue("{$firstCol}{$r}", 'PRODUCCIÓN MENSUAL ESTIMADA');
+        $s->mergeCells("{$firstCol}{$r}:{$lastCol}{$r}");
+        $s->getStyle("{$firstCol}{$r}")->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 11, 'color' => ['argb' => self::C_TITLE_FG]],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_TITLE_BG]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'indent' => 1],
+        ]);
+        $r++;
+
+        // ── Column headers ────────────────────────────────────────
+        $headers = [
+            'Mes',
+            "GHI\n(kWh/m²/d)",
+            "POA\n(kWh/m²/d)",
+            "Tamb\n(°C)",
+            "Tcel\n(°C)",
+            "ftemp\n(%)",
+            'Días',
+            "Producción\n(kWh)",
+        ];
+        if ($hasConsumption) {
+            $headers[] = "Consumo\n(kWh)";
+            $headers[] = "Balance\n(kWh)";
+            $headers[] = "Bolsa\n(kWh)";
+        }
+        foreach ($headers as $i => $h) {
+            $s->setCellValue("{$col($i)}{$r}", $h);
+        }
+        $s->getStyle("{$firstCol}{$r}:{$lastCol}{$r}")->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 9, 'color' => ['argb' => self::C_SECTION_FG]],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'wrapText' => true],
+        ]);
+        $s->getRowDimension($r)->setRowHeight(28);
+        $r++;
+
+        // ── Data rows ─────────────────────────────────────────────
+        $totalProd = 0.0;
+        $totalCons = 0.0;
+        $bolsa     = 0.0;
+
+        foreach ($monthly as $i => $m) {
+            $bg   = ($i % 2 === 0) ? 'FFFFFFFF' : self::C_ODD_BG;
+            $prod = (float)($m['production'] ?? 0);
+            $totalProd += $prod;
+
+            $s->setCellValue("{$col(0)}{$r}", $monthNames[$i] ?? '—');
+            $s->setCellValue("{$col(1)}{$r}", (float)($m['ghi'] ?? 0));
+            $s->getStyle("{$col(1)}{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $s->setCellValue("{$col(2)}{$r}", round((float)($m['poa'] ?? $m['ghi'] ?? 0), 2));
+            $s->getStyle("{$col(2)}{$r}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $s->setCellValue("{$col(3)}{$r}", round((float)($m['t2m_avg'] ?? 0), 1));
+            $s->setCellValue("{$col(4)}{$r}", round((float)($m['T_cell'] ?? 0), 1));
+            $fTempPct = (((float)($m['f_temp'] ?? 1)) - 1) * 100;
+            $s->setCellValue("{$col(5)}{$r}", round($fTempPct, 1));
+            $s->setCellValue("{$col(6)}{$r}", $monthDays[$i]);
+            $s->setCellValue("{$col(7)}{$r}", (int)round($prod));
+
+            $s->getStyle("{$firstCol}{$r}:{$lastCol}{$r}")->applyFromArray([
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bg]],
+                'font'      => ['size' => 9],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+            ]);
+            $s->getStyle("{$col(0)}{$r}")->applyFromArray([
+                'font'      => ['bold' => true, 'size' => 9],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
+            ]);
+
+            if ($hasConsumption) {
+                if (isset($m['consumo'])) {
+                    $cons    = (float)$m['consumo'];
+                    $balance = (float)($m['balance'] ?? ($prod - $cons));
+                    $totalCons += $cons;
+                    $bolsa     += $balance;
+
+                    $s->setCellValue("{$col(8)}{$r}", (int)round($cons));
+                    $s->setCellValue("{$col(9)}{$r}", ($balance >= 0 ? '+' : '') . (int)round($balance));
+                    $balFg = $balance >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                    $balBg = $balance >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
+                    $s->getStyle("{$col(9)}{$r}")->applyFromArray([
+                        'font' => ['bold' => true, 'size' => 9, 'color' => ['argb' => $balFg]],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $balBg]],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
+
+                    $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                    $bolsaBg = $bolsa >= 0 ? self::C_PASS_BG : self::C_FAIL_BG;
+                    $s->setCellValue("{$col(10)}{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                    $s->getStyle("{$col(10)}{$r}")->applyFromArray([
+                        'font' => ['bold' => true, 'size' => 9, 'color' => ['argb' => $bolsaFg]],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bolsaBg]],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                    ]);
+                } else {
+                    $s->setCellValue("{$col(8)}{$r}", '—');
+                    $s->setCellValue("{$col(9)}{$r}", '—');
+                    $s->setCellValue("{$col(10)}{$r}", '—');
+                }
+            }
+            $r++;
+        }
+
+        // ── Total row ─────────────────────────────────────────────
+        $s->setCellValue("{$col(0)}{$r}", 'Total anual');
+        foreach ([1, 2, 3, 4, 5] as $ci) {
+            $s->setCellValue("{$col($ci)}{$r}", '—');
+        }
+        $s->setCellValue("{$col(6)}{$r}", 365);
+        $s->setCellValue("{$col(7)}{$r}", (int)round($totalProd));
+        $s->getStyle("{$firstCol}{$r}:{$lastCol}{$r}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 9, 'color' => ['argb' => self::C_SECTION_FG]],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => self::C_SECTION_BG]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+        ]);
+        $s->getStyle("{$col(0)}{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+
+        if ($hasConsumption) {
+            $s->setCellValue("{$col(8)}{$r}", $totalCons > 0 ? (int)round($totalCons) : '—');
+            $s->setCellValue("{$col(9)}{$r}", '—');
+            if ($totalCons > 0) {
+                $bolsaFg = $bolsa >= 0 ? self::C_PASS_FG : self::C_FAIL_FG;
+                $s->setCellValue("{$col(10)}{$r}", ($bolsa >= 0 ? '+' : '') . (int)round($bolsa));
+                $s->getStyle("{$col(10)}{$r}")->getFont()->getColor()->setARGB($bolsaFg);
+            } else {
+                $s->setCellValue("{$col(10)}{$r}", '—');
+            }
+        }
+        $r++;
+
+        // ── Note ──────────────────────────────────────────────────
+        $lfPct = round($lossFactor * 100, 1);
+        $note  = "Producción estimada: P_STC × POA × días × f_temp(Faiman) × factor pérdidas ({$lfPct}%).";
+        $s->setCellValue("{$firstCol}{$r}", $note);
+        $s->mergeCells("{$firstCol}{$r}:{$lastCol}{$r}");
+        $s->getStyle("{$firstCol}{$r}")->getFont()->setItalic(true)->setSize(8)
+          ->getColor()->setARGB(self::C_LABEL_FG);
+    }
     // ── Utility ───────────────────────────────────────────────
     /** @param array<string, int|float> $widths */
     private function setColumnWidths(Worksheet $s, array $widths): void

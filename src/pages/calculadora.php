@@ -34,9 +34,7 @@ include '../components/header-dashboard.php';
   <div class="container-fluid">
 
     <?php include '../components/calc/bloque-calc1.php'; ?>
-    <?php include '../components/calc/bloque-calc2.php'; ?>
-    <?php include '../components/calc/bloque-calc3.php'; ?>
-    <?php include '../components/calc/bloque-calc4.php'; ?>
+    <?php include '../components/calc/bloque-calc-diseno.php'; ?>
 
   </div><!-- /.container-fluid -->
 </section>
@@ -45,9 +43,7 @@ include '../components/header-dashboard.php';
 $extraScripts = <<<HTML
 <script src="{$base}/lib/leaflet.js"></script>
 <script src="{$base}/js/calc-bloque1.js"></script>
-<script src="{$base}/js/calc-bloque2.js"></script>
-<script src="{$base}/js/calc-bloque3.js"></script>
-<script src="{$base}/js/calc-bloque4.js"></script>
+<script src="{$base}/js/calc-diseno.js"></script>
 HTML;
 include '../components/footer.php';
 ?>

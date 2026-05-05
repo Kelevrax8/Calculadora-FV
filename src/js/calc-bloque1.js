@@ -6,23 +6,17 @@
   history.replaceState({ step: 1 }, '', '#paso-1');
 
   window.showStep = function (step) {
-    // Clear downstream blocks so stale selections never carry forward
-    if (step <= 3 && typeof window.resetBlock4 === 'function') window.resetBlock4();
-    if (step <= 2 && typeof window.resetBlock3 === 'function') window.resetBlock3();
-    if (step <= 1 && typeof window.resetBlock2 === 'function') window.resetBlock2();
+    // step 1 = bloque-1, step 2 = bloque-diseno
+    if (step <= 1 && typeof window.resetDisenoBlock === 'function') window.resetDisenoBlock();
 
     const blocks = [
       document.getElementById('bloque-1'),
-      document.getElementById('bloque-2'),
-      document.getElementById('bloque-3'),
-      document.getElementById('bloque-4'),
+      document.getElementById('bloque-diseno'),
     ];
     blocks.forEach((b, i) => b.classList.toggle('d-none', i + 1 !== step));
     const target = blocks[step - 1];
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    if (step === 2 && typeof window.loadPVModules === 'function') window.loadPVModules();
-    if (step === 3 && typeof window.loadInverters  === 'function') window.loadInverters();
-    if (step === 4 && typeof window.loadBlock4     === 'function') window.loadBlock4();
+    if (step === 2 && typeof window.loadDisenoBlock === 'function') window.loadDisenoBlock();
   };
 
   window.addEventListener('popstate', function (e) {
@@ -270,19 +264,13 @@
 
     // Re-inject monthly data in case resetBlock2() wiped calcState.monthly
     // (e.g. user navigated back without re-fetching NASA)
+    window.calcState      = window.calcState || {};
     if (monthlyData) {
-      window.calcState         = window.calcState || {};
       window.calcState.monthly = monthlyData;
     }
 
     history.pushState({ step: 2 }, '', '#paso-2');
     window.showStep(2);
-  });
-
-  // ── Back to Block 1 ──────────────────────────────────────
-  document.getElementById('btn-bloque2-volver').addEventListener('click', function () {
-    history.pushState({ step: 1 }, '', '#paso-1');
-    window.showStep(1);
   });
 
 })();

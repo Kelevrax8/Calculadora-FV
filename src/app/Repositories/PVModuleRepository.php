@@ -36,7 +36,7 @@ class PVModuleRepository
         $stmt = $this->pdo->prepare(
             "SELECT m.id, mf.name AS manufacturer, m.manufacturer_id, m.model,
                     m.technology, m.pmax_stc, m.voc_stc, m.isc_stc, m.vmpp_stc, m.imp_stc,
-                    m.temp_coeff_voc, m.temp_coeff_pmax, m.length_m, m.width_m,
+                    m.temp_coeff_voc, m.temp_coeff_pmax, m.noct, m.length_m, m.width_m,
                     DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at
              FROM pv_modules m
              JOIN manufacturers mf ON m.manufacturer_id = mf.id
@@ -66,7 +66,7 @@ class PVModuleRepository
         $stmt = $this->pdo->prepare(
             "SELECT m.id, mf.name AS manufacturer, m.manufacturer_id, m.model,
                     m.technology, m.pmax_stc, m.voc_stc, m.isc_stc, m.vmpp_stc, m.imp_stc,
-                    m.temp_coeff_voc, m.temp_coeff_pmax, m.length_m, m.width_m,
+                    m.temp_coeff_voc, m.temp_coeff_pmax, m.noct, m.length_m, m.width_m,
                     DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at
              FROM pv_modules m
              JOIN manufacturers mf ON m.manufacturer_id = mf.id
@@ -88,7 +88,7 @@ class PVModuleRepository
         $stmt = $this->pdo->prepare(
             "SELECT m.id, mf.name AS manufacturer, m.manufacturer_id, m.model,
                     m.technology, m.pmax_stc, m.voc_stc, m.isc_stc, m.vmpp_stc, m.imp_stc,
-                    m.temp_coeff_voc, m.temp_coeff_pmax, m.length_m, m.width_m,
+                    m.temp_coeff_voc, m.temp_coeff_pmax, m.noct, m.length_m, m.width_m,
                     DATE_FORMAT(m.created_at, '%d/%m/%Y') AS created_at
              FROM pv_modules m
              JOIN manufacturers mf ON m.manufacturer_id = mf.id
@@ -131,6 +131,7 @@ class PVModuleRepository
                      imp_stc          = :imp_stc,
                      temp_coeff_voc   = :temp_coeff_voc,
                      temp_coeff_pmax  = :temp_coeff_pmax,
+                     noct             = :noct,
                      length_m         = :length_m,
                      width_m          = :width_m
                  WHERE id = :id'
@@ -140,10 +141,10 @@ class PVModuleRepository
             $stmt = $this->pdo->prepare(
                 'INSERT INTO pv_modules
                      (manufacturer_id, model, technology, pmax_stc, voc_stc, isc_stc,
-                      vmpp_stc, imp_stc, temp_coeff_voc, temp_coeff_pmax, length_m, width_m)
+                      vmpp_stc, imp_stc, temp_coeff_voc, temp_coeff_pmax, noct, length_m, width_m)
                  VALUES
                      (:manufacturer_id, :model, :technology, :pmax_stc, :voc_stc, :isc_stc,
-                      :vmpp_stc, :imp_stc, :temp_coeff_voc, :temp_coeff_pmax, :length_m, :width_m)'
+                      :vmpp_stc, :imp_stc, :temp_coeff_voc, :temp_coeff_pmax, :noct, :length_m, :width_m)'
             );
         }
 
@@ -157,6 +158,7 @@ class PVModuleRepository
         $stmt->bindValue(':imp_stc',         $module->impStc);
         $stmt->bindValue(':temp_coeff_voc',  $module->tempCoeffVoc);
         $stmt->bindValue(':temp_coeff_pmax', $module->tempCoeffPmax);
+        $stmt->bindValue(':noct',            $module->noct);
         $stmt->bindValue(':length_m',        $module->lengthM);
         $stmt->bindValue(':width_m',         $module->widthM);
         $stmt->execute();
