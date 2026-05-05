@@ -24,6 +24,10 @@ class Inverter
         public readonly string $createdAt,
         /** @var MpptGroup[] One entry per group of identically-rated MPPT inputs. */
         public readonly array  $mpptGroups = [],
+        /** Optional aggregate parallel-string cap stated at the inverter level.
+         *  NULL = no aggregate cap; capacity is derived from per-MPPT group limits.
+         */
+        public readonly ?int   $maxTotalStrings = null,
     ) {}
 
     // ── Derived helpers ───────────────────────────────────────────────────────
@@ -35,14 +39,21 @@ class Inverter
     }
 
     /**
-     * Maximum total parallel strings this inverter can accept across all inputs:
-     * sum of (mppt_count × max_strings_per_mppt) over all groups.
+     * Maximum total parallel strings this inverter can accept across all inputs.
+     * Considers per-group hardware caps and the optional aggregate cap.
      */
     public function totalMaxStrings(): int
     {
-        return (int) array_sum(
-            array_map(fn(MpptGroup $g) => $g->mpptCount * $g->maxStringsPerMppt, $this->mpptGroups)
+        $fromGroups = (int) array_sum(
+            array_map(
+                fn(MpptGroup $g) => $g->mpptCount * ($g->maxStringsPerMppt ?? PHP_INT_MAX),
+                $this->mpptGroups
+            )
         );
+        if ($this->maxTotalStrings !== null) {
+            return min($fromGroups, $this->maxTotalStrings);
+        }
+        return $fromGroups;
     }
 
     // ── Hydration ─────────────────────────────────────────────────────────────
@@ -72,6 +83,9 @@ class Inverter
             efficiencyWeighted: (float)$row['efficiency_weighted'],
             createdAt:          (string)($row['created_at'] ?? ''),
             mpptGroups:         $groups,
+            maxTotalStrings:    isset($row['max_total_strings']) && $row['max_total_strings'] !== null
+                                    ? (int)$row['max_total_strings']
+                                    : null,
         );
     }
 
@@ -119,6 +133,7 @@ class Inverter
                 fn(MpptGroup $g) => $g->toArray(),
                 $this->mpptGroups
             ),
+            'max_total_strings'            => $this->maxTotalStrings,
         ];
     }
 }

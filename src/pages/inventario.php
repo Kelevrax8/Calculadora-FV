@@ -118,6 +118,7 @@ include '../components/header-dashboard.php';
                     <th class="text-right">Imp (A)</th>
                     <th class="text-right">β Voc (%/°C)</th>
                     <th class="text-right">β Pmax (%/°C)</th>
+                    <th class="text-right">NOCT (°C)</th>
                     <th class="text-right">Largo (m)</th>
                     <th class="text-right">Ancho (m)</th>
                     <th class="text-center" style="width:100px;">Acciones</th>
@@ -291,6 +292,12 @@ include '../components/header-dashboard.php';
             </div>
             <div class="col-sm-6">
               <div class="form-group">
+                <label>NOCT (°C) <span class="text-danger">*</span></label>
+                <input type="number" step="0.1" min="30" max="60" id="mod-noct" required class="form-control" value="45">
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-group">
                 <label>Largo (m) <span class="text-danger">*</span></label>
                 <input type="number" step="0.001" id="mod-length_m" required class="form-control">
               </div>
@@ -357,13 +364,21 @@ include '../components/header-dashboard.php';
                 <small class="text-muted font-weight-normal ml-2">(cada grupo reúne entradas con iguales especificaciones)</small>
               </label>
               <div class="alert alert-info py-1 px-2 small mb-2" role="alert">
-                <i class="fas fa-info-circle mr-1"></i>Agrupa entradas MPPT que comparten los mismos límites de corriente y strings en paralelo. Usa un grupo por cada conjunto distinto.
+                <i class="fas fa-info-circle mr-1"></i>Agrupa entradas MPPT que comparten los mismos límites de corriente. El campo <strong>Str páral./MPPT</strong> es opcional: déjalo vacío si el fabricante no especifica un límite físico de strings por entrada (la capacidad se calculará automáticamente por corriente). Usa un grupo por cada conjunto distinto.
               </div>
               <div id="inv-mppt-groups"></div>
               <button type="button" class="btn btn-xs btn-default border mt-1"
                 onclick="addMpptGroup()">
                 <i class="fas fa-plus mr-1"></i>Agregar grupo
               </button>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-group">
+                <label>Strings totales máx. (opcional)</label>
+                <input type="number" min="1" step="1" id="inv-max_total_strings" class="form-control"
+                  placeholder="Dejar vacío si no aplica">
+                <small class="text-muted">Strings totales en paralelo que admite el inversor (p.&nbsp;ej. fusión de portafusibles). Solo necesario cuando el fabricante da un tope global independiente de los MPPTs.</small>
+              </div>
             </div>
             <div class="col-sm-6">
               <div class="form-group">

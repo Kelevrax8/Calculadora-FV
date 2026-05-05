@@ -150,13 +150,6 @@
           </div>
         </fieldset>
 
-        <!-- PR note -->
-        <p class="text-muted mb-3" style="font-size:.8rem;">
-          <strong>Nota:</strong>
-          Los cálculos utilizan un factor de rendimiento (PR) de <strong>0.75</strong>,
-          valor típico en diseño preliminar que engloba pérdidas por temperatura, cableado, inversor y suciedad.
-        </p>
-
         <!-- Continue button -->
         <div class="mt-auto">
           <button type="button" id="btn-bloque1-continuar" class="btn btn-primary btn-block">

@@ -12,8 +12,10 @@ class MpptGroup
         public readonly string $label,
         /** Number of physical MPPT inputs that share these current ratings. */
         public readonly int    $mpptCount,
-        /** Maximum parallel strings the hardware allows per single MPPT input. */
-        public readonly int    $maxStringsPerMppt,
+        /** Maximum parallel strings the hardware allows per single MPPT input.
+         *  NULL = no hard hardware limit; effective capacity is derived from current ratings.
+         */
+        public readonly ?int   $maxStringsPerMppt,
         /** Maximum continuous input current per MPPT input (Idc max). */
         public readonly float  $maxInputCurrent,
         /** Maximum short-circuit current per MPPT input (Isc max). */
@@ -30,7 +32,9 @@ class MpptGroup
             inverterId:             (int)$row['inverter_id'],
             label:                  (string)$row['group_label'],
             mpptCount:              (int)$row['mppt_count'],
-            maxStringsPerMppt:      (int)$row['max_strings_per_mppt'],
+            maxStringsPerMppt:      isset($row['max_strings_per_mppt']) && $row['max_strings_per_mppt'] !== null
+                                        ? (int)$row['max_strings_per_mppt']
+                                        : null,
             maxInputCurrent:        (float)$row['max_input_current'],
             maxShortCircuitCurrent: (float)$row['max_short_circuit_current'],
         );
